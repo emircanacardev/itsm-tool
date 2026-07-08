@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ITSM.API/ITSM.API.csproj" />
+    <Project Path="src/ITSM.Application/ITSM.Application.csproj" />
+    <Project Path="src/ITSM.Domain/ITSM.Domain.csproj" />
+    <Project Path="src/ITSM.Infrastructure/ITSM.Infrastructure.csproj" />
+    <Project Path="src/ITSM.Shared/ITSM.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ITSM.UnitTests/ITSM.UnitTests.csproj" />
+  </Folder>
+</Solution>

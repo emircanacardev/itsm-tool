@@ -1,0 +1,16 @@
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\bin\Debug\net10.0\ITSM.Application.deps.json
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\bin\Debug\net10.0\ITSM.Application.dll
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\bin\Debug\net10.0\ITSM.Application.pdb
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\bin\Debug\net10.0\ITSM.Domain.dll
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\bin\Debug\net10.0\ITSM.Domain.pdb
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.csproj.AssemblyReference.cache
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.AssemblyInfoInputs.cache
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.AssemblyInfo.cs
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.csproj.CoreCompileInputs.cache
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.sourcelink.json
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.App.CBCF6023.Up2Date
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.dll
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\refint\ITSM.Application.dll
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ITSM.Application.pdb
+C:\Users\emirc\Desktop\Turkcell Staj\ITSM-Tool_Project\itsm-tool\backend\src\ITSM.Application\obj\Debug\net10.0\ref\ITSM.Application.dll

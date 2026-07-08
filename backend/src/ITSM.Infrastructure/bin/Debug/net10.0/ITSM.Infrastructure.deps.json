@@ -1,0 +1,56 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "ITSM.Infrastructure/1.0.0": {
+        "dependencies": {
+          "ITSM.Application": "1.0.0",
+          "ITSM.Domain": "1.0.0"
+        },
+        "runtime": {
+          "ITSM.Infrastructure.dll": {}
+        }
+      },
+      "ITSM.Application/1.0.0": {
+        "dependencies": {
+          "ITSM.Domain": "1.0.0"
+        },
+        "runtime": {
+          "ITSM.Application.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "ITSM.Domain/1.0.0": {
+        "runtime": {
+          "ITSM.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "ITSM.Infrastructure/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ITSM.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ITSM.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
