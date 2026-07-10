@@ -48,3 +48,23 @@ Thumbs.db
 *.mov
 *.wmv
 
+# .NET build output
+bin/
+obj/
+out/
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET secrets / local config
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+*.env
+.env
+
