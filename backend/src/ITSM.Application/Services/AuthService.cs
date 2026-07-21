@@ -1,5 +1,6 @@
 using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
+using ITSM.Domain.Entities;
 
 namespace ITSM.Application.Services;
 
@@ -34,6 +35,29 @@ public class AuthService
         }
 
         var token = _jwtTokenGenerator.GenerateToken(user);
+        return new LoginResponse { Token = token };
+    }
+
+    public async Task<LoginResponse?> RegisterAsync(RegisterRequest request)
+    {
+        var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+        if (existingUser is not null)
+        {
+            return null;
+        }
+
+        var user = new User
+        {
+            GroupId = request.GroupID,
+            FullName = request.FullName,
+            Email = request.Email,
+            PasswordHash = _passwordHasher.Hash(request.Password)
+        };
+
+        await _userRepository.AddAsync(user);
+
+        var token = _jwtTokenGenerator.GenerateToken(user);
+
         return new LoginResponse { Token = token };
     }
 }

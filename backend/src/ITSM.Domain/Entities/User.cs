@@ -7,7 +7,7 @@ public class User
     public required string FullName { get; set; }
     public required string Email { get; set; }
     public required string PasswordHash { get; set; }
-    public required bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
