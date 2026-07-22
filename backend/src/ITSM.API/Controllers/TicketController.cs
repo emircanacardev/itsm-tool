@@ -64,4 +64,19 @@ public class TicketController : ControllerBase
         return NoContent();
 
     }
+
+    [HttpPut("{id}/assign")]
+    public async Task<IActionResult> AssignTicket(long id, AssignTicketRequest request)
+    {
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userId = long.Parse(userIdClaim!);
+
+        var success = await _ticketService.AssignTicketAsync(id, request.AssignedTo, userId, request.Note);
+        if (!success)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
 }

@@ -85,4 +85,28 @@ public class TicketService
 
         return true;
     }
+
+    public async Task<bool> AssignTicketAsync(long ticketId, long assignedToUserId, long assignedByUserId, string? note)
+    {
+        var ticket = await _ticketRepository.GetByIdAsync(ticketId);
+        if (ticket is null)
+        {
+            return false;
+        }
+
+        var assignment = new TicketAssignment
+        {
+            TicketId = ticket.Id,
+            AssignedFrom = ticket.AssignedTo,
+            AssignedTo = assignedToUserId,
+            AssignedBy = assignedByUserId,
+            Note = note
+        };
+
+        ticket.AssignedTo = assignedToUserId;
+
+        await _ticketRepository.AssignAsync(ticket, assignment);
+
+        return true;
+    }
 }

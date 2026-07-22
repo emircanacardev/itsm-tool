@@ -8,4 +8,5 @@ public interface ITicketRepository
     Task<List<Ticket>> GetAllAsync();
     Task AddAsync(Ticket ticket);
     Task UpdateStatusAsync(Ticket ticket, TicketStatusHistory history);
+    Task AssignAsync(Ticket ticket, TicketAssignment assignment);
 }

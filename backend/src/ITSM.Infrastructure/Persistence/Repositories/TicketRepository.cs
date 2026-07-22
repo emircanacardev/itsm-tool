@@ -38,4 +38,11 @@ public class TicketRepository : ITicketRepository
         _context.TicketStatusHistories.Add(history);
         await _context.SaveChangesAsync();
     }
+
+    public async Task AssignAsync(Ticket ticket, TicketAssignment assignment)
+    {
+        _context.Tickets.Update(ticket);
+        _context.TicketAssignments.Add(assignment);
+        await _context.SaveChangesAsync();
+    }
 }
