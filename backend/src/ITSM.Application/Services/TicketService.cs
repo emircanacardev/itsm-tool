@@ -62,4 +62,27 @@ public class TicketService
             CreatedAt = ticket.CreatedAt
         };
     }
+
+    public async Task<bool> UpdateTicketStatusAsync(long ticketId, long newStatusId, long changedByUserId)
+    {
+        var ticket = await _ticketRepository.GetByIdAsync(ticketId);
+        if (ticket is null)
+        {
+            return false;
+        }
+
+        var history = new TicketStatusHistory
+        {
+            TicketId = ticket.Id,
+            OldStatusId = ticket.StatusId,
+            NewStatusId = newStatusId,
+            ChangedBy = changedByUserId
+        };
+
+        ticket.StatusId = newStatusId;
+
+        await _ticketRepository.UpdateStatusAsync(ticket, history);
+
+        return true;
+    }
 }

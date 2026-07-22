@@ -31,4 +31,11 @@ public class TicketRepository : ITicketRepository
         _context.Tickets.Add(ticket);
         await _context.SaveChangesAsync();
     }
+
+    public async Task UpdateStatusAsync(Ticket ticket, TicketStatusHistory history)
+    {
+        _context.Tickets.Update(ticket);
+        _context.TicketStatusHistories.Add(history);
+        await _context.SaveChangesAsync();
+    }
 }
