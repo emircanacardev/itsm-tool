@@ -59,8 +59,8 @@ Referans alınması istenen gerçek toollar: ServiceNow, Jira Service Management
 - Tüm kod Bitbucket'ta bir repo'da.
 - **Sık ve anlamlı commit'ler** — büyük tek seferlik commit yerine küçük/sık commit.
 - Her commit mesajı yapılan değişikliği açıkça ifade etmeli.
-- Branch stratejisi serbest (main/develop/feature branch vb.) — şu an `develop` üzerinde
-  çalışılıyor, `master` mainline.
+- Branch stratejisi serbest (main/develop/feature branch vb.) — uygulanan strateji ve kesin
+  commit/push kuralları için bkz. `CLAUDE.md` → "Git İş Akışı ve Commit Kuralları".
 
 ### 4.2 SonarQube
 - Proje kodu SonarQube ile taranacak.

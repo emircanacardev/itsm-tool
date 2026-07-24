@@ -75,6 +75,25 @@ dotnet ef database update --project src/ITSM.Infrastructure --startup-project sr
 - Enforcement: a policy per permission code registered in `Program.cs` (`options.AddPolicy("TICKET_CREATE", ...)`), backed by `PermissionRequirement` + `PermissionAuthorizationHandler`, which checks `IUserPermissionRepository.HasPermissionAsync`. Protect an action with `[Authorize(Policy = "TICKET_CREATE")]`.
 - When you add a new permission code, register a matching policy in `Program.cs` or the `[Authorize(Policy=...)]` will fail.
 
+## Git İş Akışı ve Commit Kuralları
+
+- **Branch stratejisi: feature-per-branch.** Her feature `develop`'tan açılan kendi branch'inde
+  yapılır (`feature/<isim>`, ör. `feature/project-category-management`). Feature bitip test
+  edilince PR ile `develop`'a merge edilir, branch silinir. `master`'a sadece belirli kilometre
+  taşlarında `develop`'tan merge yapılır.
+- **Commit ve push SADECE kullanıcı (Emircan) tarafından atılır. Claude hiçbir zaman `git commit`
+  ya da `git push` çalıştırmaz — bu kesin bir kural, istisnası yok.**
+- Claude; `git add`, `git status`, `git diff`, `git log`, branch açma (`git checkout -b ...`) gibi
+  komutları kullanıcı adına önerebilir/çalıştırabilir. Ama commit/push işlemini asla kendisi
+  yapmaz, bunu her zaman kullanıcı kendi eliyle yapar.
+- **Her feature ayrı bir commit ile kapatılır** (brief §4.1 — küçük ve sık commit kuralı, bkz.
+  `docs/proje-gereksinimleri.md`). Bir feature'ı ikiye bölüp de commit atmak (yarım/tutarsız state)
+  doğru değildir; feature tamamlanıp test edilince commit atılır.
+- Claude, bir feature'ın commit edilmesi gereken bir noktaya geldiğini fark ettiğinde (feature
+  bitti, test edildi, çalışıyor) kullanıcıyı proaktif olarak uyarmalı — "şimdi commit atmalıyız"
+  diyip commit mesajını hazırlamalıdır. Kullanıcının hatırlatmasını beklemek yerine Claude bunu
+  kendi başına fark edip söylemeli.
+
 ## Notes / current state
 
 - Permission system (Day 1 of `gelistirme-plani.md`) is built and DI-wired: `PermissionController`,
@@ -89,10 +108,10 @@ dotnet ef database update --project src/ITSM.Infrastructure --startup-project sr
   consistent with "projeler bağımsız yönetilebilmeli" and how real ITSM tools behave).
 - `Program.cs` has a temporary `/hash-test` endpoint marked `//todo: bunu sonradan kaldırıcam` — kept
   intentionally for now (demo purposes), remove before any production/merge.
-- Work happens on `develop`; `master` is the mainline. Open PRs against `master`.
 - Ticket creation currently hardcodes `StatusId = 10` ("Açık") — that magic number depends on the `SeedStatuses` migration.
-- SonarQube integration (brief-mandatory) has not been started yet — scheduled for Day 10 in
-  `gelistirme-plani.md`, but starting it earlier is lower-risk.
+- SonarQube integration (brief-mandatory) has not been started yet — split across the plan: Day 2
+  (account/local setup kickoff), Day 6 (first full scan + fix criticals), Day 10 (final scan +
+  cleanup). See `docs/gelistirme-plani.md`.
 - Only 5+ project seed data, admin panel backend, dashboard/reporting, SLA tracking, notifications,
   knowledge base, and the entire frontend are still outstanding — see `docs/gelistirme-plani.md` for
   the day-by-day breakdown.
