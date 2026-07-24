@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
+using ITSM.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
@@ -30,6 +32,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<TicketService>();
+builder.Services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -47,8 +52,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
-
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("TICKET_CREATE", policy =>
+        policy.Requirements.Add(new PermissionRequirement("TICKET_CREATE")));
+    options.AddPolicy("TICKET_ASSIGN", policy =>
+        policy.Requirements.Add(new PermissionRequirement("TICKET_ASSIGN")));
+    options.AddPolicy("TICKET_STATUS_UPDATE", policy =>
+        policy.Requirements.Add(new PermissionRequirement("TICKET_STATUS_UPDATE")));
+    options.AddPolicy("ADMIN_MANAGE", policy =>
+        policy.Requirements.Add(new PermissionRequirement("ADMIN_MANAGE")));
+});
 
 var app = builder.Build();
 
