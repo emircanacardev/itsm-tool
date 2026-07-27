@@ -35,8 +35,8 @@ Her gün sonunda bu dosyadaki durumlar (✅ bitti / 🔄 devam ediyor / ⬜ bekl
 - ✅ `ProjectController` (CRUD) — test edildi, tek proje var şimdilik, en az 5 proje seed'i kalan işlerden sonra Postman ile yapılacak
 - ✅ `CategoryController` (CRUD, projeye bağlı) — nested route + test edildi
 - ⬜ `GroupController` (admin CRUD) — brief §3.2 "farklı iş birimlerini temsil eden gruplar"
-- ⬜ `ProjectMember` yönetimi (kullanıcıyı projeye ekleme/çıkarma) — Gün 3'teki görünürlük
-  filtresinin ön koşulu
+- ✅ `ProjectMember` yönetimi (ekleme/listeleme/çıkarma) — test edildi, Gün 3'teki görünürlük
+  filtresinin ön koşulu artık hazır
 - ⬜ `Priority` seed verisi kontrolü/eklenmesi (Kritik, Yüksek, Orta, Düşük) — brief §3.4, Status'a
   benzer şekilde `HasData` ile
 - ⬜ SonarQube: hesap + local kurulum kickoff (tam entegrasyon Gün 6'da, ama erken başlatmak riski
