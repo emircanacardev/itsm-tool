@@ -37,10 +37,13 @@ Her gün sonunda bu dosyadaki durumlar (✅ bitti / 🔄 devam ediyor / ⬜ bekl
 - ⬜ `GroupController` (admin CRUD) — brief §3.2 "farklı iş birimlerini temsil eden gruplar"
 - ✅ `ProjectMember` yönetimi (ekleme/listeleme/çıkarma) — test edildi, Gün 3'teki görünürlük
   filtresinin ön koşulu artık hazır
-- ⬜ `Priority` seed verisi kontrolü/eklenmesi (Kritik, Yüksek, Orta, Düşük) — brief §3.4, Status'a
-  benzer şekilde `HasData` ile
+- ✅ `Priority` seed verisi eklendi (`HasData` migration, Kritik/Yüksek/Orta/Düşük, id 10/20/30/40).
+  Eski elle eklenmiş test verisiyle çakışma çıktı (unique constraint), DBeaver'da elle düzeltilip
+  migration manuel "uygulandı" olarak işaretlendi — bkz. commit mesajı.
 - ⬜ SonarQube: hesap + local kurulum kickoff (tam entegrasyon Gün 6'da, ama erken başlatmak riski
   azaltır)
+- ⬜ En az 5 proje seed'i tamamlanmadı — şu an sadece 1 proje var (`YZL`), `ProjectController`
+  üzerinden Postman ile 4 tane daha oluşturulacak
 
 ## Gün 3 — Ticket + Proje Görünürlük Filtresi + Yorum/Mesajlaşma + Dosya Ekleme ⬜
 
