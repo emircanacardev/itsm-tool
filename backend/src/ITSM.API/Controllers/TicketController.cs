@@ -17,6 +17,7 @@ public class TicketController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "TICKET_CREATE")]
     public async Task<IActionResult> CreateTicket(CreateTicketRequest request)
     {
         var userIdClaim = User.FindFirst("sub")?.Value;
@@ -49,6 +50,7 @@ public class TicketController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
+    [Authorize(Policy = "TICKET_STATUS_UPDATE")]
     public async Task<IActionResult> UpdateStatus(long id, UpdateTicketStatusRequest request)
     {
         var userIdClaim = User.FindFirst("sub")?.Value;
@@ -66,6 +68,7 @@ public class TicketController : ControllerBase
     }
 
     [HttpPut("{id}/assign")]
+    [Authorize(Policy = "TICKET_ASSIGN")]
     public async Task<IActionResult> AssignTicket(long id, AssignTicketRequest request)
     {
         var userIdClaim = User.FindFirst("sub")?.Value;
