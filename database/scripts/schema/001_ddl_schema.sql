@@ -88,7 +88,7 @@ CREATE TABLE priorities (
 );
 
 -- ==========================================================
--- 4. SLA (tickets'tan önce tanımlanmalı, tickets.sla_id referans verir)
+-- 4. SLA
 -- ==========================================================
 
 CREATE TABLE slas (
