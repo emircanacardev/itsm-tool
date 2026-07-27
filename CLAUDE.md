@@ -75,6 +75,17 @@ dotnet ef database update --project src/ITSM.Infrastructure --startup-project sr
 - Enforcement: a policy per permission code registered in `Program.cs` (`options.AddPolicy("TICKET_CREATE", ...)`), backed by `PermissionRequirement` + `PermissionAuthorizationHandler`, which checks `IUserPermissionRepository.HasPermissionAsync`. Protect an action with `[Authorize(Policy = "TICKET_CREATE")]`.
 - When you add a new permission code, register a matching policy in `Program.cs` or the `[Authorize(Policy=...)]` will fail.
 
+## Claude ile Çalışma Kuralı (AI Kullanımı — brief §4.4)
+
+**Claude, feature/domain kodunu (entity, DTO, repository, service, controller, migration içeriği vb.)
+kendisi dosyaya yazmaz/Edit etmez.** Kodu chat'e satır satır açıklamayla birlikte verir, kullanıcı
+kendi eliyle dosyaya yazar. Bu, brief'in "her satırı anlatabilmelisin, AI yazdı bilmiyorum kabul
+edilemez" kuralının doğal sonucu (bkz. `docs/proje-gereksinimleri.md` §4.4).
+
+İstisna: docs/plan dosyaları (`CLAUDE.md`, `docs/*.md`), config/DI wiring gibi triviyal tek satırlık
+bağlantı kodları (ör. `Program.cs`'e `AddScoped<X>()` eklemek), ve kullanıcının "sen yaz" diye açıkça
+izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
+
 ## Git İş Akışı ve Commit Kuralları
 
 - **Branch stratejisi: feature-per-branch.** Her feature `develop`'tan açılan kendi branch'inde
@@ -96,16 +107,18 @@ dotnet ef database update --project src/ITSM.Infrastructure --startup-project sr
 
 ## Notes / current state
 
-- Permission system (Day 1 of `gelistirme-plani.md`) is built and DI-wired: `PermissionController`,
+- Permission system (Day 1 of `gelistirme-plani.md`) is complete: `PermissionController`,
   `PermissionService`, `PermissionRequirement`/`PermissionAuthorizationHandler`, 4 policies
-  (`TICKET_CREATE`, `TICKET_ASSIGN`, `TICKET_STATUS_UPDATE`, `ADMIN_MANAGE`). `TICKET_CREATE` is
-  tested end-to-end (401/403/200). `TICKET_ASSIGN`/`TICKET_STATUS_UPDATE` were just attached to
-  `TicketController` and still need re-testing.
-- **Ticket visibility/confidentiality filter is NOT implemented yet.** `GetAllTickets`/`GetTicketById`
-  currently return every ticket to any authenticated user regardless of permission — this is a known
-  gap, planned for Day 3 (creator OR assignee OR project-member OR `ADMIN_MANAGE` bypass). See
-  `docs/proje-gereksinimleri.md` §7 for the rationale (not an explicit brief requirement, but
-  consistent with "projeler bağımsız yönetilebilmeli" and how real ITSM tools behave).
+  (`TICKET_CREATE`, `TICKET_ASSIGN`, `TICKET_STATUS_UPDATE`, `ADMIN_MANAGE`), all tested end-to-end
+  (403 without grant, 200/204 with grant).
+- **Ticket AND Project visibility/confidentiality filters are NOT implemented yet.**
+  `GetAllTickets`/`GetTicketById` and `ProjectController.GetAllProjects`/`GetProjectById` all
+  currently return every row to any authenticated user regardless of membership — this is a known
+  gap, planned for Day 3 (creator OR assignee OR project-member OR `ADMIN_MANAGE` bypass for
+  tickets; project-member OR `ADMIN_MANAGE` bypass for projects — same `ProjectMember` join reused
+  for both). See `docs/proje-gereksinimleri.md` §7 for the rationale (not an explicit brief
+  requirement, but consistent with "projeler bağımsız yönetilebilmeli" and how real ITSM tools
+  behave). Blocked on `ProjectMember` management existing first (Day 2).
 - `Program.cs` has a temporary `/hash-test` endpoint marked `//todo: bunu sonradan kaldırıcam` — kept
   intentionally for now (demo purposes), remove before any production/merge.
 - Ticket creation currently hardcodes `StatusId = 10` ("Açık") — that magic number depends on the `SeedStatuses` migration.

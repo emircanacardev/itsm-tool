@@ -11,7 +11,7 @@ Her gün sonunda bu dosyadaki durumlar (✅ bitti / 🔄 devam ediyor / ⬜ bekl
 
 | Gün | Tarih | Konu |
 |---|---|---|
-| 1 | 23.07 Per | ✅ Yetkilendirme (Permission) sistemi |
+| 1 | 23.07 Per | ✅ Yetkilendirme (Permission) sistemi (tamamlandı) |
 | 2 | 24.07 Cum (bugün) | Proje / Kategori / Grup yönetimi + Priority seed |
 | 3 | 25.07 Cmt | Ticket görünürlük filtresi + Yorum/Mesajlaşma + Dosya ekleme |
 | 4 | 26.07 Paz | Bilgi bankası (Knowledge Base) + Arama & Filtreleme |
@@ -29,14 +29,11 @@ Her gün sonunda bu dosyadaki durumlar (✅ bitti / 🔄 devam ediyor / ⬜ bekl
 - ✅ `PermissionController`, `PermissionService`, `IUserPermissionRepository` + impl
 - ✅ 4 policy: `TICKET_CREATE`, `TICKET_ASSIGN`, `TICKET_STATUS_UPDATE`, `ADMIN_MANAGE`
 - ✅ `TICKET_CREATE` policy uçtan uca test edildi (401 → 403 → 200)
-- 🔄 `TICKET_ASSIGN` / `TICKET_STATUS_UPDATE` policy'leri controller'a eklendi, yeniden test bekliyor
-  (Gün 2'ye taşındı, ilk iş olarak bitirilecek)
+- ✅ `TICKET_ASSIGN` / `TICKET_STATUS_UPDATE` policy'leri test edildi (403 → 204 doğrulandı)
 
-## Gün 2 — Proje / Kategori / Grup Yönetimi + Priority Seed 🔄
-
-- ⬜ (Gün 1 artığı) `TICKET_ASSIGN` / `TICKET_STATUS_UPDATE` policy testi
-- ⬜ `ProjectController` (CRUD) — brief zorunluluğu: **en az 5 proje** seed'i
-- ⬜ `CategoryController` (CRUD, projeye bağlı)
+## Gün 2 — Proje / Kategori / Grup Yönetimi + Priority Seed ⬜
+- ✅ `ProjectController` (CRUD) — test edildi, tek proje var şimdilik, en az 5 proje seed'i kalan işlerden sonra Postman ile yapılacak
+- ✅ `CategoryController` (CRUD, projeye bağlı) — nested route + test edildi
 - ⬜ `GroupController` (admin CRUD) — brief §3.2 "farklı iş birimlerini temsil eden gruplar"
 - ⬜ `ProjectMember` yönetimi (kullanıcıyı projeye ekleme/çıkarma) — Gün 3'teki görünürlük
   filtresinin ön koşulu
@@ -45,13 +42,17 @@ Her gün sonunda bu dosyadaki durumlar (✅ bitti / 🔄 devam ediyor / ⬜ bekl
 - ⬜ SonarQube: hesap + local kurulum kickoff (tam entegrasyon Gün 6'da, ama erken başlatmak riski
   azaltır)
 
-## Gün 3 — Ticket Görünürlük Filtresi + Yorum/Mesajlaşma + Dosya Ekleme ⬜
+## Gün 3 — Ticket + Proje Görünürlük Filtresi + Yorum/Mesajlaşma + Dosya Ekleme ⬜
 
 - ⬜ Görünürlük kuralı: kullanıcı bir ticket'ı görebilir ⟺ (oluşturan O) OR (atanan O) OR (proje
   üyesi O) OR (`ADMIN_MANAGE` yetkisi var). Bkz. `proje-gereksinimleri.md` §7.
 - ⬜ `ITicketRepository.GetAllAsync(long userId)` imzası değişecek, `ProjectMembers` join'i eklenecek
 - ⬜ `TicketService.GetAllTicketsAsync` ve `TicketController.GetAllTickets` userId taşıyacak
 - ⬜ `GetTicketById` için de aynı koruma
+- ⬜ **TODO (Gün 2'de flag'lendi):** `ProjectController.GetAllProjects`/`GetProjectById` de aynı
+  şekilde korunmalı — normal kullanıcı sadece üyesi olduğu projeleri görmeli, `ADMIN_MANAGE` bypass.
+  Aynı `ProjectMember` join mekanizması hem Project hem Ticket için burada birlikte yazılacak. Gün
+  2'de bilinçli olarak açık bırakıldı çünkü `ProjectMember` yönetimi henüz yoktu.
 - ⬜ Ticket üzerine yorum/mesajlaşma (bonus, brief §5) — `TicketComment` entity + endpoint
 - ⬜ Dosya ekleme (bonus, brief §5) — ticket'a ekran görüntüsü/dosya yükleme, `TicketAttachment`
   entity + dosya depolama (yerel disk ya da basit bir blob çözümü)
