@@ -1,15 +1,16 @@
 using ITSM.Application.Interfaces;
 using ITSM.Application.Services;
+using ITSM.Infrastructure.Authorization;
 using ITSM.Infrastructure.Persistence;
 using ITSM.Infrastructure.Persistence.Repositories;
 using ITSM.Infrastructure.Security;
+using ITSM.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
-using ITSM.Infrastructure.Authorization;
-using Microsoft.AspNetCore.Authorization;
 
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
@@ -43,6 +44,11 @@ builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
 builder.Services.AddScoped<ProjectMemberService>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<CommentService>();
+builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<AttachmentService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
