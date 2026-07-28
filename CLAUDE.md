@@ -122,9 +122,11 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
 - `Program.cs` has a temporary `/hash-test` endpoint marked `//todo: bunu sonradan kaldırıcam` — kept
   intentionally for now (demo purposes), remove before any production/merge.
 - Ticket creation currently hardcodes `StatusId = 10` ("Açık") — that magic number depends on the `SeedStatuses` migration.
-- SonarQube integration (brief-mandatory) has not been started yet — split across the plan: Day 2
-  (account/local setup kickoff), Day 6 (first full scan + fix criticals), Day 10 (final scan +
-  cleanup). See `docs/gelistirme-plani.md`.
+- SonarQube (brief-mandatory) is running locally via Docker (Community Edition, `localhost:9000`,
+  container name `sonarqube` — restart with `docker start sonarqube`, don't `docker run` again).
+  Project key `itsm-tool`. First scan (`dotnet sonarscanner begin/end`, run from `backend/`)
+  completed successfully. `.sonarqube/` (scanner working files, regenerated every run) is
+  gitignored — never commit it. Full findings review/cleanup is Day 6, final scan Day 10.
 - Only 5+ project seed data, admin panel backend, dashboard/reporting, SLA tracking, notifications,
   knowledge base, and the entire frontend are still outstanding — see `docs/gelistirme-plani.md` for
   the day-by-day breakdown.
