@@ -12,5 +12,9 @@ public class AttachmentConfiguration : IEntityTypeConfiguration<Attachment>
         builder.Property(a => a.FilePath).HasMaxLength(500);
         builder.ToTable(t => t.HasCheckConstraint("CK_Attachment_TicketOrComment", "\"TicketId\" IS NOT NULL OR \"CommentId\" IS NOT NULL"));
 
+        builder.HasOne(a => a.UploadedByUser)
+            .WithMany()
+            .HasForeignKey(a => a.UploadedBy)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

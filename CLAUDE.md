@@ -125,6 +125,18 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   Project key `itsm-tool`. First scan (`dotnet sonarscanner begin/end`, run from `backend/`)
   completed successfully. `.sonarqube/` (scanner working files, regenerated every run) is
   gitignored — never commit it. Full findings review/cleanup is Day 6, final scan Day 10.
-- Only 5+ project seed data, admin panel backend, dashboard/reporting, SLA tracking, notifications,
-  knowledge base, and the entire frontend are still outstanding — see `docs/gelistirme-plani.md` for
-  the day-by-day breakdown.
+- Day 3 is fully complete: visibility filters, ticket comments (`CommentService` reuses
+  `TicketService.GetTicketByIdAsync` for the access check instead of duplicating it — first case of
+  a Service depending on another Service), and ticket attachments (`IFileStorageService`
+  abstraction in Infrastructure, GUID-based stored filenames to avoid path traversal).
+- **Gotcha found and fixed on Day 3:** any entity with a non-conventionally-named FK/navigation pair
+  (like `Attachment.UploadedBy` / `UploadedByUser`) needs an explicit `HasForeignKey` in its
+  `IEntityTypeConfiguration<T>`, or EF Core silently creates an unused shadow FK column and the real
+  column never gets enforced/populated — this caused a real runtime FK violation on first use.
+  `AttachmentConfiguration` was missing this (an oversight from the original bulk config pass); if a
+  new FK violation shows up on an old, untested entity, check this first (`Notification`, `SlaBreach`,
+  `AuditLog`, `AutoAssignmentRule`, `KnowledgeBaseArticle` haven't been exercised yet and may have the
+  same latent issue).
+- Admin panel backend, dashboard/reporting, SLA tracking, notifications, knowledge base, and the
+  entire frontend are still outstanding — see `docs/gelistirme-plani.md` for the day-by-day
+  breakdown.
