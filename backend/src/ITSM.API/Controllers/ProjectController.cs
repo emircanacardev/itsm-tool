@@ -32,14 +32,20 @@ public class ProjectController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllProjects()
     {
-        var result = await _projectService.GetAllProjectsAsync();
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userId = long.Parse(userIdClaim!);
+
+        var result = await _projectService.GetAllProjectsAsync(userId);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProjectById(long id)
     {
-        var result = await _projectService.GetProjectByIdAsync(id);
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userId = long.Parse(userIdClaim!);
+
+        var result = await _projectService.GetProjectByIdAsync(id, userId);
         if (result is null)
         {
             return NotFound();
