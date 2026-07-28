@@ -7,10 +7,17 @@ namespace ITSM.Application.Services;
 public class TicketService
 {
     private readonly ITicketRepository _ticketRepository;
+    private readonly IUserPermissionRepository _userPermissionRepository;
+    private readonly IProjectMemberRepository _projectMemberRepository;
 
-    public TicketService(ITicketRepository ticketRepository)
+    public TicketService(
+        ITicketRepository ticketRepository,
+        IUserPermissionRepository userPermissionRepository,
+        IProjectMemberRepository projectMemberRepository)
     {
         _ticketRepository = ticketRepository;
+        _userPermissionRepository = userPermissionRepository;
+        _projectMemberRepository = projectMemberRepository;
     }
 
     public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, long createdByUserId)
@@ -33,7 +40,7 @@ public class TicketService
         return MapToResponse(createdTicket!);
     }
 
-    public async Task<TicketResponse?> GetTicketByIdAsync(long id)
+    public async Task<TicketResponse?> GetTicketByIdAsync(long id, long userId)
     {
         var ticket = await _ticketRepository.GetByIdAsync(id);
         if (ticket is null)
@@ -41,12 +48,28 @@ public class TicketService
             return null;
         }
 
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        if (isAdmin)
+        {
+            return MapToResponse(ticket);
+        }
+
+        var isCreator = ticket.CreatedBy == userId;
+        var isAssignee = ticket.AssignedTo == userId;
+        var isProjectMember = await _projectMemberRepository.GetByProjectAndUserAsync(ticket.ProjectId, userId) is not null;
+
+        if (!isCreator && !isAssignee && !isProjectMember)
+        {
+            return null;
+        }
+
         return MapToResponse(ticket);
     }
 
-    public async Task<List<TicketResponse>> GetAllTicketsAsync()
+    public async Task<List<TicketResponse>> GetAllTicketsAsync(long userId)
     {
-        var tickets = await _ticketRepository.GetAllAsync();
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var tickets = await _ticketRepository.GetAllAsync(userId, includeAll: isAdmin);
         return tickets.Select(MapToResponse).ToList();
     }
 

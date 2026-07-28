@@ -7,10 +7,17 @@ namespace ITSM.Application.Services;
 public class ProjectService
 {
     private readonly IProjectRepository _projectRepository;
+    private readonly IUserPermissionRepository _userPermissionRepository;
+    private readonly IProjectMemberRepository _projectMemberRepository;
 
-    public ProjectService(IProjectRepository projectRepository)
+    public ProjectService(
+        IProjectRepository projectRepository,
+        IUserPermissionRepository userPermissionRepository,
+        IProjectMemberRepository projectMemberRepository)
     {
         _projectRepository = projectRepository;
+        _userPermissionRepository = userPermissionRepository;
+        _projectMemberRepository = projectMemberRepository;
     }
 
     public async Task<ProjectResponse?> CreateProjectAsync(CreateProjectRequest request)
@@ -33,19 +40,37 @@ public class ProjectService
         return MapToResponse(project);
     }
 
-    public async Task<List<ProjectResponse>> GetAllProjectsAsync()
+    public async Task<List<ProjectResponse>> GetAllProjectsAsync(long userId)
     {
-        var projects = await _projectRepository.GetAllAsync();
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+
+        var projects = isAdmin
+            ? await _projectRepository.GetAllAsync()
+            : await _projectRepository.GetAllForUserAsync(userId);
+
         return projects.Select(MapToResponse).ToList();
     }
 
-    public async Task<ProjectResponse?> GetProjectByIdAsync(long id)
+    public async Task<ProjectResponse?> GetProjectByIdAsync(long id, long userId)
     {
         var project = await _projectRepository.GetByIdAsync(id);
         if (project is null)
         {
             return null;
         }
+
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        if (isAdmin)
+        {
+            return MapToResponse(project);
+        }
+
+        var isMember = await _projectMemberRepository.GetByProjectAndUserAsync(id, userId) is not null;
+        if (!isMember)
+        {
+            return null;
+        }
+
         return MapToResponse(project);
     }
 

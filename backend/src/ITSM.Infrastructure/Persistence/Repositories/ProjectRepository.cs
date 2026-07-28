@@ -40,4 +40,10 @@ public class ProjectRepository : IProjectRepository
         _context.Projects.Update(project);
         await _context.SaveChangesAsync();
     }
+    public async Task<List<Project>> GetAllForUserAsync(long userId)
+    {
+        return await _context.Projects
+            .Where(p => _context.ProjectMembers.Any(pm => pm.ProjectId == p.Id && pm.UserId == userId))
+            .ToListAsync();
+    }
 }

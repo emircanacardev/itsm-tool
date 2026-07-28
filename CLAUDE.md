@@ -111,20 +111,20 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   `PermissionService`, `PermissionRequirement`/`PermissionAuthorizationHandler`, 4 policies
   (`TICKET_CREATE`, `TICKET_ASSIGN`, `TICKET_STATUS_UPDATE`, `ADMIN_MANAGE`), all tested end-to-end
   (403 without grant, 200/204 with grant).
-- **Ticket AND Project visibility/confidentiality filters are NOT implemented yet.**
-  `GetAllTickets`/`GetTicketById` and `ProjectController.GetAllProjects`/`GetProjectById` all
-  currently return every row to any authenticated user regardless of membership — this is a known
-  gap, planned for Day 3 (creator OR assignee OR project-member OR `ADMIN_MANAGE` bypass for
-  tickets; project-member OR `ADMIN_MANAGE` bypass for projects — same `ProjectMember` join reused
-  for both). See `docs/proje-gereksinimleri.md` §7 for the rationale (not an explicit brief
-  requirement, but consistent with "projeler bağımsız yönetilebilmeli" and how real ITSM tools
-  behave). Blocked on `ProjectMember` management existing first (Day 2).
+- **Ticket and Project visibility/confidentiality filters are implemented (Day 3).**
+  `TicketService`/`ProjectService` both take a `userId` and check `ADMIN_MANAGE` first (bypass);
+  non-admins are filtered via a correlated `ProjectMembers` subquery (`IsAdmin ? GetAllAsync() :
+  GetAllForUserAsync(userId)` pattern). Unauthorized single-resource access returns 404, not 403
+  (deliberate — avoids leaking existence of a resource the user can't see). See
+  `docs/proje-gereksinimleri.md` §7 for the rationale.
 - `Program.cs` has a temporary `/hash-test` endpoint marked `//todo: bunu sonradan kaldırıcam` — kept
   intentionally for now (demo purposes), remove before any production/merge.
 - Ticket creation currently hardcodes `StatusId = 10` ("Açık") — that magic number depends on the `SeedStatuses` migration.
-- SonarQube integration (brief-mandatory) has not been started yet — split across the plan: Day 2
-  (account/local setup kickoff), Day 6 (first full scan + fix criticals), Day 10 (final scan +
-  cleanup). See `docs/gelistirme-plani.md`.
+- SonarQube (brief-mandatory) is running locally via Docker (Community Edition, `localhost:9000`,
+  container name `sonarqube` — restart with `docker start sonarqube`, don't `docker run` again).
+  Project key `itsm-tool`. First scan (`dotnet sonarscanner begin/end`, run from `backend/`)
+  completed successfully. `.sonarqube/` (scanner working files, regenerated every run) is
+  gitignored — never commit it. Full findings review/cleanup is Day 6, final scan Day 10.
 - Only 5+ project seed data, admin panel backend, dashboard/reporting, SLA tracking, notifications,
   knowledge base, and the entire frontend are still outstanding — see `docs/gelistirme-plani.md` for
   the day-by-day breakdown.
