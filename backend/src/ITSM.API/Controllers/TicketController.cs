@@ -31,7 +31,10 @@ public class TicketController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllTickets()
     {
-        var result = await _ticketService.GetAllTicketsAsync();
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userId = long.Parse(userIdClaim!);
+
+        var result = await _ticketService.GetAllTicketsAsync(userId);
 
         return Ok(result);
     }
@@ -39,7 +42,10 @@ public class TicketController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTicketById(long id)
     {
-        var result = await _ticketService.GetTicketByIdAsync(id);
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userId = long.Parse(userIdClaim!);
+
+        var result = await _ticketService.GetTicketByIdAsync(id, userId);
 
         if (result is null)
         {

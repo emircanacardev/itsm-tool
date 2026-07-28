@@ -18,12 +18,22 @@ public class TicketRepository : ITicketRepository
          return await _context.Tickets.Include(t => t.Status).Include(t => t.Priority).FirstOrDefaultAsync(t => t.Id == id);
     }
 
-    public async Task<List<Ticket>> GetAllAsync()
+    public async Task<List<Ticket>> GetAllAsync(long userId, bool includeAll)
     {
-        return await _context.Tickets
+        var query = _context.Tickets
             .Include(t => t.Status)
             .Include(t => t.Priority)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (!includeAll)
+        {
+            query = query.Where(t =>
+                t.CreatedBy == userId ||
+                t.AssignedTo == userId ||
+                _context.ProjectMembers.Any(pm => pm.ProjectId == t.ProjectId && pm.UserId == userId));
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task AddAsync(Ticket ticket)
