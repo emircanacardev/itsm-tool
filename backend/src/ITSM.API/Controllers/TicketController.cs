@@ -29,12 +29,12 @@ public class TicketController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllTickets()
+    public async Task<IActionResult> GetAllTickets([FromQuery] TicketFilterRequest filter)
     {
         var userIdClaim = User.FindFirst("sub")?.Value;
         var userId = long.Parse(userIdClaim!);
 
-        var result = await _ticketService.GetAllTicketsAsync(userId);
+        var result = await _ticketService.GetAllTicketsAsync(userId, filter);
 
         return Ok(result);
     }
