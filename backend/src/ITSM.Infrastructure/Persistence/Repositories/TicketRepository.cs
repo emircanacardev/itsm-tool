@@ -18,7 +18,14 @@ public class TicketRepository : ITicketRepository
          return await _context.Tickets.Include(t => t.Status).Include(t => t.Priority).FirstOrDefaultAsync(t => t.Id == id);
     }
 
-    public async Task<List<Ticket>> GetAllAsync(long userId, bool includeAll)
+    public async Task<List<Ticket>> GetAllAsync(
+        long userId,
+        bool includeAll,
+        long? statusId,
+        long? priorityId,
+        long? projectId,
+        DateTimeOffset? fromDate,
+        DateTimeOffset? toDate)
     {
         var query = _context.Tickets
             .Include(t => t.Status)
@@ -31,6 +38,31 @@ public class TicketRepository : ITicketRepository
                 t.CreatedBy == userId ||
                 t.AssignedTo == userId ||
                 _context.ProjectMembers.Any(pm => pm.ProjectId == t.ProjectId && pm.UserId == userId));
+        }
+
+        if (statusId is not null)
+        {
+            query = query.Where(t => t.StatusId == statusId);
+        }
+
+        if (priorityId is not null)
+        {
+            query = query.Where(t => t.PriorityId == priorityId);
+        }
+
+        if (projectId is not null)
+        {
+            query = query.Where(t => t.ProjectId == projectId);
+        }
+
+        if (fromDate is not null)
+        {
+            query = query.Where(t => t.CreatedAt >= fromDate);
+        }
+
+        if (toDate is not null)
+        {
+            query = query.Where(t => t.CreatedAt <= toDate);
         }
 
         return await query.ToListAsync();
