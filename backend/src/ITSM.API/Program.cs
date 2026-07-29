@@ -49,6 +49,8 @@ builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<AttachmentService>();
+builder.Services.AddScoped<IKnowledgeBaseArticleRepository, KnowledgeBaseArticleRepository>();
+builder.Services.AddScoped<KnowledgeBaseArticleService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
