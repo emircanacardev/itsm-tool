@@ -40,4 +40,23 @@ public class SlaRepository : ISlaRepository
             s.CategoryId == categoryId &&
             s.PriorityId == priorityId);
     }
+
+    public async Task<Sla?> GetApplicableSlaAsync(long projectId, long categoryId, long priorityId)
+    {
+        var sla = await _context.Slas.FirstOrDefaultAsync(s =>
+            s.ProjectId == projectId && s.CategoryId == categoryId && s.PriorityId == priorityId);
+        if (sla is not null) { return sla; }
+
+        sla = await _context.Slas.FirstOrDefaultAsync(s =>
+            s.ProjectId == projectId && s.CategoryId == null && s.PriorityId == priorityId);
+        if (sla is not null) { return sla; }
+
+        sla = await _context.Slas.FirstOrDefaultAsync(s =>
+            s.ProjectId == null && s.CategoryId == categoryId && s.PriorityId == priorityId);
+        if (sla is not null) { return sla; }
+
+        sla = await _context.Slas.FirstOrDefaultAsync(s =>
+            s.ProjectId == null && s.CategoryId == null && s.PriorityId == priorityId);
+        return sla;
+    }
 }

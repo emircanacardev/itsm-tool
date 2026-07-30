@@ -10,17 +10,20 @@ public class TicketService
     private readonly IUserPermissionRepository _userPermissionRepository;
     private readonly IProjectMemberRepository _projectMemberRepository;
     private readonly INotificationRepository _notificationRepository;
+    private readonly ISlaRepository _slaRepository;
 
     public TicketService(
         ITicketRepository ticketRepository,
         IUserPermissionRepository userPermissionRepository,
         IProjectMemberRepository projectMemberRepository,
-        INotificationRepository notificationRepository)
+        INotificationRepository notificationRepository,
+        ISlaRepository slaRepository)
     {
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
         _projectMemberRepository = projectMemberRepository;
         _notificationRepository = notificationRepository;
+        _slaRepository = slaRepository;
     }
 
     public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, long createdByUserId)
@@ -36,6 +39,15 @@ public class TicketService
             PriorityId = request.PriorityId,
             CreatedBy = createdByUserId
         };
+
+        var applicableSla = await _slaRepository.GetApplicableSlaAsync(
+            request.ProjectId, request.CategoryId, request.PriorityId);
+
+        if (applicableSla is not null)
+        {
+            ticket.SlaId = applicableSla.Id;
+            ticket.DueAt = DateTimeOffset.UtcNow.AddMinutes(applicableSla.ResolutionTimeMinutes);
+        }
 
         await _ticketRepository.AddAsync(ticket);
 
