@@ -9,15 +9,21 @@ public class TicketService
     private readonly ITicketRepository _ticketRepository;
     private readonly IUserPermissionRepository _userPermissionRepository;
     private readonly IProjectMemberRepository _projectMemberRepository;
+    private readonly NotificationService _notificationService;
+    private readonly ISlaRepository _slaRepository;
 
     public TicketService(
         ITicketRepository ticketRepository,
         IUserPermissionRepository userPermissionRepository,
-        IProjectMemberRepository projectMemberRepository)
+        IProjectMemberRepository projectMemberRepository,
+        NotificationService notificationService,
+        ISlaRepository slaRepository)
     {
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
         _projectMemberRepository = projectMemberRepository;
+        _notificationService = notificationService;
+        _slaRepository = slaRepository;
     }
 
     public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, long createdByUserId)
@@ -33,6 +39,15 @@ public class TicketService
             PriorityId = request.PriorityId,
             CreatedBy = createdByUserId
         };
+
+        var applicableSla = await _slaRepository.GetApplicableSlaAsync(
+            request.ProjectId, request.CategoryId, request.PriorityId);
+
+        if (applicableSla is not null)
+        {
+            ticket.SlaId = applicableSla.Id;
+            ticket.DueAt = DateTimeOffset.UtcNow.AddMinutes(applicableSla.ResolutionTimeMinutes);
+        }
 
         await _ticketRepository.AddAsync(ticket);
 
@@ -115,6 +130,15 @@ public class TicketService
 
         await _ticketRepository.UpdateStatusAsync(ticket, history);
 
+        if (ticket.CreatedBy != changedByUserId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedBy,
+                ticket.Id,
+                "TicketStatusChanged",
+                $"\"{ticket.Title}\" başlıklı talebinizin durumu güncellendi.");
+        }
+
         return true;
     }
 
@@ -138,6 +162,15 @@ public class TicketService
         ticket.AssignedTo = assignedToUserId;
 
         await _ticketRepository.AssignAsync(ticket, assignment);
+
+        if (assignedToUserId != assignedByUserId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                assignedToUserId,
+                ticket.Id,
+                "TicketAssigned",
+                $"\"{ticket.Title}\" başlıklı talep size atandı.");
+        }
 
         return true;
     }

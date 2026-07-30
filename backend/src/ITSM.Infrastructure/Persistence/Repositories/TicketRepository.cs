@@ -87,4 +87,10 @@ public class TicketRepository : ITicketRepository
         _context.TicketAssignments.Add(assignment);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<List<Ticket>> GetActiveTicketsWithSlaAsync() =>
+    await _context.Tickets
+        .Where(t => t.SlaId != null && t.StatusId != 40 && t.StatusId != 50)
+        .Include(t => t.Sla)
+        .ToListAsync();
 }
