@@ -1,11 +1,18 @@
 using ITSM.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace ITSM.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor)
+        : base(options)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
 
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<User> Users => Set<User>();
@@ -32,5 +39,47 @@ public class AppDbContext : DbContext
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var trackedChanges = ChangeTracker.Entries()
+            .Where(e => e.Entity is not AuditLog &&
+                (e.State == EntityState.Added ||
+                 e.State == EntityState.Modified ||
+                 e.State == EntityState.Deleted))
+            .Select(e => (Entity: e.Entity, State: e.State))
+            .ToList();
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        if (trackedChanges.Count > 0)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            foreach (var change in trackedChanges)
+            {
+                var idProperty = change.Entity.GetType().GetProperty("Id");
+                var entityId = idProperty is not null ? (long)idProperty.GetValue(change.Entity)! : 0;
+
+                AuditLogs.Add(new AuditLog
+                {
+                    UserId = currentUserId,
+                    EntityName = change.Entity.GetType().Name,
+                    EntityId = entityId,
+                    Action = change.State.ToString()
+                });
+            }
+
+            await base.SaveChangesAsync(cancellationToken);
+        }
+
+        return result;
+    }
+
+    private long? GetCurrentUserId()
+    {
+        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
+        return userIdClaim is not null ? long.Parse(userIdClaim) : null;
     }
 }

@@ -34,6 +34,11 @@ public class AuthService
             return null;
         }
 
+        if (!user.IsActive)
+        {
+            return null;
+        }
+
         var token = _jwtTokenGenerator.GenerateToken(user);
         return new LoginResponse { Token = token };
     }

@@ -24,8 +24,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(
         new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddOpenApi();
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -33,6 +33,7 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<TicketService>();
 builder.Services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
@@ -60,6 +61,10 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ISlaBreachRepository, SlaBreachRepository>();
 builder.Services.AddHostedService<SlaBreachDetectionService>();
 builder.Services.AddScoped<IEmailService, MailKitEmailService>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<IAutoAssignmentRuleRepository, AutoAssignmentRuleRepository>();
+builder.Services.AddScoped<AutoAssignmentService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

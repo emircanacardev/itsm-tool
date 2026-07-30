@@ -17,4 +17,5 @@ public interface ITicketRepository
     Task UpdateStatusAsync(Ticket ticket, TicketStatusHistory history);
     Task AssignAsync(Ticket ticket, TicketAssignment assignment);
     Task<List<Ticket>> GetActiveTicketsWithSlaAsync();
+    Task<long?> GetLeastLoadedUserInGroupAsync(long groupId);
 }
