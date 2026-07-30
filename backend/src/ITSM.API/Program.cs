@@ -63,6 +63,8 @@ builder.Services.AddHostedService<SlaBreachDetectionService>();
 builder.Services.AddScoped<IEmailService, MailKitEmailService>();
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<IAutoAssignmentRuleRepository, AutoAssignmentRuleRepository>();
+builder.Services.AddScoped<AutoAssignmentService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

@@ -1,0 +1,50 @@
+using ITSM.Application.DTOs;
+using ITSM.Application.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace ITSM.API.Controllers;
+
+[ApiController]
+[Route("api/project/{projectId}/auto-assignment-rules")]
+[Authorize(Policy = "ADMIN_MANAGE")]
+public class AutoAssignmentRuleController : ControllerBase
+{
+    private readonly AutoAssignmentService _autoAssignmentService;
+
+    public AutoAssignmentRuleController(AutoAssignmentService autoAssignmentService)
+    {
+        _autoAssignmentService = autoAssignmentService;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateRule(long projectId, CreateAutoAssignmentRuleRequest request)
+    {
+        var result = await _autoAssignmentService.CreateRuleAsync(projectId, request);
+        if (result is null)
+        {
+            return BadRequest("assignToUserId veya assignToGroupId alanlarından tam olarak biri dolu olmalı.");
+        }
+
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetRules(long projectId)
+    {
+        var result = await _autoAssignmentService.GetRulesForProjectAsync(projectId);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteRule(long projectId, long id)
+    {
+        var success = await _autoAssignmentService.DeleteRuleAsync(id, projectId);
+        if (!success)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+}
