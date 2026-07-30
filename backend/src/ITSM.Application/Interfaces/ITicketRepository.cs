@@ -16,4 +16,5 @@ public interface ITicketRepository
     Task AddAsync(Ticket ticket);
     Task UpdateStatusAsync(Ticket ticket, TicketStatusHistory history);
     Task AssignAsync(Ticket ticket, TicketAssignment assignment);
+    Task<List<Ticket>> GetActiveTicketsWithSlaAsync();
 }
