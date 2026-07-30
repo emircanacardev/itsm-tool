@@ -61,6 +61,8 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ISlaBreachRepository, SlaBreachRepository>();
 builder.Services.AddHostedService<SlaBreachDetectionService>();
 builder.Services.AddScoped<IEmailService, MailKitEmailService>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<DashboardService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
