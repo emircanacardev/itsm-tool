@@ -93,4 +93,14 @@ public class TicketRepository : ITicketRepository
         .Where(t => t.SlaId != null && t.StatusId != 40 && t.StatusId != 50)
         .Include(t => t.Sla)
         .ToListAsync();
+
+    public async Task<long?> GetLeastLoadedUserInGroupAsync(long groupId)
+    {
+        return await _context.Users
+            .Where(u => u.GroupId == groupId && u.IsActive)
+            .OrderBy(u => _context.Tickets.Count(t =>
+                t.AssignedTo == u.Id && t.StatusId != 40 && t.StatusId != 50))
+            .Select(u => (long?)u.Id)
+            .FirstOrDefaultAsync();
+    }
 }

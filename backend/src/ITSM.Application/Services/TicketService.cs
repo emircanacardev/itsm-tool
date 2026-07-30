@@ -11,19 +11,22 @@ public class TicketService
     private readonly IProjectMemberRepository _projectMemberRepository;
     private readonly NotificationService _notificationService;
     private readonly ISlaRepository _slaRepository;
+    private readonly AutoAssignmentService _autoAssignmentService;
 
     public TicketService(
         ITicketRepository ticketRepository,
         IUserPermissionRepository userPermissionRepository,
         IProjectMemberRepository projectMemberRepository,
         NotificationService notificationService,
-        ISlaRepository slaRepository)
+        ISlaRepository slaRepository,
+        AutoAssignmentService autoAssignmentService)
     {
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
         _projectMemberRepository = projectMemberRepository;
         _notificationService = notificationService;
         _slaRepository = slaRepository;
+        _autoAssignmentService = autoAssignmentService;
     }
 
     public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, long createdByUserId)
@@ -49,7 +52,35 @@ public class TicketService
             ticket.DueAt = DateTimeOffset.UtcNow.AddMinutes(applicableSla.ResolutionTimeMinutes);
         }
 
+        var autoAssignedUserId = await _autoAssignmentService.GetAssigneeForTicketAsync(
+            request.ProjectId, request.CategoryId);
+
+        if (autoAssignedUserId is not null)
+        {
+            ticket.AssignedTo = autoAssignedUserId;
+        }
+
         await _ticketRepository.AddAsync(ticket);
+
+        if (autoAssignedUserId is not null)
+        {
+            var assignment = new TicketAssignment
+            {
+                TicketId = ticket.Id,
+                AssignedFrom = null,
+                AssignedTo = autoAssignedUserId.Value,
+                AssignedBy = createdByUserId,
+                Note = "Otomatik atama kuralına göre atandı."
+            };
+
+            await _ticketRepository.AssignAsync(ticket, assignment);
+
+            await _notificationService.CreateNotificationAsync(
+                autoAssignedUserId.Value,
+                ticket.Id,
+                "TicketAssigned",
+                $"\"{ticket.Title}\" başlıklı talep otomatik olarak size atandı.");
+        }
 
         var createdTicket = await _ticketRepository.GetByIdAsync(ticket.Id);
         return MapToResponse(createdTicket!);
