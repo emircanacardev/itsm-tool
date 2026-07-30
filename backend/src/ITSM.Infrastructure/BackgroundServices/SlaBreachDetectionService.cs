@@ -1,9 +1,11 @@
 ﻿using ITSM.Application.Interfaces;
+using ITSM.Application.Services;
 using ITSM.Domain.Entities;
 using ITSM.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
 
 namespace ITSM.Infrastructure.BackgroundServices;
 
@@ -44,7 +46,7 @@ public class SlaBreachDetectionService : BackgroundService
 
         var ticketRepository = scope.ServiceProvider.GetRequiredService<ITicketRepository>();
         var slaBreachRepository = scope.ServiceProvider.GetRequiredService<ISlaBreachRepository>();
-        var notificationRepository = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+        var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
         var tickets = await ticketRepository.GetActiveTicketsWithSlaAsync();
         var now = DateTimeOffset.UtcNow;
@@ -56,16 +58,14 @@ public class SlaBreachDetectionService : BackgroundService
 
             if (isResponseBreached)
             {
-                await TryRecordBreachAsync(
-                    ticket, BreachType.Response, slaBreachRepository, notificationRepository);
+                await TryRecordBreachAsync(ticket, BreachType.Response, slaBreachRepository, notificationService);
             }
 
             var isResolutionBreached = ticket.DueAt.HasValue && now > ticket.DueAt.Value;
 
             if (isResolutionBreached)
             {
-                await TryRecordBreachAsync(
-                    ticket, BreachType.Resolution, slaBreachRepository, notificationRepository);
+                await TryRecordBreachAsync(ticket, BreachType.Resolution, slaBreachRepository, notificationService);
             }
         }
     }
@@ -74,7 +74,7 @@ public class SlaBreachDetectionService : BackgroundService
         Ticket ticket,
         BreachType breachType,
         ISlaBreachRepository slaBreachRepository,
-        INotificationRepository notificationRepository)
+        NotificationService notificationService)
     {
         var existingBreach = await slaBreachRepository.GetByTicketAndTypeAsync(ticket.Id, breachType);
         if (existingBreach is not null)
@@ -92,23 +92,19 @@ public class SlaBreachDetectionService : BackgroundService
 
         var breachLabel = breachType == BreachType.Response ? "yanıt" : "çözüm";
 
-        await notificationRepository.AddAsync(new Notification
-        {
-            UserId = ticket.CreatedBy,
-            TicketId = ticket.Id,
-            Type = "SlaBreach",
-            Message = $"\"{ticket.Title}\" başlıklı talepte SLA {breachLabel} süresi aşıldı."
-        });
+        await notificationService.CreateNotificationAsync(
+            ticket.CreatedBy,
+            ticket.Id,
+            "SlaBreach",
+            $"\"{ticket.Title}\" başlıklı talepte SLA {breachLabel} süresi aşıldı.");
 
         if (breachType == BreachType.Resolution && ticket.AssignedTo.HasValue)
         {
-            await notificationRepository.AddAsync(new Notification
-            {
-                UserId = ticket.AssignedTo.Value,
-                TicketId = ticket.Id,
-                Type = "SlaBreach",
-                Message = $"\"{ticket.Title}\" başlıklı size atanmış talepte SLA çözüm süresi aşıldı."
-            });
+            await notificationService.CreateNotificationAsync(
+                ticket.AssignedTo.Value,
+                ticket.Id,
+                "SlaBreach",
+                $"\"{ticket.Title}\" başlıklı size atanmış talepte SLA çözüm süresi aşıldı.");
         }
     }
 }

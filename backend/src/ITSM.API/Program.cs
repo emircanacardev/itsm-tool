@@ -2,6 +2,7 @@ using ITSM.Application.Interfaces;
 using ITSM.Application.Services;
 using ITSM.Infrastructure.Authorization;
 using ITSM.Infrastructure.BackgroundServices;
+using ITSM.Infrastructure.Email;
 using ITSM.Infrastructure.Persistence;
 using ITSM.Infrastructure.Persistence.Repositories;
 using ITSM.Infrastructure.Security;
@@ -58,6 +59,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ISlaBreachRepository, SlaBreachRepository>();
 builder.Services.AddHostedService<SlaBreachDetectionService>();
+builder.Services.AddScoped<IEmailService, MailKitEmailService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

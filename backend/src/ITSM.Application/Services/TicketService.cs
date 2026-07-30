@@ -9,20 +9,20 @@ public class TicketService
     private readonly ITicketRepository _ticketRepository;
     private readonly IUserPermissionRepository _userPermissionRepository;
     private readonly IProjectMemberRepository _projectMemberRepository;
-    private readonly INotificationRepository _notificationRepository;
+    private readonly NotificationService _notificationService;
     private readonly ISlaRepository _slaRepository;
 
     public TicketService(
         ITicketRepository ticketRepository,
         IUserPermissionRepository userPermissionRepository,
         IProjectMemberRepository projectMemberRepository,
-        INotificationRepository notificationRepository,
+        NotificationService notificationService,
         ISlaRepository slaRepository)
     {
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
         _projectMemberRepository = projectMemberRepository;
-        _notificationRepository = notificationRepository;
+        _notificationService = notificationService;
         _slaRepository = slaRepository;
     }
 
@@ -132,15 +132,11 @@ public class TicketService
 
         if (ticket.CreatedBy != changedByUserId)
         {
-            var notification = new Notification
-            {
-                UserId = ticket.CreatedBy,
-                TicketId = ticket.Id,
-                Type = "TicketStatusChanged",
-                Message = $"\"{ticket.Title}\" başlıklı talebinizin durumu güncellendi."
-            };
-
-            await _notificationRepository.AddAsync(notification);
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedBy,
+                ticket.Id,
+                "TicketStatusChanged",
+                $"\"{ticket.Title}\" başlıklı talebinizin durumu güncellendi.");
         }
 
         return true;
@@ -169,15 +165,11 @@ public class TicketService
 
         if (assignedToUserId != assignedByUserId)
         {
-            var notification = new Notification
-            {
-                UserId = assignedToUserId,
-                TicketId = ticket.Id,
-                Type = "TicketAssigned",
-                Message = $"\"{ticket.Title}\" başlıklı talep size atandı."
-            };
-
-            await _notificationRepository.AddAsync(notification);
+            await _notificationService.CreateNotificationAsync(
+                assignedToUserId,
+                ticket.Id,
+                "TicketAssigned",
+                $"\"{ticket.Title}\" başlıklı talep size atandı.");
         }
 
         return true;

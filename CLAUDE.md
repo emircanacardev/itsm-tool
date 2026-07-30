@@ -134,20 +134,32 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   `IEntityTypeConfiguration<T>`, or EF Core silently creates an unused shadow FK column and the real
   column never gets enforced/populated — this caused a real runtime FK violation on first use.
   `AttachmentConfiguration` was missing this (an oversight from the original bulk config pass); if a
-  new FK violation shows up on an old, untested entity, check this first (`Notification`, `SlaBreach`,
-  `AuditLog`, `AutoAssignmentRule`, `KnowledgeBaseArticle` haven't been exercised yet and may have the
-  same latent issue).
+  new FK violation shows up on an old, untested entity, check this first. `Notification` and
+  `SlaBreach` have now been exercised end-to-end (Day 5) with no FK issue found. `AuditLog` and
+  `AutoAssignmentRule` (Day 6) still haven't been exercised and may have the same latent issue.
 - **Day 4 complete:** Knowledge Base articles (`KnowledgeBaseArticleService`/`Repository`/`Controller`,
   `EF.Functions.ILike` search + visibility filter for unpublished/private articles) and advanced
   ticket search/filter (`TicketFilterRequest`, 5 optional `.Where` clauses composed via
   `.AsQueryable()` on top of the visibility filter).
-- **Day 5 in progress:** SLA definitions CRUD ✅ (`SlaService`/`Repository`/`Controller`, duplicate
-  prevention via a unique `(ProjectId, CategoryId, PriorityId)` check before insert). Notifications ✅
-  (`NotificationService`/`Repository`/`Controller`; `TicketService` now depends on
-  `INotificationRepository` and creates a `Notification` as a side effect of `AssignTicketAsync`
-  (notifies assignee) and `UpdateTicketStatusAsync` (notifies creator), skipped when the actor acts on
-  their own ticket). Still outstanding: SLA breach detection via a real `BackgroundService`, email
-  integration.
+- **Day 5 complete.** SLA definitions CRUD (`SlaService`/`Repository`/`Controller`, duplicate
+  prevention via a unique `(ProjectId, CategoryId, PriorityId)` check before insert; reads open to
+  all authenticated users, writes `ADMIN_MANAGE`). `TicketService.CreateTicketAsync` now resolves the
+  most-specific applicable SLA (exact Project+Category+Priority match, falling back through
+  Project+Priority, Category+Priority, to Priority-only) and sets `Ticket.SlaId`/`DueAt`.
+  Notifications: `NotificationService.CreateNotificationAsync(userId, ticketId, type, message)` is
+  the single entry point that both persists a `Notification` row and sends an email — both
+  `TicketService` (assign/status-update) and `SlaBreachDetectionService` depend on `NotificationService`
+  directly (service-depends-on-service pattern) rather than touching `INotificationRepository` or
+  `IEmailService` themselves, so "create notification + send email" logic lives in exactly one place.
+  Self-notifications are skipped (actor acting on their own ticket).
+  SLA breach detection: `SlaBreachDetectionService` (`Infrastructure/BackgroundServices/`), a real
+  `BackgroundService` registered via `AddHostedService<T>()`, scans active tickets every minute using
+  `IServiceScopeFactory` to bridge its Singleton lifetime against Scoped repositories/`NotificationService`.
+  Response breach = unassigned past `Sla.ResponseTimeMinutes`; resolution breach = past `Ticket.DueAt`
+  while not Resolved/Closed (status 40/50). Duplicate-prevented via `ISlaBreachRepository.GetByTicketAndTypeAsync`
+  before recording. Email: `IEmailService`/`MailKitEmailService` (MailKit, SMTP config in
+  `appsettings.json` under `Email:*`, credentials `Email:Username`/`Email:Password` in user-secrets),
+  tested against a Mailtrap sandbox inbox end-to-end.
 - **Known tech debt (flagged, not yet fixed): `Notification.Message` is hardcoded Turkish text**
   (e.g. `"\"{title}\" başlıklı talep size atandı."`), baked in at creation time in `TicketService`.
   The app is planned to get a language switcher later; hardcoded backend strings won't be

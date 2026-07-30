@@ -1,15 +1,42 @@
 ﻿using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
+using ITSM.Domain.Entities;
 
 namespace ITSM.Application.Services;
 
 public class NotificationService
 {
     private readonly INotificationRepository _notificationRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IEmailService _emailService;
 
-    public NotificationService(INotificationRepository notificationRepository)
+    public NotificationService(
+        INotificationRepository notificationRepository,
+        IUserRepository userRepository,
+        IEmailService emailService)
     {
         _notificationRepository = notificationRepository;
+        _userRepository = userRepository;
+        _emailService = emailService;
+    }
+
+    public async Task CreateNotificationAsync(long userId, long? ticketId, string type, string message)
+    {
+        var notification = new Notification
+        {
+            UserId = userId,
+            TicketId = ticketId,
+            Type = type,
+            Message = message
+        };
+
+        await _notificationRepository.AddAsync(notification);
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is not null)
+        {
+            await _emailService.SendEmailAsync(user.Email, $"ITSM Bildirim: {type}", message);
+        }
     }
 
     public async Task<List<NotificationResponse>> GetMyNotificationsAsync(long userId)
@@ -31,7 +58,7 @@ public class NotificationService
         return true;
     }
 
-    private static NotificationResponse MapToResponse(Domain.Entities.Notification notification)
+    private static NotificationResponse MapToResponse(Notification notification)
     {
         return new NotificationResponse
         {
