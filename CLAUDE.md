@@ -137,6 +137,23 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   new FK violation shows up on an old, untested entity, check this first (`Notification`, `SlaBreach`,
   `AuditLog`, `AutoAssignmentRule`, `KnowledgeBaseArticle` haven't been exercised yet and may have the
   same latent issue).
-- Admin panel backend, dashboard/reporting, SLA tracking, notifications, knowledge base, and the
-  entire frontend are still outstanding — see `docs/gelistirme-plani.md` for the day-by-day
-  breakdown.
+- **Day 4 complete:** Knowledge Base articles (`KnowledgeBaseArticleService`/`Repository`/`Controller`,
+  `EF.Functions.ILike` search + visibility filter for unpublished/private articles) and advanced
+  ticket search/filter (`TicketFilterRequest`, 5 optional `.Where` clauses composed via
+  `.AsQueryable()` on top of the visibility filter).
+- **Day 5 in progress:** SLA definitions CRUD ✅ (`SlaService`/`Repository`/`Controller`, duplicate
+  prevention via a unique `(ProjectId, CategoryId, PriorityId)` check before insert). Notifications ✅
+  (`NotificationService`/`Repository`/`Controller`; `TicketService` now depends on
+  `INotificationRepository` and creates a `Notification` as a side effect of `AssignTicketAsync`
+  (notifies assignee) and `UpdateTicketStatusAsync` (notifies creator), skipped when the actor acts on
+  their own ticket). Still outstanding: SLA breach detection via a real `BackgroundService`, email
+  integration.
+- **Known tech debt (flagged, not yet fixed): `Notification.Message` is hardcoded Turkish text**
+  (e.g. `"\"{title}\" başlıklı talep size atandı."`), baked in at creation time in `TicketService`.
+  The app is planned to get a language switcher later; hardcoded backend strings won't be
+  retranslatable retroactively. Correct fix when i18n work starts: stop storing a finished sentence,
+  store only `Type` + structured data (`TicketId`, etc.) and have the frontend render the localized
+  sentence from `Type`. Deliberately deferred — user chose to keep it hardcoded for now and revisit
+  during frontend/i18n work.
+- Admin panel backend, dashboard/reporting, SLA breach detection, email integration, and the entire
+  frontend are still outstanding — see `docs/gelistirme-plani.md` for the day-by-day breakdown.

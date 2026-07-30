@@ -53,6 +53,8 @@ builder.Services.AddScoped<IKnowledgeBaseArticleRepository, KnowledgeBaseArticle
 builder.Services.AddScoped<KnowledgeBaseArticleService>();
 builder.Services.AddScoped<ISlaRepository, SlaRepository>();
 builder.Services.AddScoped<SlaService>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<NotificationService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

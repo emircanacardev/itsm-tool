@@ -9,15 +9,18 @@ public class TicketService
     private readonly ITicketRepository _ticketRepository;
     private readonly IUserPermissionRepository _userPermissionRepository;
     private readonly IProjectMemberRepository _projectMemberRepository;
+    private readonly INotificationRepository _notificationRepository;
 
     public TicketService(
         ITicketRepository ticketRepository,
         IUserPermissionRepository userPermissionRepository,
-        IProjectMemberRepository projectMemberRepository)
+        IProjectMemberRepository projectMemberRepository,
+        INotificationRepository notificationRepository)
     {
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
         _projectMemberRepository = projectMemberRepository;
+        _notificationRepository = notificationRepository;
     }
 
     public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, long createdByUserId)
@@ -115,6 +118,19 @@ public class TicketService
 
         await _ticketRepository.UpdateStatusAsync(ticket, history);
 
+        if (ticket.CreatedBy != changedByUserId)
+        {
+            var notification = new Notification
+            {
+                UserId = ticket.CreatedBy,
+                TicketId = ticket.Id,
+                Type = "TicketStatusChanged",
+                Message = $"\"{ticket.Title}\" başlıklı talebinizin durumu güncellendi."
+            };
+
+            await _notificationRepository.AddAsync(notification);
+        }
+
         return true;
     }
 
@@ -138,6 +154,19 @@ public class TicketService
         ticket.AssignedTo = assignedToUserId;
 
         await _ticketRepository.AssignAsync(ticket, assignment);
+
+        if (assignedToUserId != assignedByUserId)
+        {
+            var notification = new Notification
+            {
+                UserId = assignedToUserId,
+                TicketId = ticket.Id,
+                Type = "TicketAssigned",
+                Message = $"\"{ticket.Title}\" başlıklı talep size atandı."
+            };
+
+            await _notificationRepository.AddAsync(notification);
+        }
 
         return true;
     }
