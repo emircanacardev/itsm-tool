@@ -25,6 +25,17 @@ public class UserRepository : IUserRepository
     }
     public async Task<User?> GetByIdAsync(long id)
     {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+        return await _context.Users.Include(u => u.Group).FirstOrDefaultAsync(u => u.Id == id);
+    }
+
+    public async Task<List<User>> GetAllAsync()
+    {
+        return await _context.Users.Include(u => u.Group).ToListAsync();
+    }
+
+    public async Task UpdateAsync(User user)
+    {
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
     }
 }
