@@ -66,10 +66,19 @@ public class TicketService
         return MapToResponse(ticket);
     }
 
-    public async Task<List<TicketResponse>> GetAllTicketsAsync(long userId)
+    public async Task<List<TicketResponse>> GetAllTicketsAsync(long userId, TicketFilterRequest filter)
     {
         var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
-        var tickets = await _ticketRepository.GetAllAsync(userId, includeAll: isAdmin);
+
+        var tickets = await _ticketRepository.GetAllAsync(
+            userId,
+            includeAll: isAdmin,
+            statusId: filter.StatusId,
+            priorityId: filter.PriorityId,
+            projectId: filter.ProjectId,
+            fromDate: filter.FromDate,
+            toDate: filter.ToDate);
+
         return tickets.Select(MapToResponse).ToList();
     }
 

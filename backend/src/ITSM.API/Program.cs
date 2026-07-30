@@ -51,6 +51,8 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<AttachmentService>();
 builder.Services.AddScoped<IKnowledgeBaseArticleRepository, KnowledgeBaseArticleRepository>();
 builder.Services.AddScoped<KnowledgeBaseArticleService>();
+builder.Services.AddScoped<ISlaRepository, SlaRepository>();
+builder.Services.AddScoped<SlaService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
