@@ -112,4 +112,4 @@ app.MapControllers();
 //todo: bunu sonradan kaldırıcam
 app.MapGet("/hash-test", (IPasswordHasher hasher) => hasher.Hash("Test1234!"));
 
-app.Run();
+await app.RunAsync();
