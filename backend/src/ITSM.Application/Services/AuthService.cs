@@ -9,15 +9,18 @@ public class AuthService
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly PermissionService _permissionService;
 
     public AuthService(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IJwtTokenGenerator jwtTokenGenerator)
+        IJwtTokenGenerator jwtTokenGenerator,
+        PermissionService permissionService)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _permissionService = permissionService;
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -64,5 +67,27 @@ public class AuthService
         var token = _jwtTokenGenerator.GenerateToken(user);
 
         return new LoginResponse { Token = token };
+    }
+
+    public async Task<CurrentUserResponse?> GetCurrentUserAsync(long userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is null)
+        {
+            return null;
+        }
+
+        var permissions = await _permissionService.GetUserPermissionsAsync(userId);
+        var isAdmin = permissions.Any(p => p.PermissionCode == "ADMIN_MANAGE");
+
+        return new CurrentUserResponse
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            Email = user.Email,
+            GroupId = user.GroupId,
+            IsAdmin = isAdmin,
+            Permissions = permissions
+        };
     }
 }
