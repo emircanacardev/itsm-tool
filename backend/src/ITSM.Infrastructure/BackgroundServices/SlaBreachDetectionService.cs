@@ -70,7 +70,7 @@ public class SlaBreachDetectionService : BackgroundService
         }
     }
 
-    private async Task TryRecordBreachAsync(
+    private static async Task TryRecordBreachAsync(
         Ticket ticket,
         BreachType breachType,
         ISlaBreachRepository slaBreachRepository,

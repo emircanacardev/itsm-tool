@@ -24,7 +24,7 @@ public class MailKitEmailService : IEmailService
 
         message.From.Add(new MailboxAddress(
             _configuration["Email:FromName"],
-            _configuration["Email:FromAddress"]));
+            _configuration["Email:FromAddress"]!));
 
         message.To.Add(MailboxAddress.Parse(toAddress));
         message.Subject = subject;
@@ -36,13 +36,13 @@ public class MailKitEmailService : IEmailService
         try
         {
             await client.ConnectAsync(
-                _configuration["Email:SmtpHost"],
+                _configuration["Email:SmtpHost"]!,
                 int.Parse(_configuration["Email:SmtpPort"]!),
                 SecureSocketOptions.StartTls);
 
             await client.AuthenticateAsync(
-                _configuration["Email:Username"],
-                _configuration["Email:Password"]);
+                _configuration["Email:Username"]!,
+                _configuration["Email:Password"]!);
 
             await client.SendAsync(message);
             await client.DisconnectAsync(true);

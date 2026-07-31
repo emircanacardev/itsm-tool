@@ -13,8 +13,4 @@ public class Attachment
     public Ticket? Ticket { get; set; }
     public Comment? Comment { get; set; }
     public User UploadedByUser { get; set; } = null!;
-
-    // TODO: "TicketId ya da CommentId'den en az biri dolu olmalı" kuralı
-    // burada ifade edilemez - DB'de CHECK constraint (Fluent API) veya
-    // Application katmanında servis validasyonu ile uygulanacak.
 }
