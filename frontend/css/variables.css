@@ -1,0 +1,58 @@
+:root {
+  --color-page: #F6F7F9;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F1F2F5;
+  --color-border: #E5E7EB;
+  --color-text: #111827;
+  --color-text-muted: #6B7280;
+
+  --color-topbar: #241246;
+  --color-topbar-text: #F8FAFC;
+
+  --color-accent: #6D4FE0;
+  --color-accent-hover: #5A3FD1;
+  --color-accent-bg: #F1EDFC;
+
+  --status-open-bg: #E7ECFE;
+  --status-open-fg: #3557D6;
+  --status-inprogress-bg: #FFF3DC;
+  --status-inprogress-fg: #B7791F;
+  --status-pending-bg: #E9EEF3;
+  --status-pending-fg: #51677A;
+  --status-resolved-bg: #E9F7EC;
+  --status-resolved-fg: #2F8F46;
+  --status-closed-bg: #EFEFEF;
+  --status-closed-fg: #6B7280;
+
+  --priority-critical-bg: #FDECEC;
+  --priority-critical-fg: #D64545;
+  --priority-high-bg: #FFEEE6;
+  --priority-high-fg: #C2410C;
+  --priority-medium-bg: #EFF6FF;
+  --priority-medium-fg: #2563EB;
+  --priority-low-bg: #E6F7F5;
+  --priority-low-fg: #0F766E;
+
+  --sla-overdue: #D64545;
+  --sla-urgent: #B7791F;
+  --sla-ok: #2F8F46;
+  --sla-done: #6B7280;
+
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--color-page);
+  color: var(--color-text);
+}

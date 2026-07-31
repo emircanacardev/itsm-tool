@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giriş — Pulse ITSM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <style>
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+    }
+    .brand-panel {
+      flex: 1.1;
+      background: var(--color-topbar);
+      color: var(--color-topbar-text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 3.5rem;
+    }
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 2.5rem;
+    }
+    .brand-mark {
+      width: 58px;
+      height: 58px;
+      background: var(--color-accent);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .brand-mark svg {
+      width: 32px;
+      height: 32px;
+    }
+    .brand-name {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 28px;
+      color: var(--color-topbar-text);
+    }
+    .slogan-title {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 32px;
+      line-height: 1.3;
+      margin: 0 0 1rem;
+      white-space: nowrap;
+    }
+    .slogan-body {
+      font-size: 15px;
+      line-height: 1.65;
+      color: rgba(248, 250, 252, 0.72);
+      max-width: 380px;
+      margin: 0;
+    }
+    .form-panel {
+      flex: 1;
+      background: var(--color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+    }
+    .login-title {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 22px;
+      margin: 0 0 0.25rem;
+    }
+    .login-subtitle {
+      color: var(--color-text-muted);
+      font-size: 14px;
+      margin: 0 0 1.5rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: var(--font-body);
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--color-accent);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+    button:hover {
+      background: var(--color-accent-hover);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .error-message {
+      background: var(--priority-critical-bg);
+      color: var(--priority-critical-fg);
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 1rem;
+      display: none;
+    }
+    @media (max-width: 860px) {
+      .login-page {
+        flex-direction: column;
+      }
+      .brand-panel {
+        padding: 2.5rem 1.75rem;
+      }
+      .slogan-title {
+        font-size: 24px;
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="brand-panel">
+      <div class="brand-lockup">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 12H6L9 5L14 19L17 12H22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="brand-name">Pulse ITSM</span>
+      </div>
+      <h2 class="slogan-title" data-i18n="login.sloganTitle">Her talebin nabzı, tek ekranda.</h2>
+      <p class="slogan-body" data-i18n="login.sloganBody">Pulse, ekibinizin taleplerini, önceliklerini ve SLA'larını gerçek zamanlı bir ritimle senkronize eder — hiçbir şey gözden kaçmaz.</p>
+    </div>
+
+    <div class="form-panel">
+      <div class="login-card">
+        <h1 class="login-title" data-i18n="login.title">Giriş yap</h1>
+        <p class="login-subtitle" data-i18n="login.subtitle">Devam etmek için hesap bilgilerini gir</p>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="email" data-i18n="login.email">E-posta</label>
+            <input type="email" id="email" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="password" data-i18n="login.password">Şifre</label>
+            <input type="password" id="password" required autocomplete="current-password">
+          </div>
+          <button type="submit" id="submitButton" data-i18n="login.submit">Giriş yap</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/i18n.js"></script>
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMessage = document.getElementById('errorMessage');
+    const submitButton = document.getElementById('submitButton');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      errorMessage.style.display = 'none';
+      submitButton.disabled = true;
+      submitButton.textContent = t('login.submitting');
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        await login(email, password);
+        window.location.href = 'dashboard.html';
+      } catch (error) {
+        errorMessage.textContent = t('login.error');
+        errorMessage.style.display = 'block';
+        submitButton.disabled = false;
+        submitButton.textContent = t('login.submit');
+      }
+    });
+  </script>
+</body>
+</html>
