@@ -1,5 +1,6 @@
 using ITSM.Application.DTOs;
 using ITSM.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ITSM.API.Controllers;
@@ -36,6 +37,22 @@ public class AuthController : ControllerBase
         if (result is null)
         {
             return Conflict();
+        }
+
+        return Ok(result);
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userId = long.Parse(userIdClaim!);
+
+        var result = await _authService.GetCurrentUserAsync(userId);
+        if (result is null)
+        {
+            return NotFound();
         }
 
         return Ok(result);
