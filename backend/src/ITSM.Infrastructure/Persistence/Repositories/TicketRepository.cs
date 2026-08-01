@@ -82,6 +82,10 @@ public class TicketRepository : ITicketRepository
             query = query.Where(t => EF.Functions.ILike(t.Title, $"%{search}%"));
         }
 
+        // Açık bir ORDER BY olmadan Postgres sıralama garantisi vermiyor;
+        // liste ekranı için en mantıklı varsayılan en yeni talebin en üstte olması.
+        query = query.OrderByDescending(t => t.CreatedAt);
+
         return await query.ToListAsync();
     }
 
