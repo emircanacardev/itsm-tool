@@ -101,6 +101,7 @@ public class AuthService
             FullName = user.FullName,
             Email = user.Email,
             GroupId = user.GroupId,
+            GroupName = user.Group.Name,
             IsAdmin = isAdmin,
             Permissions = permissions
         };

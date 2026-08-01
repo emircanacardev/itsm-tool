@@ -123,7 +123,8 @@ public class TicketService
             priorityId: filter.PriorityId,
             projectId: filter.ProjectId,
             fromDate: filter.FromDate,
-            toDate: filter.ToDate);
+            toDate: filter.ToDate,
+            search: filter.Search);
 
         return tickets.Select(MapToResponse).ToList();
     }

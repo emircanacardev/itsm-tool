@@ -12,7 +12,8 @@ public interface ITicketRepository
         long? priorityId,
         long? projectId,
         DateTimeOffset? fromDate,
-        DateTimeOffset? toDate);
+        DateTimeOffset? toDate,
+        string? search);
     Task AddAsync(Ticket ticket);
     Task UpdateStatusAsync(Ticket ticket, TicketStatusHistory history);
     Task AssignAsync(Ticket ticket, TicketAssignment assignment);
