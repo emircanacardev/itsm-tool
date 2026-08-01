@@ -112,20 +112,35 @@ public class TicketService
         return MapToResponse(ticket);
     }
 
-    public async Task<List<TicketResponse>> GetAllTicketsAsync(long userId, TicketFilterRequest filter)
+    public async Task<PagedResult<TicketResponse>> GetAllTicketsAsync(long userId, TicketFilterRequest filter)
     {
         var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
 
-        var tickets = await _ticketRepository.GetAllAsync(
+        // Sayfa/sayfa boyutu için mantıksız/kötü niyetli değerlere karşı sınır koyuyoruz.
+        var page = filter.Page < 1 ? 1 : filter.Page;
+        var pageSize = filter.PageSize is < 1 or > 100 ? 20 : filter.PageSize;
+
+        var (items, totalCount) = await _ticketRepository.GetAllAsync(
             userId,
             includeAll: isAdmin,
             statusId: filter.StatusId,
             priorityId: filter.PriorityId,
             projectId: filter.ProjectId,
             fromDate: filter.FromDate,
-            toDate: filter.ToDate);
+            toDate: filter.ToDate,
+            search: filter.Search,
+            sortBy: filter.SortBy,
+            sortDescending: filter.SortDescending,
+            page: page,
+            pageSize: pageSize);
 
-        return tickets.Select(MapToResponse).ToList();
+        return new PagedResult<TicketResponse>
+        {
+            Items = items.Select(MapToResponse).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     private static TicketResponse MapToResponse(Ticket ticket)
@@ -135,8 +150,20 @@ public class TicketService
             Id = ticket.Id,
             Title = ticket.Title,
             Description = ticket.Description,
+            StatusId = ticket.StatusId,
             StatusName = ticket.Status.Name,
+            PriorityId = ticket.PriorityId,
             PriorityName = ticket.Priority.Name,
+            ProjectId = ticket.ProjectId,
+            ProjectName = ticket.Project.Name,
+            CategoryId = ticket.CategoryId,
+            CategoryName = ticket.Category.Name,
+            TicketType = ticket.TicketType.ToString(),
+            CreatedBy = ticket.CreatedBy,
+            CreatedByName = ticket.CreatedByUser.FullName,
+            AssignedTo = ticket.AssignedTo,
+            AssignedToName = ticket.AssignedToUser?.FullName,
+            DueAt = ticket.DueAt,
             CreatedAt = ticket.CreatedAt
         };
     }

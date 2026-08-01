@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Yönlendiriliyor... — Pulse ITSM</title>
+  <!-- Bu sayfa artık kullanılmıyor; uygulama tek bir index.html + hash router üzerinden çalışıyor. -->
+  <script>
+    const id = new URLSearchParams(window.location.search).get('id');
+    window.location.replace(id ? `index.html#/tickets/${id}` : 'index.html#/tickets');
+  </script>
+</head>
+<body></body>
+</html>

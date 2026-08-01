@@ -11,9 +11,20 @@ namespace ITSM.API.Controllers;
 public class TicketController : ControllerBase
 {
     private readonly TicketService _ticketService;
-    public TicketController(TicketService ticketService)
+    private readonly UserService _userService;
+
+    public TicketController(TicketService ticketService, UserService userService)
     {
         _ticketService = ticketService;
+        _userService = userService;
+    }
+
+    [HttpGet("assignable-users")]
+    [Authorize(Policy = "TICKET_ASSIGN")]
+    public async Task<IActionResult> GetAssignableUsers()
+    {
+        var result = await _userService.GetAssignableUsersAsync();
+        return Ok(result);
     }
 
     [HttpPost]

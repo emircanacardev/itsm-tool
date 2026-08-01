@@ -41,7 +41,8 @@ INSERT INTO groups (name, description) VALUES
     ('Yazılım Geliştirme',    'Uygulama geliştirme ekibi'),
     ('Sistem & Network',      'Sistem yönetimi ve network operasyonları'),
     ('Destek Birimi',         'Birinci seviye destek / help desk'),
-    ('Veritabanı Yönetimi',   'DB yönetimi ve bakım ekibi');
+    ('Veritabanı Yönetimi',   'DB yönetimi ve bakım ekibi'),
+    ('Atanmamış',             'Kayıt olan yeni kullanıcıların varsayılan grubu. Admin panelden gerçek departmana taşınmalı.');
 
 -- Not: örnek projeler, kategoriler ve kullanıcılar bilinçli olarak eklenmedi.
 -- Bunlar admin panel üzerinden veya ayrı bir "demo data" scriptiyle eklenmeli,
