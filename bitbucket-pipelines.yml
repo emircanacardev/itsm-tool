@@ -1,0 +1,13 @@
+image: mcr.microsoft.com/dotnet/sdk:10.0
+
+pipelines:
+  default:
+    - step:
+        name: Build & Test
+        caches:
+          - dotnetcore
+        script:
+          - cd backend
+          - dotnet restore ITSM.slnx
+          - dotnet build ITSM.slnx --no-restore --configuration Release
+          - dotnet test ITSM.slnx --no-build --configuration Release
