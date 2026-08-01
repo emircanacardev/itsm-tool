@@ -47,4 +47,16 @@ public class UserController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPut("{id}/group")]
+    public async Task<IActionResult> UpdateUserGroup(long id, UpdateUserGroupRequest request)
+    {
+        var success = await _userService.UpdateUserGroupAsync(id, request.GroupId);
+        if (!success)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
 }

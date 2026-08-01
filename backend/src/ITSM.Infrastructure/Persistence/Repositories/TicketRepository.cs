@@ -15,7 +15,14 @@ public class TicketRepository : ITicketRepository
 
     public async Task<Ticket?> GetByIdAsync(long id)
     {
-         return await _context.Tickets.Include(t => t.Status).Include(t => t.Priority).FirstOrDefaultAsync(t => t.Id == id);
+        return await _context.Tickets
+            .Include(t => t.Status)
+            .Include(t => t.Priority)
+            .Include(t => t.Project)
+            .Include(t => t.Category)
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedToUser)
+            .FirstOrDefaultAsync(t => t.Id == id);
     }
 
     public async Task<List<Ticket>> GetAllAsync(
@@ -30,6 +37,10 @@ public class TicketRepository : ITicketRepository
         var query = _context.Tickets
             .Include(t => t.Status)
             .Include(t => t.Priority)
+            .Include(t => t.Project)
+            .Include(t => t.Category)
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedToUser)
             .AsQueryable();
 
         if (!includeAll)

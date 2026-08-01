@@ -135,8 +135,20 @@ public class TicketService
             Id = ticket.Id,
             Title = ticket.Title,
             Description = ticket.Description,
+            StatusId = ticket.StatusId,
             StatusName = ticket.Status.Name,
+            PriorityId = ticket.PriorityId,
             PriorityName = ticket.Priority.Name,
+            ProjectId = ticket.ProjectId,
+            ProjectName = ticket.Project.Name,
+            CategoryId = ticket.CategoryId,
+            CategoryName = ticket.Category.Name,
+            TicketType = ticket.TicketType.ToString(),
+            CreatedBy = ticket.CreatedBy,
+            CreatedByName = ticket.CreatedByUser.FullName,
+            AssignedTo = ticket.AssignedTo,
+            AssignedToName = ticket.AssignedToUser?.FullName,
+            DueAt = ticket.DueAt,
             CreatedAt = ticket.CreatedAt
         };
     }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Giriş — Pulse ITSM</title>
+  <title>Kayıt ol — Pulse ITSM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/variables.css">
@@ -181,26 +181,30 @@
 
     <div class="form-panel">
       <div class="login-card">
-        <h1 class="login-title" data-i18n="login.title">Giriş yap</h1>
-        <p class="login-subtitle" data-i18n="login.subtitle">Devam etmek için hesap bilgilerini gir</p>
+        <h1 class="login-title" data-i18n="register.title">Hesap oluştur</h1>
+        <p class="login-subtitle" data-i18n="register.subtitle">Pulse'a katılmak için bilgilerini gir</p>
 
         <div class="error-message" id="errorMessage"></div>
 
-        <form id="loginForm">
+        <form id="registerForm">
           <div class="form-group">
-            <label for="email" data-i18n="login.email">E-posta</label>
+            <label for="fullName" data-i18n="register.fullName">Ad Soyad</label>
+            <input type="text" id="fullName" required autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label for="email" data-i18n="register.email">E-posta</label>
             <input type="email" id="email" required autocomplete="username">
           </div>
           <div class="form-group">
-            <label for="password" data-i18n="login.password">Şifre</label>
-            <input type="password" id="password" required autocomplete="current-password">
+            <label for="password" data-i18n="register.password">Şifre</label>
+            <input type="password" id="password" required autocomplete="new-password" minlength="8">
           </div>
-          <button type="submit" id="submitButton" data-i18n="login.submit">Giriş yap</button>
+          <button type="submit" id="submitButton" data-i18n="register.submit">Kayıt ol</button>
         </form>
 
         <p class="form-footer">
-          <span data-i18n="login.registerPrompt">Hesabın yok mu?</span>
-          <a href="register.html" data-i18n="login.registerLink">Kayıt ol</a>
+          <span data-i18n="register.loginPrompt">Zaten hesabın var mı?</span>
+          <a href="login.html" data-i18n="register.loginLink">Giriş yap</a>
         </p>
       </div>
     </div>
@@ -210,7 +214,7 @@
   <script src="js/auth.js"></script>
   <script src="js/i18n.js"></script>
   <script>
-    const form = document.getElementById('loginForm');
+    const form = document.getElementById('registerForm');
     const errorMessage = document.getElementById('errorMessage');
     const submitButton = document.getElementById('submitButton');
 
@@ -219,19 +223,22 @@
 
       errorMessage.style.display = 'none';
       submitButton.disabled = true;
-      submitButton.textContent = t('login.submitting');
+      submitButton.textContent = t('register.submitting');
 
+      const fullName = document.getElementById('fullName').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
       try {
-        await login(email, password);
+        await register(fullName, email, password);
         window.location.href = 'dashboard.html';
       } catch (error) {
-        errorMessage.textContent = t('login.error');
+        errorMessage.textContent = error.message === 'E-posta zaten kayıtlı'
+          ? t('register.errorEmailTaken')
+          : t('register.error');
         errorMessage.style.display = 'block';
         submitButton.disabled = false;
-        submitButton.textContent = t('login.submit');
+        submitButton.textContent = t('register.submit');
       }
     });
   </script>

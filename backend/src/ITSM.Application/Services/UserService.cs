@@ -38,6 +38,19 @@ public class UserService
         return true;
     }
 
+    public async Task<bool> UpdateUserGroupAsync(long id, long groupId)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.GroupId = groupId;
+        await _userRepository.UpdateAsync(user);
+        return true;
+    }
+
     private static UserResponse MapToResponse(User user)
     {
         return new UserResponse
