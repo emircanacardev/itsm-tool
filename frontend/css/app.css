@@ -305,7 +305,8 @@
   border-color: var(--color-accent);
 }
 
-.filter-group input[type="date"] {
+.filter-group > input[type="date"],
+.filter-group > input[type="text"] {
   padding: 8px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -316,13 +317,18 @@
   color-scheme: light dark;
 }
 
-.filter-group input[type="date"]:focus {
+.filter-group > input[type="date"]:focus,
+.filter-group > input[type="text"]:focus {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: var(--focus-ring);
 }
 
+
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
@@ -333,6 +339,18 @@
   cursor: pointer;
   font-family: var(--font-body);
   height: 37px;
+}
+
+/* İkon-only kare buton - .btn-secondary'nin yüksekliğini (37px) koruyup
+   sadece genişliği/padding'i kareye eşitler. Filtre çubuğunda input/select
+   ile aynı hizada durması için .pagination-btn (34px) yerine bunu kullan. */
+.btn-icon-only {
+  width: 37px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .btn-secondary:hover {

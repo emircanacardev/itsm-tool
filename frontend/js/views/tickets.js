@@ -1,4 +1,5 @@
 import { enhanceSelect } from '../customSelect.js';
+import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
 
 const STATUS_DOT_COLORS = {
@@ -158,7 +159,12 @@ export function render(container, currentUser) {
         <label for="filterToDate" data-i18n="tickets.filterTo"></label>
         <input type="date" id="filterToDate">
       </div>
-      <button class="btn-secondary" id="clearFiltersButton" data-i18n="tickets.clearFilters"></button>
+      <button type="button" class="btn-secondary btn-icon-only" id="clearFiltersButton" data-i18n-title="tickets.clearFilters" title="">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+          <path d="M3 12a9 9 0 1 0 2.64-6.36"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
     </div>
 
     <div class="ticket-table-wrap">
@@ -411,9 +417,13 @@ export function render(container, currentUser) {
     enhanceSelect(filterStatus);
     enhanceSelect(filterPriority);
     enhanceSelect(filterProject);
+    enhanceDateInput(filterFromDate);
+    enhanceDateInput(filterToDate);
     resetPageAndLoad();
   });
 
+  enhanceDateInput(filterFromDate);
+  enhanceDateInput(filterToDate);
   updateSortHeaderUI();
   loadFilterOptions();
   loadTickets();

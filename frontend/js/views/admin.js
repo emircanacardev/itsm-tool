@@ -1,4 +1,5 @@
 import { enhanceSelect } from '../customSelect.js';
+import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
 
 const ACTION_BADGE_MAP = {
@@ -8,6 +9,14 @@ const ACTION_BADGE_MAP = {
 };
 
 const AUDIT_PAGE_SIZE = 20;
+
+function debounce(fn, delayMs) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delayMs);
+  };
+}
 
 function formatDate(isoString) {
   if (!isoString) return '-';
@@ -125,7 +134,7 @@ function renderUsersSection(section) {
             <th><span data-i18n="admin.colGroup"></span></th>
             <th><span data-i18n="admin.colStatus"></span></th>
             <th class="col-center"><span data-i18n="admin.colCreated"></span></th>
-            <th class="col-right"><span data-i18n="admin.colAction"></span></th>
+            <th class="col-center"><span data-i18n="admin.colAction"></span></th>
           </tr>
         </thead>
         <tbody id="userTableBody">
@@ -216,11 +225,14 @@ function renderUsersSection(section) {
       createdCell.textContent = formatDate(user.createdAt);
 
       const actionCell = document.createElement('td');
-      actionCell.className = 'col-right';
+      actionCell.className = 'col-center';
       const actionButton = document.createElement('button');
       actionButton.type = 'button';
       actionButton.className = 'btn-secondary';
-      actionButton.textContent = t(user.isActive ? 'admin.deactivate' : 'admin.activate');
+      const actionIcon = user.isActive
+        ? `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 6px; color: var(--priority-critical-fg);"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 6px; color: var(--status-resolved-fg);"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>`;
+      actionButton.innerHTML = `${actionIcon}<span>${t(user.isActive ? 'admin.deactivate' : 'admin.activate')}</span>`;
       actionButton.addEventListener('click', () => toggleUserStatus(user, actionButton));
       actionCell.appendChild(actionButton);
 
@@ -277,7 +289,12 @@ function renderAuditLogSection(section) {
         <label for="auditFilterToDate" data-i18n="tickets.filterTo"></label>
         <input type="date" id="auditFilterToDate">
       </div>
-      <button class="btn-secondary" type="button" id="auditClearFiltersButton" data-i18n="tickets.clearFilters"></button>
+      <button type="button" class="btn-secondary btn-icon-only" id="auditClearFiltersButton" data-i18n-title="tickets.clearFilters" title="">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+          <path d="M3 12a9 9 0 1 0 2.64-6.36"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
     </div>
     <div class="ticket-table-wrap table-static">
       <table>
@@ -347,7 +364,7 @@ function renderAuditLogSection(section) {
       userCell.textContent = log.userFullName || t('admin.systemUser');
 
       const entityCell = document.createElement('td');
-      entityCell.textContent = `${log.entityName} #${log.entityId}`;
+      entityCell.innerHTML = `${log.entityName} <span class="ticket-id">#${log.entityId}</span>`;
 
       const actionCell = document.createElement('td');
       actionCell.appendChild(actionBadge(log.action));
@@ -418,7 +435,7 @@ function renderAuditLogSection(section) {
     loadAuditLog();
   }
 
-  filterEntity.addEventListener('change', resetPageAndLoad);
+  filterEntity.addEventListener('input', debounce(resetPageAndLoad, 300));
   filterAction.addEventListener('change', resetPageAndLoad);
   filterFromDate.addEventListener('change', resetPageAndLoad);
   filterToDate.addEventListener('change', resetPageAndLoad);
@@ -441,8 +458,12 @@ function renderAuditLogSection(section) {
     filterFromDate.value = '';
     filterToDate.value = '';
     enhanceSelect(filterAction);
+    enhanceDateInput(filterFromDate);
+    enhanceDateInput(filterToDate);
     resetPageAndLoad();
   });
 
+  enhanceDateInput(filterFromDate);
+  enhanceDateInput(filterToDate);
   loadAuditLog();
 }

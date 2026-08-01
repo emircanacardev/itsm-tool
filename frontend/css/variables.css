@@ -551,12 +551,12 @@ select::-ms-expand {
   display: none;
 }
 
-/* ---------- Özel select (dropdown) bileşeni ----------
-   Native <select>'in açılan seçenek listesi CSS ile stillenemiyor
-   (tarayıcı kısıtı), o yüzden native select DOM'da/işlevsel kalıyor
-   ama görsel olarak gizlenip yerine kendi tasarımımızdaki bir
-   tetikleyici + liste konuyor. Bkz: js/customSelect.js */
-.custom-select-native {
+/* ---------- Görsel olarak gizli ama işlevsel native input/select ----------
+   Native <select> ve <input type="date">'in açılan popup'ları CSS ile
+   stillenemiyor (tarayıcı kısıtı), o yüzden native element DOM'da/işlevsel
+   kalıyor ama görsel olarak gizlenip yerine kendi tasarımımızdaki bir
+   tetikleyici + liste/takvim konuyor. Bkz: js/customSelect.js, js/customDatePicker.js */
+.sr-only-native {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -670,6 +670,162 @@ select::-ms-expand {
 .filter-group .custom-select {
   width: auto;
   min-width: 160px;
+}
+
+/* ---------- Özel takvim (date picker) bileşeni ----------
+   Native <input type="date">'in açılan takvim popup'ı CSS ile
+   stillenemiyor (tarayıcı kısıtı), custom-select ile aynı yaklaşım:
+   native input DOM'da/işlevsel kalıyor, üstüne kendi takvimimiz konuyor.
+   Bkz: js/customDatePicker.js */
+.custom-date {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.custom-date-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.custom-date-trigger svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.custom-date-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-date-label.is-placeholder {
+  color: var(--color-text-muted);
+}
+
+.custom-date-trigger:hover {
+  border-color: var(--color-text-muted);
+}
+
+.custom-date.is-open .custom-date-trigger {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.custom-date-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: 260px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  padding: var(--space-3);
+}
+
+.custom-date.is-open .custom-date-panel {
+  display: block;
+}
+
+.custom-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.custom-date-month-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  text-transform: capitalize;
+}
+
+.custom-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.custom-date-nav:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.custom-date-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.custom-date-weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  padding: 4px 0;
+}
+
+.custom-date-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.custom-date-day:hover {
+  background: var(--color-surface-alt);
+}
+
+.custom-date-day.is-today {
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+}
+
+.custom-date-day.is-selected {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  font-weight: var(--weight-semibold);
+}
+
+.filter-group .custom-date {
+  width: auto;
+  min-width: 150px;
 }
 
 .action-form .custom-select {
