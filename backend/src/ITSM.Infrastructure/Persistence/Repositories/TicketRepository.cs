@@ -32,7 +32,8 @@ public class TicketRepository : ITicketRepository
         long? priorityId,
         long? projectId,
         DateTimeOffset? fromDate,
-        DateTimeOffset? toDate)
+        DateTimeOffset? toDate,
+        string? search)
     {
         var query = _context.Tickets
             .Include(t => t.Status)
@@ -74,6 +75,11 @@ public class TicketRepository : ITicketRepository
         if (toDate is not null)
         {
             query = query.Where(t => t.CreatedAt <= toDate);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(t => EF.Functions.ILike(t.Title, $"%{search}%"));
         }
 
         return await query.ToListAsync();

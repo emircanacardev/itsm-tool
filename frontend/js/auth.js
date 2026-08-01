@@ -33,7 +33,7 @@ async function register(fullName, email, password) {
 
 function logout() {
   localStorage.removeItem('token');
-  window.location.href = 'login.html';
+  window.location.hash = '#/login';
 }
 
 function isAuthenticated() {

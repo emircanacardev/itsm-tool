@@ -2,9 +2,12 @@ const API_BASE_URL = 'https://localhost:7047/api';
 
 async function apiRequest(path, options = {}) {
   const token = localStorage.getItem('token');
+  const isFormData = options.body instanceof FormData;
 
   const headers = {
-    'Content-Type': 'application/json',
+    // FormData ile dosya yüklerken Content-Type'ı biz set etmemeliyiz;
+    // tarayıcı, multipart boundary'sini kendisi ekliyor.
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...options.headers
   };
 
@@ -20,7 +23,7 @@ async function apiRequest(path, options = {}) {
   if (!response.ok) {
     if (response.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = 'login.html';
+      window.location.hash = '#/login';
     }
     throw new Error(`API isteği başarısız: ${response.status}`);
   }

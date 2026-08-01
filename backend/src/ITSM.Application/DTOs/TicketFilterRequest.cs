@@ -7,4 +7,5 @@ public class TicketFilterRequest
     public long? ProjectId { get; set; }
     public DateTimeOffset? FromDate { get; set; }
     public DateTimeOffset? ToDate { get; set; }
+    public string? Search { get; set; }
 }
