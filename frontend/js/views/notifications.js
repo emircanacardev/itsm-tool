@@ -1,3 +1,5 @@
+import { pulseLoader } from '../loading.js';
+
 function formatDateTime(isoString) {
   const date = new Date(isoString);
   return date.toLocaleString(getLanguage() === 'tr' ? 'tr-TR' : 'en-US', {
@@ -8,7 +10,7 @@ function formatDateTime(isoString) {
 export function render(container) {
   container.innerHTML = `
     <div class="notification-list" id="notificationList">
-      <div class="state-box"><span>${t('notifications.loading')}</span></div>
+      ${pulseLoader(t('notifications.loading'))}
     </div>
   `;
 

@@ -305,6 +305,23 @@
   border-color: var(--color-accent);
 }
 
+.filter-group input[type="date"] {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  color-scheme: light dark;
+}
+
+.filter-group input[type="date"]:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
 .btn-secondary {
   background: transparent;
   color: var(--color-text-muted);
@@ -358,6 +375,90 @@ thead th {
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface-alt);
   border-bottom: 2px solid var(--color-border);
+}
+
+.th-inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-center .th-inner {
+  justify-content: center;
+}
+
+.col-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.col-sortable:hover {
+  color: var(--color-accent-hover);
+}
+
+.sort-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.col-sortable.is-active .sort-icon {
+  opacity: 1;
+}
+
+.col-sortable.is-asc .sort-icon {
+  transform: rotate(180deg);
+}
+
+/* ---------- Sayfalama ---------- */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-4);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pagination-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn:disabled:hover {
+  background: transparent;
+}
+
+.page-indicator {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  min-width: 48px;
+  text-align: center;
 }
 
 tbody td {

@@ -1,4 +1,5 @@
 import { enhanceSelect } from '../customSelect.js';
+import { pulseLoader } from '../loading.js';
 
 const STATUS_DOT_COLORS = {
   'Açık': 'var(--status-open-fg)',
@@ -16,6 +17,20 @@ const PRIORITY_BADGE_MAP = {
 };
 
 const CLOSED_STATUS_NAMES = ['Çözüldü', 'Kapatıldı'];
+
+// Sıralanabilir kolonlar - backend'in beklediği sortBy anahtarları burada
+// tanımlı, başlık satırı bu listeden üretiliyor (tek kaynak).
+const SORTABLE_COLUMNS = [
+  { key: 'title', i18nKey: 'tickets.colTitle' },
+  { key: 'projectName', i18nKey: 'tickets.colProject' },
+  { key: 'status', i18nKey: 'tickets.colStatus' },
+  { key: 'priority', i18nKey: 'tickets.colPriority' },
+  { key: 'assignedToName', i18nKey: 'tickets.colAssignee' },
+  { key: 'dueAt', i18nKey: 'tickets.colDue' },
+  { key: 'createdAt', i18nKey: 'tickets.colCreated', className: 'col-center' }
+];
+
+const PAGE_SIZE = 20;
 
 function statusDot(name) {
   const span = document.createElement('span');
@@ -94,6 +109,17 @@ export function render(container, currentUser) {
   `
     : '';
 
+  const columnsHtml = SORTABLE_COLUMNS.map((col) => `
+    <th class="col-sortable ${col.className || ''}" data-sort-key="${col.key}">
+      <div class="th-inner">
+        <span data-i18n="${col.i18nKey}"></span>
+        <svg class="sort-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+    </th>
+  `).join('');
+
   container.innerHTML = `
     <div class="filter-bar">
       <div class="filter-group filter-group-search">
@@ -124,26 +150,35 @@ export function render(container, currentUser) {
           <option value="" data-i18n="tickets.filterAll"></option>
         </select>
       </div>
+      <div class="filter-group">
+        <label for="filterFromDate" data-i18n="tickets.filterFrom"></label>
+        <input type="date" id="filterFromDate">
+      </div>
+      <div class="filter-group">
+        <label for="filterToDate" data-i18n="tickets.filterTo"></label>
+        <input type="date" id="filterToDate">
+      </div>
       <button class="btn-secondary" id="clearFiltersButton" data-i18n="tickets.clearFilters"></button>
     </div>
 
     <div class="ticket-table-wrap">
       <table>
         <thead>
-          <tr>
-            <th data-i18n="tickets.colTitle"></th>
-            <th data-i18n="tickets.colProject"></th>
-            <th data-i18n="tickets.colStatus"></th>
-            <th data-i18n="tickets.colPriority"></th>
-            <th data-i18n="tickets.colAssignee"></th>
-            <th data-i18n="tickets.colDue"></th>
-            <th class="col-center" data-i18n="tickets.colCreated"></th>
-          </tr>
+          <tr>${columnsHtml}</tr>
         </thead>
         <tbody id="ticketTableBody">
-          <tr><td colspan="7" class="state-message">${t('tickets.loading')}</td></tr>
+          <tr><td colspan="7" style="padding: 0; border-bottom: none;">${pulseLoader(t('tickets.loading'))}</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="pagination-bar">
+      <span class="pagination-info" id="paginationInfo"></span>
+      <div class="pagination-controls">
+        <button type="button" class="btn-secondary pagination-btn" id="prevPageButton" data-i18n-title="tickets.prevPage" title="">‹</button>
+        <span class="page-indicator" id="pageIndicator"></span>
+        <button type="button" class="btn-secondary pagination-btn" id="nextPageButton" data-i18n-title="tickets.nextPage" title="">›</button>
+      </div>
     </div>
   `;
 
@@ -152,6 +187,26 @@ export function render(container, currentUser) {
   const filterStatus = container.querySelector('#filterStatus');
   const filterPriority = container.querySelector('#filterPriority');
   const filterProject = container.querySelector('#filterProject');
+  const filterFromDate = container.querySelector('#filterFromDate');
+  const filterToDate = container.querySelector('#filterToDate');
+  const paginationInfo = container.querySelector('#paginationInfo');
+  const pageIndicator = container.querySelector('#pageIndicator');
+  const prevPageButton = container.querySelector('#prevPageButton');
+  const nextPageButton = container.querySelector('#nextPageButton');
+
+  // Sıralama ve sayfalama durumu - her render() çağrısında (her sayfa
+  // girişinde) sıfırdan başlar, sekme içinde kalıcı değildir.
+  let sortField = 'createdAt';
+  let sortDescending = true;
+  let currentPage = 1;
+
+  function updateSortHeaderUI() {
+    container.querySelectorAll('.col-sortable').forEach((th) => {
+      const isActive = th.dataset.sortKey === sortField;
+      th.classList.toggle('is-active', isActive);
+      th.classList.toggle('is-asc', isActive && !sortDescending);
+    });
+  }
 
   function renderTickets(tickets) {
     ticketTableBody.innerHTML = '';
@@ -219,6 +274,26 @@ export function render(container, currentUser) {
     });
   }
 
+  function updatePaginationUI(result) {
+    if (!result || result.totalCount === 0) {
+      paginationInfo.textContent = '';
+      pageIndicator.textContent = '';
+      prevPageButton.disabled = true;
+      nextPageButton.disabled = true;
+      return;
+    }
+
+    const from = (result.page - 1) * result.pageSize + 1;
+    const to = Math.min(result.page * result.pageSize, result.totalCount);
+    paginationInfo.textContent = t('tickets.paginationInfo')
+      .replace('{from}', from)
+      .replace('{to}', to)
+      .replace('{total}', result.totalCount);
+    pageIndicator.textContent = `${result.page} / ${result.totalPages}`;
+    prevPageButton.disabled = result.page <= 1;
+    nextPageButton.disabled = result.page >= result.totalPages;
+  }
+
   function populateSelect(selectEl, items, labelKey, valueKey) {
     items.forEach((item) => {
       const option = document.createElement('option');
@@ -234,15 +309,23 @@ export function render(container, currentUser) {
     if (filterStatus.value) params.set('statusId', filterStatus.value);
     if (filterPriority.value) params.set('priorityId', filterPriority.value);
     if (filterProject.value) params.set('projectId', filterProject.value);
+    if (filterFromDate.value) params.set('fromDate', filterFromDate.value);
+    // Bitiş tarihini günün sonuna çekiyoruz, yoksa seçilen günün kendisi filtre dışı kalır.
+    if (filterToDate.value) params.set('toDate', `${filterToDate.value}T23:59:59`);
+    params.set('sortBy', sortField);
+    params.set('sortDescending', String(sortDescending));
+    params.set('page', String(currentPage));
+    params.set('pageSize', String(PAGE_SIZE));
     const query = params.toString();
     return query ? `?${query}` : '';
   }
 
   async function loadTickets() {
-    ticketTableBody.innerHTML = `<tr><td colspan="7" class="state-message">${t('tickets.loading')}</td></tr>`;
+    ticketTableBody.innerHTML = `<tr><td colspan="7" style="padding: 0; border-bottom: none;">${pulseLoader(t('tickets.loading'))}</td></tr>`;
     try {
-      const tickets = await apiRequest(`/ticket${buildQueryString()}`);
-      renderTickets(tickets);
+      const result = await apiRequest(`/ticket${buildQueryString()}`);
+      renderTickets(result.items);
+      updatePaginationUI(result);
     } catch (error) {
       ticketTableBody.innerHTML = `
         <tr><td colspan="7" style="padding: 0; border-bottom: none;">
@@ -254,7 +337,25 @@ export function render(container, currentUser) {
             <span>${t('tickets.error')}</span>
           </div>
         </td></tr>`;
+      updatePaginationUI(null);
     }
+  }
+
+  function resetPageAndLoad() {
+    currentPage = 1;
+    loadTickets();
+  }
+
+  function handleSortClick(key) {
+    if (sortField === key) {
+      sortDescending = !sortDescending;
+    } else {
+      sortField = key;
+      sortDescending = true;
+    }
+    currentPage = 1;
+    updateSortHeaderUI();
+    loadTickets();
   }
 
   async function loadFilterOptions() {
@@ -275,24 +376,45 @@ export function render(container, currentUser) {
     enhanceSelect(filterProject);
   }
 
-  const debouncedLoad = debounce(loadTickets, 300);
+  const debouncedSearch = debounce(resetPageAndLoad, 300);
 
-  searchInput.addEventListener('input', debouncedLoad);
-  filterStatus.addEventListener('change', loadTickets);
-  filterPriority.addEventListener('change', loadTickets);
-  filterProject.addEventListener('change', loadTickets);
+  searchInput.addEventListener('input', debouncedSearch);
+  filterStatus.addEventListener('change', resetPageAndLoad);
+  filterPriority.addEventListener('change', resetPageAndLoad);
+  filterProject.addEventListener('change', resetPageAndLoad);
+  filterFromDate.addEventListener('change', resetPageAndLoad);
+  filterToDate.addEventListener('change', resetPageAndLoad);
+
+  container.querySelectorAll('.col-sortable').forEach((th) => {
+    th.addEventListener('click', () => handleSortClick(th.dataset.sortKey));
+  });
+
+  prevPageButton.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      loadTickets();
+    }
+  });
+
+  nextPageButton.addEventListener('click', () => {
+    currentPage += 1;
+    loadTickets();
+  });
 
   container.querySelector('#clearFiltersButton').addEventListener('click', () => {
     searchInput.value = '';
     filterStatus.value = '';
     filterPriority.value = '';
     filterProject.value = '';
+    filterFromDate.value = '';
+    filterToDate.value = '';
     enhanceSelect(filterStatus);
     enhanceSelect(filterPriority);
     enhanceSelect(filterProject);
-    loadTickets();
+    resetPageAndLoad();
   });
 
+  updateSortHeaderUI();
   loadFilterOptions();
   loadTickets();
 }

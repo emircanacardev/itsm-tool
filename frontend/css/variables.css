@@ -714,3 +714,53 @@ textarea:focus {
   height: 32px;
   opacity: 0.5;
 }
+
+/* ---------- Pulse yükleme animasyonu ----------
+   Marka logosundaki EKG çizgisi tekrar tekrar "çiziliyor" gibi akıyor.
+   pathLength="1" sayesinde gerçek path uzunluğuna bakmadan 0-1 aralığında
+   dasharray/dashoffset kullanabiliyoruz. */
+.pulse-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-5);
+  color: var(--color-accent);
+}
+
+.pulse-loader-svg {
+  width: 56px;
+  height: 56px;
+  filter: drop-shadow(0 0 6px var(--color-accent-bg));
+}
+
+.pulse-loader-svg path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulse-beat 1.3s ease-in-out infinite;
+}
+
+.pulse-loader-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+@keyframes pulse-beat {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scaleY(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-loader-svg path {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,4 +1,5 @@
 import { enhanceSelect } from '../customSelect.js';
+import { pulseLoader } from '../loading.js';
 
 const STATUS_BADGE_MAP = {
   'Açık': { bg: 'var(--status-open-bg)', fg: 'var(--status-open-fg)' },
@@ -49,7 +50,7 @@ function renderDue(ticket) {
 export function render(container, ticketId) {
   container.innerHTML = `
     <a class="back-link" href="#/tickets" data-i18n="detail.back"></a>
-    <div id="stateMessage" class="state-message">${t('tickets.loading')}</div>
+    <div id="stateMessage">${pulseLoader(t('tickets.loading'))}</div>
     <div id="ticketDetail" style="display: none;">
       <div class="detail-grid">
         <div>
@@ -236,7 +237,15 @@ export function render(container, ticketId) {
       await Promise.all([loadStatusOptions(ticket), loadAssignOptions(ticket)]);
       return ticket;
     } catch (error) {
-      stateMessage.textContent = error.message.includes('404') ? t('detail.notFound') : t('detail.error');
+      const message = error.message.includes('404') ? t('detail.notFound') : t('detail.error');
+      stateMessage.innerHTML = `
+        <div class="state-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+          <span>${message}</span>
+        </div>`;
       stateMessage.style.display = 'block';
       ticketDetail.style.display = 'none';
       return null;

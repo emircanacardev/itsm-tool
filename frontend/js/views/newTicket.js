@@ -1,7 +1,10 @@
 import { enhanceSelect } from '../customSelect.js';
+import { pulseLoader } from '../loading.js';
 
 export function render(container, currentUser) {
   container.innerHTML = `
+    <div id="loadingState">${pulseLoader(t('tickets.loading'))}</div>
+
     <div id="stateMessage" class="state-box" style="display: none;">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="2"/>
@@ -56,6 +59,7 @@ export function render(container, currentUser) {
     </form>
   `;
 
+  const loadingState = container.querySelector('#loadingState');
   const stateMessage = container.querySelector('#stateMessage');
   const ticketForm = container.querySelector('#ticketForm');
   const errorMessage = container.querySelector('#errorMessage');
@@ -70,6 +74,7 @@ export function render(container, currentUser) {
   enhanceSelect(typeSelect);
 
   function showState(key) {
+    loadingState.style.display = 'none';
     container.querySelector('#stateMessageText').textContent = t(key);
     stateMessage.style.display = 'flex';
     ticketForm.style.display = 'none';
@@ -170,6 +175,7 @@ export function render(container, currentUser) {
     try {
       const [hasProjects] = await Promise.all([loadProjects(), loadPriorities()]);
       if (hasProjects) {
+        loadingState.style.display = 'none';
         ticketForm.style.display = 'block';
       }
     } catch (error) {

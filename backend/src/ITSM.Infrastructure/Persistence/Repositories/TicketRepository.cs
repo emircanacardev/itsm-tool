@@ -25,7 +25,7 @@ public class TicketRepository : ITicketRepository
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
-    public async Task<List<Ticket>> GetAllAsync(
+    public async Task<(List<Ticket> Items, int TotalCount)> GetAllAsync(
         long userId,
         bool includeAll,
         long? statusId,
@@ -33,7 +33,11 @@ public class TicketRepository : ITicketRepository
         long? projectId,
         DateTimeOffset? fromDate,
         DateTimeOffset? toDate,
-        string? search)
+        string? search,
+        string? sortBy,
+        bool sortDescending,
+        int page,
+        int pageSize)
     {
         var query = _context.Tickets
             .Include(t => t.Status)
@@ -82,11 +86,31 @@ public class TicketRepository : ITicketRepository
             query = query.Where(t => EF.Functions.ILike(t.Title, $"%{search}%"));
         }
 
-        // Açık bir ORDER BY olmadan Postgres sıralama garantisi vermiyor;
-        // liste ekranı için en mantıklı varsayılan en yeni talebin en üstte olması.
-        query = query.OrderByDescending(t => t.CreatedAt);
+        var totalCount = await query.CountAsync();
 
-        return await query.ToListAsync();
+        // Açık bir ORDER BY olmadan Postgres sıralama garantisi vermiyor;
+        // sortBy verilmemişse en yeni talep en üstte olacak şekilde varsayılan sıralama uygulanıyor.
+        // Durum/öncelik için isim yerine SortOrder'a göre sıralıyoruz ki "Kritik > Yüksek > Orta > Düşük"
+        // gibi anlamlı bir sıra korunsun (alfabetik değil).
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "title" => sortDescending ? query.OrderByDescending(t => t.Title) : query.OrderBy(t => t.Title),
+            "projectname" => sortDescending ? query.OrderByDescending(t => t.Project.Name) : query.OrderBy(t => t.Project.Name),
+            "status" => sortDescending ? query.OrderByDescending(t => t.Status.SortOrder) : query.OrderBy(t => t.Status.SortOrder),
+            "priority" => sortDescending ? query.OrderByDescending(t => t.Priority.SortOrder) : query.OrderBy(t => t.Priority.SortOrder),
+            "assignedtoname" => sortDescending
+                ? query.OrderByDescending(t => t.AssignedToUser != null ? t.AssignedToUser.FullName : null)
+                : query.OrderBy(t => t.AssignedToUser != null ? t.AssignedToUser.FullName : null),
+            "dueat" => sortDescending ? query.OrderByDescending(t => t.DueAt) : query.OrderBy(t => t.DueAt),
+            _ => sortDescending ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt)
+        };
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
     }
 
     public async Task AddAsync(Ticket ticket)
