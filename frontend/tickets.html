@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talepler — Pulse ITSM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <style>
+    .filter-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .filter-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+    .filter-group select {
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: var(--font-body);
+      background: var(--color-surface);
+      min-width: 160px;
+    }
+    .filter-group select:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-body);
+      height: 37px;
+    }
+    .btn-secondary:hover {
+      background: var(--color-surface-alt);
+    }
+    .ticket-table-wrap {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 12px 16px;
+      background: var(--color-surface-alt);
+      border-bottom: 1px solid var(--color-border);
+    }
+    tbody td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    tbody tr {
+      cursor: pointer;
+    }
+    tbody tr:hover {
+      background: var(--color-surface-alt);
+    }
+    .ticket-title {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .ticket-id {
+      color: var(--color-text-muted);
+      font-size: 12px;
+      margin-right: 6px;
+    }
+    .due-cell {
+      font-weight: 600;
+    }
+    .due-overdue { color: var(--sla-overdue); }
+    .due-soon { color: var(--sla-urgent); }
+    .due-ok { color: var(--sla-ok); }
+    .due-done { color: var(--sla-done); font-weight: 500; }
+    .state-message {
+      padding: 2.5rem;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark-sm">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 12H6L9 5L14 19L17 12H22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="brand-name-sm">Pulse ITSM</span>
+      </div>
+
+      <ul class="nav-list">
+        <li><a href="dashboard.html" data-i18n="nav.dashboard">Panel</a></li>
+        <li><a href="tickets.html" class="active" data-i18n="nav.tickets">Talepler</a></li>
+        <li><a href="projects.html" data-i18n="nav.projects">Projeler</a></li>
+        <li><a href="knowledge-base.html" data-i18n="nav.knowledgeBase">Bilgi Bankası</a></li>
+        <li><a href="notifications.html" data-i18n="nav.notifications">Bildirimler</a></li>
+        <li id="adminNavItem" style="display: none;"><a href="admin.html" data-i18n="nav.admin">Yönetim</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <strong id="sidebarUserName">—</strong>
+          <span id="sidebarUserEmail"></span>
+        </div>
+        <button class="logout-btn" id="logoutButton" data-i18n="nav.logout">Çıkış yap</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar-page">
+        <h1 class="page-title" data-i18n="tickets.pageTitle">Talepler</h1>
+        <a class="btn-primary" href="new-ticket.html" data-i18n="tickets.newTicket">Yeni Talep</a>
+      </header>
+
+      <div class="content">
+        <div class="filter-bar">
+          <div class="filter-group">
+            <label for="filterStatus" data-i18n="tickets.filterStatus">Durum</label>
+            <select id="filterStatus">
+              <option value="" data-i18n="tickets.filterAll">Tümü</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterPriority" data-i18n="tickets.filterPriority">Öncelik</label>
+            <select id="filterPriority">
+              <option value="" data-i18n="tickets.filterAll">Tümü</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterProject" data-i18n="tickets.filterProject">Proje</label>
+            <select id="filterProject">
+              <option value="" data-i18n="tickets.filterAll">Tümü</option>
+            </select>
+          </div>
+          <button class="btn-secondary" id="clearFiltersButton" data-i18n="tickets.clearFilters">Filtreleri temizle</button>
+        </div>
+
+        <div class="ticket-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="tickets.colTitle">Başlık</th>
+                <th data-i18n="tickets.colProject">Proje</th>
+                <th data-i18n="tickets.colStatus">Durum</th>
+                <th data-i18n="tickets.colPriority">Öncelik</th>
+                <th data-i18n="tickets.colAssignee">Atanan</th>
+                <th data-i18n="tickets.colDue">Son Tarih</th>
+                <th data-i18n="tickets.colCreated">Oluşturulma</th>
+              </tr>
+            </thead>
+            <tbody id="ticketTableBody">
+              <tr><td colspan="7" class="state-message" data-i18n="tickets.loading">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/i18n.js"></script>
+  <script>
+    if (!isAuthenticated()) {
+      window.location.href = 'login.html';
+    }
+
+    const STATUS_BADGE_MAP = {
+      'Açık': { bg: 'var(--status-open-bg)', fg: 'var(--status-open-fg)' },
+      'Devam Ediyor': { bg: 'var(--status-inprogress-bg)', fg: 'var(--status-inprogress-fg)' },
+      'Beklemede': { bg: 'var(--status-pending-bg)', fg: 'var(--status-pending-fg)' },
+      'Çözüldü': { bg: 'var(--status-resolved-bg)', fg: 'var(--status-resolved-fg)' },
+      'Kapatıldı': { bg: 'var(--status-closed-bg)', fg: 'var(--status-closed-fg)' }
+    };
+
+    const PRIORITY_BADGE_MAP = {
+      'Kritik': { bg: 'var(--priority-critical-bg)', fg: 'var(--priority-critical-fg)' },
+      'Yüksek': { bg: 'var(--priority-high-bg)', fg: 'var(--priority-high-fg)' },
+      'Orta': { bg: 'var(--priority-medium-bg)', fg: 'var(--priority-medium-fg)' },
+      'Düşük': { bg: 'var(--priority-low-bg)', fg: 'var(--priority-low-fg)' }
+    };
+
+    const CLOSED_STATUS_NAMES = ['Çözüldü', 'Kapatıldı'];
+
+    const ticketTableBody = document.getElementById('ticketTableBody');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterPriority = document.getElementById('filterPriority');
+    const filterProject = document.getElementById('filterProject');
+
+    function badge(name, colorMap) {
+      const colors = colorMap[name] || { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };
+      const span = document.createElement('span');
+      span.className = 'badge';
+      span.style.background = colors.bg;
+      span.style.color = colors.fg;
+      span.textContent = name;
+      return span;
+    }
+
+    function formatDate(isoString) {
+      if (!isoString) return '';
+      const date = new Date(isoString);
+      return date.toLocaleDateString(getLanguage() === 'tr' ? 'tr-TR' : 'en-US', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      });
+    }
+
+    function renderDueCell(ticket) {
+      if (CLOSED_STATUS_NAMES.includes(ticket.statusName)) {
+        return { text: t('tickets.dueDone'), className: 'due-done' };
+      }
+      if (!ticket.dueAt) {
+        return { text: t('tickets.noDueDate'), className: '' };
+      }
+      const due = new Date(ticket.dueAt);
+      const now = new Date();
+      const diffMs = due.getTime() - now.getTime();
+      const twoHoursMs = 2 * 60 * 60 * 1000;
+
+      if (diffMs < 0) {
+        return { text: `${t('tickets.dueOverdue')} · ${formatDate(ticket.dueAt)}`, className: 'due-overdue' };
+      }
+      if (diffMs < twoHoursMs) {
+        return { text: `${t('tickets.dueSoon')} · ${formatDate(ticket.dueAt)}`, className: 'due-soon' };
+      }
+      return { text: formatDate(ticket.dueAt), className: 'due-ok' };
+    }
+
+    function renderTickets(tickets) {
+      ticketTableBody.innerHTML = '';
+
+      if (tickets.length === 0) {
+        ticketTableBody.innerHTML = `<tr><td colspan="7" class="state-message">${t('tickets.empty')}</td></tr>`;
+        return;
+      }
+
+      tickets.forEach((ticket) => {
+        const row = document.createElement('tr');
+        row.addEventListener('click', () => {
+          window.location.href = `ticket-detail.html?id=${ticket.id}`;
+        });
+
+        const titleCell = document.createElement('td');
+        titleCell.innerHTML = `<span class="ticket-id">#${ticket.id}</span><span class="ticket-title">${ticket.title}</span>`;
+
+        const projectCell = document.createElement('td');
+        projectCell.textContent = ticket.projectName;
+
+        const statusCell = document.createElement('td');
+        statusCell.appendChild(badge(ticket.statusName, STATUS_BADGE_MAP));
+
+        const priorityCell = document.createElement('td');
+        priorityCell.appendChild(badge(ticket.priorityName, PRIORITY_BADGE_MAP));
+
+        const assigneeCell = document.createElement('td');
+        assigneeCell.textContent = ticket.assignedToName || t('tickets.unassigned');
+
+        const due = renderDueCell(ticket);
+        const dueCell = document.createElement('td');
+        dueCell.className = `due-cell ${due.className}`;
+        dueCell.textContent = due.text;
+
+        const createdCell = document.createElement('td');
+        createdCell.textContent = formatDate(ticket.createdAt);
+
+        row.append(titleCell, projectCell, statusCell, priorityCell, assigneeCell, dueCell, createdCell);
+        ticketTableBody.appendChild(row);
+      });
+    }
+
+    function populateSelect(selectEl, items, labelKey, valueKey) {
+      items.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item[valueKey];
+        option.textContent = item[labelKey];
+        selectEl.appendChild(option);
+      });
+    }
+
+    function buildQueryString() {
+      const params = new URLSearchParams();
+      if (filterStatus.value) params.set('statusId', filterStatus.value);
+      if (filterPriority.value) params.set('priorityId', filterPriority.value);
+      if (filterProject.value) params.set('projectId', filterProject.value);
+      const query = params.toString();
+      return query ? `?${query}` : '';
+    }
+
+    async function loadTickets() {
+      ticketTableBody.innerHTML = `<tr><td colspan="7" class="state-message">${t('tickets.loading')}</td></tr>`;
+      try {
+        const tickets = await apiRequest(`/ticket${buildQueryString()}`);
+        renderTickets(tickets);
+      } catch (error) {
+        ticketTableBody.innerHTML = `<tr><td colspan="7" class="state-message">${t('tickets.error')}</td></tr>`;
+      }
+    }
+
+    async function loadFilterOptions() {
+      try {
+        const [statuses, priorities, projects] = await Promise.all([
+          apiRequest('/status'),
+          apiRequest('/priority'),
+          apiRequest('/project')
+        ]);
+        populateSelect(filterStatus, statuses, 'name', 'id');
+        populateSelect(filterPriority, priorities, 'name', 'id');
+        populateSelect(filterProject, projects, 'name', 'id');
+      } catch (error) {
+        // Filtre seçenekleri yüklenemese bile liste filtresiz çalışmaya devam eder.
+      }
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const user = await apiRequest('/auth/me');
+        document.getElementById('sidebarUserName').textContent = user.fullName;
+        document.getElementById('sidebarUserEmail').textContent = user.email;
+        if (user.isAdmin) {
+          document.getElementById('adminNavItem').style.display = '';
+        }
+      } catch (error) {
+        // Kullanıcı bilgisi gösterilemese de sayfa çalışmaya devam eder.
+      }
+    }
+
+    filterStatus.addEventListener('change', loadTickets);
+    filterPriority.addEventListener('change', loadTickets);
+    filterProject.addEventListener('change', loadTickets);
+
+    document.getElementById('clearFiltersButton').addEventListener('click', () => {
+      filterStatus.value = '';
+      filterPriority.value = '';
+      filterProject.value = '';
+      loadTickets();
+    });
+
+    document.getElementById('logoutButton').addEventListener('click', logout);
+
+    loadCurrentUser();
+    loadFilterOptions();
+    loadTickets();
+  </script>
+</body>
+</html>

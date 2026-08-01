@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talep Detayı — Pulse ITSM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <style>
+    .back-link {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      margin-bottom: 1rem;
+    }
+    .back-link:hover {
+      color: var(--color-accent);
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+    }
+    .card + .card {
+      margin-top: 1.5rem;
+    }
+    .ticket-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .ticket-id-large {
+      color: var(--color-text-muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .ticket-title-large {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 22px;
+      margin: 4px 0 0;
+    }
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin: 0 0 8px;
+    }
+    .description-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--color-text);
+      white-space: pre-wrap;
+    }
+    .meta-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .meta-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .meta-row .meta-label {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+    .meta-row .meta-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .due-overdue { color: var(--sla-overdue); }
+    .due-soon { color: var(--sla-urgent); }
+    .due-ok { color: var(--sla-ok); }
+    .due-done { color: var(--sla-done); }
+    .action-form {
+      display: flex;
+      gap: 8px;
+    }
+    .action-form select {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: var(--font-body);
+      background: var(--color-surface);
+    }
+    .action-form select:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+    .action-form button {
+      background: var(--color-accent);
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+    .action-form button:hover {
+      background: var(--color-accent-hover);
+    }
+    .action-form button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .toast {
+      font-size: 13px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      margin-top: 10px;
+      display: none;
+    }
+    .toast.success {
+      background: var(--status-resolved-bg);
+      color: var(--status-resolved-fg);
+    }
+    .toast.error {
+      background: var(--priority-critical-bg);
+      color: var(--priority-critical-fg);
+    }
+    .state-message {
+      padding: 2.5rem;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 14px;
+    }
+    @media (max-width: 900px) {
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark-sm">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 12H6L9 5L14 19L17 12H22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="brand-name-sm">Pulse ITSM</span>
+      </div>
+
+      <ul class="nav-list">
+        <li><a href="dashboard.html" data-i18n="nav.dashboard">Panel</a></li>
+        <li><a href="tickets.html" class="active" data-i18n="nav.tickets">Talepler</a></li>
+        <li><a href="projects.html" data-i18n="nav.projects">Projeler</a></li>
+        <li><a href="knowledge-base.html" data-i18n="nav.knowledgeBase">Bilgi Bankası</a></li>
+        <li><a href="notifications.html" data-i18n="nav.notifications">Bildirimler</a></li>
+        <li id="adminNavItem" style="display: none;"><a href="admin.html" data-i18n="nav.admin">Yönetim</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <strong id="sidebarUserName">—</strong>
+          <span id="sidebarUserEmail"></span>
+        </div>
+        <button class="logout-btn" id="logoutButton" data-i18n="nav.logout">Çıkış yap</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar-page">
+        <h1 class="page-title" data-i18n="tickets.pageTitle">Talepler</h1>
+      </header>
+
+      <div class="content" id="content">
+        <a class="back-link" href="tickets.html" data-i18n="detail.back">← Taleplere dön</a>
+        <div id="stateMessage" class="state-message" data-i18n="tickets.loading">Yükleniyor...</div>
+        <div id="ticketDetail" style="display: none;">
+          <div class="detail-grid">
+            <div>
+              <div class="card">
+                <div class="ticket-header">
+                  <div>
+                    <span class="ticket-id-large" id="ticketIdLabel"></span>
+                    <h2 class="ticket-title-large" id="ticketTitle"></h2>
+                  </div>
+                  <div class="badge-row">
+                    <span class="badge" id="statusBadge"></span>
+                    <span class="badge" id="priorityBadge"></span>
+                  </div>
+                </div>
+                <p class="section-label" data-i18n="detail.description">Açıklama</p>
+                <p class="description-text" id="ticketDescription"></p>
+              </div>
+
+              <div class="card" id="statusCard" style="display: none;">
+                <p class="section-label" data-i18n="detail.statusSectionTitle">Durumu güncelle</p>
+                <div class="action-form">
+                  <select id="statusSelect"></select>
+                  <button id="statusSaveButton" data-i18n="detail.save">Kaydet</button>
+                </div>
+                <div class="toast" id="statusToast"></div>
+              </div>
+
+              <div class="card" id="assignCard" style="display: none;">
+                <p class="section-label" data-i18n="detail.assignSectionTitle">Ata</p>
+                <div class="action-form">
+                  <select id="assignSelect">
+                    <option value="" data-i18n="detail.selectUser">Kullanıcı seç</option>
+                  </select>
+                  <button id="assignSaveButton" data-i18n="detail.assign">Ata</button>
+                </div>
+                <div class="toast" id="assignToast"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <p class="section-label">Detaylar</p>
+              <div class="meta-list">
+                <div class="meta-row">
+                  <span class="meta-label" data-i18n="detail.project">Proje</span>
+                  <span class="meta-value" id="metaProject"></span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label" data-i18n="detail.category">Kategori</span>
+                  <span class="meta-value" id="metaCategory"></span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label" data-i18n="detail.type">Tür</span>
+                  <span class="meta-value" id="metaType"></span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label" data-i18n="detail.createdBy">Oluşturan</span>
+                  <span class="meta-value" id="metaCreatedBy"></span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label" data-i18n="detail.assignedTo">Atanan</span>
+                  <span class="meta-value" id="metaAssignedTo"></span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label" data-i18n="detail.dueAt">Son Tarih</span>
+                  <span class="meta-value" id="metaDueAt"></span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label" data-i18n="detail.createdAt">Oluşturulma</span>
+                  <span class="meta-value" id="metaCreatedAt"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/i18n.js"></script>
+  <script>
+    if (!isAuthenticated()) {
+      window.location.href = 'login.html';
+    }
+
+    const STATUS_BADGE_MAP = {
+      'Açık': { bg: 'var(--status-open-bg)', fg: 'var(--status-open-fg)' },
+      'Devam Ediyor': { bg: 'var(--status-inprogress-bg)', fg: 'var(--status-inprogress-fg)' },
+      'Beklemede': { bg: 'var(--status-pending-bg)', fg: 'var(--status-pending-fg)' },
+      'Çözüldü': { bg: 'var(--status-resolved-bg)', fg: 'var(--status-resolved-fg)' },
+      'Kapatıldı': { bg: 'var(--status-closed-bg)', fg: 'var(--status-closed-fg)' }
+    };
+
+    const PRIORITY_BADGE_MAP = {
+      'Kritik': { bg: 'var(--priority-critical-bg)', fg: 'var(--priority-critical-fg)' },
+      'Yüksek': { bg: 'var(--priority-high-bg)', fg: 'var(--priority-high-fg)' },
+      'Orta': { bg: 'var(--priority-medium-bg)', fg: 'var(--priority-medium-fg)' },
+      'Düşük': { bg: 'var(--priority-low-bg)', fg: 'var(--priority-low-fg)' }
+    };
+
+    const CLOSED_STATUS_NAMES = ['Çözüldü', 'Kapatıldı'];
+    const TYPE_LABEL_KEYS = { Incident: 'detail.typeIncident', ServiceRequest: 'detail.typeServiceRequest' };
+
+    const ticketId = new URLSearchParams(window.location.search).get('id');
+
+    const stateMessage = document.getElementById('stateMessage');
+    const ticketDetail = document.getElementById('ticketDetail');
+
+    function applyBadge(el, name, colorMap) {
+      const colors = colorMap[name] || { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };
+      el.style.background = colors.bg;
+      el.style.color = colors.fg;
+      el.textContent = name;
+    }
+
+    function formatDateTime(isoString) {
+      if (!isoString) return '-';
+      const date = new Date(isoString);
+      return date.toLocaleString(getLanguage() === 'tr' ? 'tr-TR' : 'en-US', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function renderDue(ticket) {
+      if (CLOSED_STATUS_NAMES.includes(ticket.statusName)) {
+        return { text: formatDateTime(ticket.dueAt), className: 'due-done' };
+      }
+      if (!ticket.dueAt) {
+        return { text: '-', className: '' };
+      }
+      const diffMs = new Date(ticket.dueAt).getTime() - Date.now();
+      if (diffMs < 0) return { text: formatDateTime(ticket.dueAt), className: 'due-overdue' };
+      if (diffMs < 2 * 60 * 60 * 1000) return { text: formatDateTime(ticket.dueAt), className: 'due-soon' };
+      return { text: formatDateTime(ticket.dueAt), className: 'due-ok' };
+    }
+
+    function renderTicket(ticket) {
+      document.getElementById('ticketIdLabel').textContent = `#${ticket.id}`;
+      document.getElementById('ticketTitle').textContent = ticket.title;
+      document.getElementById('ticketDescription').textContent = ticket.description || t('detail.noDescription');
+      applyBadge(document.getElementById('statusBadge'), ticket.statusName, STATUS_BADGE_MAP);
+      applyBadge(document.getElementById('priorityBadge'), ticket.priorityName, PRIORITY_BADGE_MAP);
+
+      document.getElementById('metaProject').textContent = ticket.projectName;
+      document.getElementById('metaCategory').textContent = ticket.categoryName;
+      document.getElementById('metaType').textContent = t(TYPE_LABEL_KEYS[ticket.ticketType] || ticket.ticketType);
+      document.getElementById('metaCreatedBy').textContent = ticket.createdByName;
+      document.getElementById('metaAssignedTo').textContent = ticket.assignedToName || t('tickets.unassigned');
+
+      const due = renderDue(ticket);
+      const dueEl = document.getElementById('metaDueAt');
+      dueEl.textContent = due.text;
+      dueEl.className = `meta-value ${due.className}`;
+
+      document.getElementById('metaCreatedAt').textContent = formatDateTime(ticket.createdAt);
+
+      const statusSelect = document.getElementById('statusSelect');
+      if (statusSelect.dataset.currentValue !== String(ticket.statusId)) {
+        statusSelect.value = ticket.statusId;
+      }
+
+      const assignSelect = document.getElementById('assignSelect');
+      assignSelect.value = ticket.assignedTo || '';
+    }
+
+    function showToast(el, key, isError) {
+      el.textContent = t(key);
+      el.className = `toast ${isError ? 'error' : 'success'}`;
+      el.style.display = 'block';
+    }
+
+    async function loadStatusOptions(currentTicket) {
+      try {
+        const statuses = await apiRequest('/status');
+        const select = document.getElementById('statusSelect');
+        select.innerHTML = '';
+        statuses.forEach((status) => {
+          const option = document.createElement('option');
+          option.value = status.id;
+          option.textContent = status.name;
+          select.appendChild(option);
+        });
+        select.value = currentTicket.statusId;
+        document.getElementById('statusCard').style.display = '';
+      } catch (error) {
+        // TICKET_STATUS_UPDATE yetkisi yoksa 403 döner, kart gizli kalır.
+      }
+    }
+
+    async function loadAssignOptions(currentTicket) {
+      try {
+        const users = await apiRequest('/ticket/assignable-users');
+        const select = document.getElementById('assignSelect');
+        users.forEach((user) => {
+          const option = document.createElement('option');
+          option.value = user.id;
+          option.textContent = user.fullName;
+          select.appendChild(option);
+        });
+        select.value = currentTicket.assignedTo || '';
+        document.getElementById('assignCard').style.display = '';
+      } catch (error) {
+        // TICKET_ASSIGN yetkisi yoksa 403 döner, kart gizli kalır.
+      }
+    }
+
+    async function loadTicket() {
+      try {
+        const ticket = await apiRequest(`/ticket/${ticketId}`);
+        stateMessage.style.display = 'none';
+        ticketDetail.style.display = 'block';
+        renderTicket(ticket);
+        await Promise.all([loadStatusOptions(ticket), loadAssignOptions(ticket)]);
+        return ticket;
+      } catch (error) {
+        stateMessage.textContent = error.message.includes('404') ? t('detail.notFound') : t('detail.error');
+        stateMessage.style.display = 'block';
+        ticketDetail.style.display = 'none';
+        return null;
+      }
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const user = await apiRequest('/auth/me');
+        document.getElementById('sidebarUserName').textContent = user.fullName;
+        document.getElementById('sidebarUserEmail').textContent = user.email;
+        if (user.isAdmin) {
+          document.getElementById('adminNavItem').style.display = '';
+        }
+      } catch (error) {
+        // Kullanıcı bilgisi gösterilemese de sayfa çalışmaya devam eder.
+      }
+    }
+
+    if (!ticketId) {
+      stateMessage.textContent = t('detail.notFound');
+    } else {
+      document.getElementById('statusSaveButton').addEventListener('click', async () => {
+        const button = document.getElementById('statusSaveButton');
+        const toast = document.getElementById('statusToast');
+        const newStatusId = Number(document.getElementById('statusSelect').value);
+
+        button.disabled = true;
+        try {
+          await apiRequest(`/ticket/${ticketId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ newStatusId })
+          });
+          showToast(toast, 'detail.statusUpdated', false);
+          await loadTicket();
+        } catch (error) {
+          showToast(toast, 'detail.updateError', true);
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      document.getElementById('assignSaveButton').addEventListener('click', async () => {
+        const button = document.getElementById('assignSaveButton');
+        const toast = document.getElementById('assignToast');
+        const assignedTo = Number(document.getElementById('assignSelect').value);
+
+        if (!assignedTo) return;
+
+        button.disabled = true;
+        try {
+          await apiRequest(`/ticket/${ticketId}/assign`, {
+            method: 'PUT',
+            body: JSON.stringify({ assignedTo })
+          });
+          showToast(toast, 'detail.assignUpdated', false);
+          await loadTicket();
+        } catch (error) {
+          showToast(toast, 'detail.updateError', true);
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      loadCurrentUser();
+      loadTicket();
+    }
+
+    document.getElementById('logoutButton').addEventListener('click', logout);
+  </script>
+</body>
+</html>
