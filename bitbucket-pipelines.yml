@@ -1,0 +1,18 @@
+image: mcr.microsoft.com/dotnet/sdk:10.0
+
+pipelines:
+  default:
+    - step:
+        name: Build, Test & SonarCloud Analysis
+        caches:
+          - dotnetcore
+        script:
+          - apt-get update && apt-get install -y openjdk-17-jre-headless
+          - dotnet tool install --global dotnet-sonarscanner
+          - export PATH="$PATH:/root/.dotnet/tools"
+          - cd backend
+          - dotnet sonarscanner begin /k:"emircanacardev_itsm-tool" /o:"emircanacardev" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io"
+          - dotnet restore ITSM.slnx
+          - dotnet build ITSM.slnx --no-restore --configuration Release
+          - dotnet test ITSM.slnx --no-build --configuration Release
+          - dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"

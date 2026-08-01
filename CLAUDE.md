@@ -167,5 +167,41 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   store only `Type` + structured data (`TicketId`, etc.) and have the frontend render the localized
   sentence from `Type`. Deliberately deferred — user chose to keep it hardcoded for now and revisit
   during frontend/i18n work.
-- Admin panel backend, dashboard/reporting, SLA breach detection, email integration, and the entire
-  frontend are still outstanding — see `docs/gelistirme-plani.md` for the day-by-day breakdown.
+- **Day 6 complete.** Audit logging is automatic, not manual: `AppDbContext.SaveChangesAsync` is
+  overridden to read `ChangeTracker.Entries()` for Added/Modified/Deleted entities (excluding
+  `AuditLog` itself), save the real changes first (so DB-generated Ids populate on the tracked
+  entity references), then insert one `AuditLog` row per change in a second `SaveChangesAsync` call.
+  `IHttpContextAccessor` supplies the acting user id from the `sub` claim; `null` when there's no
+  HTTP context (e.g. `SlaBreachDetectionService`), meaning "system". Trade-off accepted: this
+  captures *what* changed but not *why* (a `Ticket` "Modified" doesn't say whether it was a status
+  change or an assignment) — unlike the manual-call pattern used for notifications.
+  `UserController` (admin-only) adds list/detail/activate-deactivate; building it surfaced a real gap
+  — `AuthService.LoginAsync` never checked `IsActive`, so deactivating a user had no actual effect.
+  Fixed (check placed after password verification, so wrong-password and deactivated-account both
+  return the same 401, avoiding an account-existence leak).
+  `DashboardController` (`GET api/dashboard/summary`, admin-only) aggregates ticket counts by
+  status/priority via EF Core `GroupBy` and an SLA compliance percentage via a correlated subquery
+  against `SlaBreaches`.
+  `AutoAssignmentRule` (bonus): the DB check constraint only requires "at least one of
+  AssignToUserId/AssignToGroupId", but the service enforces "exactly one" to avoid ambiguity. Rule
+  matching reuses the SLA's most-specific-wins pattern (category-specific beats project-wide
+  wildcard, tie-broken by `PriorityOrder`). Group-targeted rules resolve to the least-loaded active
+  user in that group (`ITicketRepository.GetLeastLoadedUserInGroupAsync`). Wired into
+  `TicketService.CreateTicketAsync`: sets `AssignedTo` before the initial insert, then records a
+  `TicketAssignment` history row and sends the normal assignment notification/email.
+  SonarQube's first full scan found 1 Blocker (the assertion-less placeholder test scaffolded at
+  project creation) — replaced with a real test (`PasswordHasherTests`). Remaining 16 findings
+  (all Info/Low/Medium) triaged: real fixes applied (`await app.RunAsync()`, a `static` method,
+  nullable-reference warnings in `MailKitEmailService`, a stale TODO in `Attachment.cs` describing
+  a rule already enforced by a DB check constraint); `Migrations/` excluded from analysis
+  (`sonar.exclusions`) since auto-generated migration files shouldn't be graded like hand-written
+  code; two Info-level suggestions (`/hash-test` TODO, `AddAuthorizationBuilder` style suggestion)
+  deliberately left open/confirmed in SonarQube with a reason.
+  **Quality Gate currently shows "Failed"** — the only failing condition is the default 80% new-code
+  coverage requirement (currently 0.0%, since only `PasswordHasherTests` exists). This is expected
+  and left as-is deliberately; it will improve naturally once Day 10's "expand unit test coverage"
+  work happens. Not a regression, not something to chase now.
+- Dashboard/reporting, SLA breach detection, email integration, admin panel backend, and audit
+  logging are all done. The entire frontend (Days 7-9) and final polish/testing/SonarQube-final/
+  README (Day 10) are still outstanding — see `docs/gelistirme-plani.md` for the day-by-day
+  breakdown.

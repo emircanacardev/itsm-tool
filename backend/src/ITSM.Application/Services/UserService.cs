@@ -38,6 +38,28 @@ public class UserService
         return true;
     }
 
+    public async Task<List<AssignableUserResponse>> GetAssignableUsersAsync()
+    {
+        var users = await _userRepository.GetAllAsync();
+        return users
+            .Where(u => u.IsActive)
+            .Select(u => new AssignableUserResponse { Id = u.Id, FullName = u.FullName })
+            .ToList();
+    }
+
+    public async Task<bool> UpdateUserGroupAsync(long id, long groupId)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.GroupId = groupId;
+        await _userRepository.UpdateAsync(user);
+        return true;
+    }
+
     private static UserResponse MapToResponse(User user)
     {
         return new UserResponse
