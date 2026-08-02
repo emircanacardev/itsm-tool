@@ -1,5 +1,6 @@
 import { render as renderLogin } from './views/login.js';
 import { render as renderRegister } from './views/register.js';
+import { render as renderDashboard } from './views/dashboard.js';
 import { render as renderTickets } from './views/tickets.js';
 import { render as renderTicketDetail } from './views/ticketDetail.js';
 import { render as renderNewTicket } from './views/newTicket.js';
@@ -12,6 +13,7 @@ import { render as renderAdmin } from './views/admin.js';
 const routes = [
   { pattern: /^login$/, view: renderLogin, public: true, titleKey: 'login.title' },
   { pattern: /^register$/, view: renderRegister, public: true, titleKey: 'register.title' },
+  { pattern: /^dashboard$/, view: renderDashboard, titleKey: 'dashboard.pageTitle', subtitleKey: 'dashboard.pageSubtitle' },
   { pattern: /^tickets$/, view: renderTickets, titleKey: 'tickets.pageTitle', subtitleKey: 'tickets.pageSubtitle' },
   { pattern: /^tickets\/(\d+)$/, view: renderTicketDetail, titleKey: 'tickets.pageTitle' },
   { pattern: /^new-ticket$/, view: renderNewTicket, titleKey: 'newTicket.pageTitle' },
