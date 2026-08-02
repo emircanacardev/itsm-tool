@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.Services;
+using ITSM.API.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +20,7 @@ public class AttachmentController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Upload(long ticketId, IFormFile file)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         using var stream = file.OpenReadStream();
         var result = await _attachmentService.UploadAsync(ticketId, userId, stream, file.FileName);
@@ -35,8 +35,7 @@ public class AttachmentController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAttachments(long ticketId)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _attachmentService.GetAttachmentsAsync(ticketId, userId);
         if (result is null)
@@ -49,8 +48,7 @@ public class AttachmentController : ControllerBase
     [HttpGet("{id}/download")]
     public async Task<IActionResult> Download(long ticketId, long id)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var (content, fileName) = await _attachmentService.DownloadAsync(id, userId);
         if (content is null)

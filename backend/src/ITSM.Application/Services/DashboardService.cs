@@ -1,5 +1,6 @@
 using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 
 namespace ITSM.Application.Services;
 
@@ -16,7 +17,7 @@ public class DashboardService
 
     public async Task<DashboardSummaryResponse> GetSummaryAsync(long userId)
     {
-        var includeAll = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var includeAll = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
 
         var totalTickets = await _dashboardRepository.GetTotalTicketCountAsync(userId, includeAll);
         var statusCounts = await _dashboardRepository.GetTicketCountsByStatusAsync(userId, includeAll);
@@ -26,9 +27,9 @@ public class DashboardService
         var resolvedTodayCount = await _dashboardRepository.GetResolvedTodayCountAsync(userId, includeAll);
         var recentTickets = await _dashboardRepository.GetRecentTicketsAsync(userId, includeAll, 5);
 
-        var openTickets = statusCounts.Where(s => s.StatusId is 10 or 20 or 30).Sum(s => s.Count);
-        var resolvedTickets = statusCounts.Where(s => s.StatusId == 40).Sum(s => s.Count);
-        var closedTickets = statusCounts.Where(s => s.StatusId == 50).Sum(s => s.Count);
+        var openTickets = statusCounts.Where(s => TicketStatuses.OpenStates.Contains(s.StatusId)).Sum(s => s.Count);
+        var resolvedTickets = statusCounts.Where(s => s.StatusId == TicketStatuses.Cozuldu).Sum(s => s.Count);
+        var closedTickets = statusCounts.Where(s => s.StatusId == TicketStatuses.Kapatildi).Sum(s => s.Count);
 
         var slaCompliancePercentage = totalWithSla == 0
             ? 100.0

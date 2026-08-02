@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,7 @@ public class CategoryController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> CreateCategory(long projectId, CreateCategoryRequest request)
     {
         var result = await _categoryService.CreateCategoryAsync(projectId, request);
@@ -48,7 +49,7 @@ public class CategoryController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> UpdateCategory(long projectId, long id, UpdateCategoryRequest request)
     {
         var success = await _categoryService.UpdateCategoryAsync(projectId, id, request);
@@ -60,7 +61,7 @@ public class CategoryController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> DeleteCategory(long projectId, long id)
     {
         var result = await _categoryService.DeleteCategoryAsync(projectId, id);

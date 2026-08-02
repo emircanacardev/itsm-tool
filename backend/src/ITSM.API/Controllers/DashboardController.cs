@@ -1,3 +1,4 @@
+using ITSM.API.Extensions;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,8 +24,7 @@ public class DashboardController : ControllerBase
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummary()
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _dashboardService.GetSummaryAsync(userId);
         return Ok(result);

@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -143,7 +144,7 @@ public class TicketRepository : ITicketRepository
 
     public async Task<List<Ticket>> GetActiveTicketsWithSlaAsync() =>
     await _context.Tickets
-        .Where(t => t.SlaId != null && t.StatusId != 40 && t.StatusId != 50)
+        .Where(t => t.SlaId != null && !TicketStatuses.ClosedStates.Contains(t.StatusId))
         .Include(t => t.Sla)
         .ToListAsync();
 
@@ -152,7 +153,7 @@ public class TicketRepository : ITicketRepository
         return await _context.Users
             .Where(u => u.GroupId == groupId && u.IsActive)
             .OrderBy(u => _context.Tickets.Count(t =>
-                t.AssignedTo == u.Id && t.StatusId != 40 && t.StatusId != 50))
+                t.AssignedTo == u.Id && !TicketStatuses.ClosedStates.Contains(t.StatusId)))
             .Select(u => (long?)u.Id)
             .FirstOrDefaultAsync();
     }

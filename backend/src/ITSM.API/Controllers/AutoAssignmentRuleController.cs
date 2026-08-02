@@ -1,3 +1,4 @@
+using ITSM.Domain.Constants;
 using ITSM.Application.DTOs;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/project/{projectId}/auto-assignment-rules")]
-[Authorize(Policy = "ADMIN_MANAGE")]
+[Authorize(Policy = Permissions.AdminManage)]
 public class AutoAssignmentRuleController : ControllerBase
 {
     private readonly AutoAssignmentService _autoAssignmentService;

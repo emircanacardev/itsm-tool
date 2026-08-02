@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/project/{projectId}/members")]
-[Authorize(Policy = "ADMIN_MANAGE")]
+[Authorize(Policy = Permissions.AdminManage)]
 public class ProjectMemberController : ControllerBase
 {
     private readonly ProjectMemberService _projectMemberService;

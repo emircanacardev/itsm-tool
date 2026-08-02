@@ -1,3 +1,4 @@
+using ITSM.Domain.Constants;
 using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
 using ITSM.Domain.Entities;
@@ -93,7 +94,7 @@ public class AuthService
         }
 
         var permissions = await _permissionService.GetUserPermissionsAsync(userId);
-        var isAdmin = permissions.Any(p => p.PermissionCode == "ADMIN_MANAGE");
+        var isAdmin = permissions.Any(p => p.PermissionCode == Permissions.AdminManage);
 
         return new CurrentUserResponse
         {

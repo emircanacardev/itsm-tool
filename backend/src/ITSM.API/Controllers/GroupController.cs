@@ -1,20 +1,25 @@
-﻿using ITSM.Application.DTOs;
+﻿using ITSM.Application.Configuration;
+using ITSM.Application.DTOs;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "ADMIN_MANAGE")]
+[Authorize(Policy = Permissions.AdminManage)]
 public class GroupController : ControllerBase
 {
     private readonly GroupService _groupService;
+    private readonly PaginationOptions _paginationOptions;
 
-    public GroupController(GroupService groupService)
+    public GroupController(GroupService groupService, IOptions<PaginationOptions> paginationOptions)
     {
         _groupService = groupService;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpPost]
@@ -36,7 +41,12 @@ public class GroupController : ControllerBase
         // tüketicisi admin panelindeki Gruplar sekmesi, o da artık page geçiyor.
         if (page.HasValue)
         {
-            var pagedResult = await _groupService.GetAllGroupsPagedAsync(search, sortBy, sortDescending, page.Value, pageSize ?? 20);
+            var pagedResult = await _groupService.GetAllGroupsPagedAsync(
+                search,
+                sortBy,
+                sortDescending,
+                _paginationOptions.NormalizePage(page),
+                _paginationOptions.NormalizePageSize(pageSize));
             return Ok(pagedResult);
         }
 

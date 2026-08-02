@@ -1,4 +1,6 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.API.Extensions;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,11 +20,10 @@ public class KnowledgeBaseArticleController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> CreateArticle(CreateArticleRequest request)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _articleService.CreateArticleAsync(request, userId);
         return Ok(result);
@@ -31,8 +32,7 @@ public class KnowledgeBaseArticleController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> SearchArticles([FromQuery] string? search)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _articleService.SearchArticlesAsync(search, userId);
         return Ok(result);
@@ -41,8 +41,7 @@ public class KnowledgeBaseArticleController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetArticleById(long id)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _articleService.GetArticleByIdAsync(id, userId);
         if (result is null)
@@ -53,7 +52,7 @@ public class KnowledgeBaseArticleController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> UpdateArticle(long id, UpdateArticleRequest request)
     {
         var success = await _articleService.UpdateArticleAsync(id, request);

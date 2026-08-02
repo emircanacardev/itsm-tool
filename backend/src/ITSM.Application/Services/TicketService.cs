@@ -1,6 +1,9 @@
-﻿using ITSM.Application.DTOs;
+﻿using ITSM.Application.Configuration;
+using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
+using Microsoft.Extensions.Options;
 
 namespace ITSM.Application.Services;
 
@@ -12,6 +15,7 @@ public class TicketService
     private readonly NotificationService _notificationService;
     private readonly ISlaRepository _slaRepository;
     private readonly AutoAssignmentService _autoAssignmentService;
+    private readonly PaginationOptions _paginationOptions;
 
     public TicketService(
         ITicketRepository ticketRepository,
@@ -19,7 +23,8 @@ public class TicketService
         IProjectMemberRepository projectMemberRepository,
         NotificationService notificationService,
         ISlaRepository slaRepository,
-        AutoAssignmentService autoAssignmentService)
+        AutoAssignmentService autoAssignmentService,
+        IOptions<PaginationOptions> paginationOptions)
     {
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
@@ -27,6 +32,7 @@ public class TicketService
         _notificationService = notificationService;
         _slaRepository = slaRepository;
         _autoAssignmentService = autoAssignmentService;
+        _paginationOptions = paginationOptions.Value;
     }
 
     public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, long createdByUserId)
@@ -38,7 +44,7 @@ public class TicketService
             TicketType = request.TicketType,
             Title = request.Title,
             Description = request.Description,
-            StatusId = 10, // "Açık"
+            StatusId = TicketStatuses.Default,
             PriorityId = request.PriorityId,
             CreatedBy = createdByUserId
         };
@@ -94,7 +100,7 @@ public class TicketService
             return null;
         }
 
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
         if (isAdmin)
         {
             return MapToResponse(ticket);
@@ -114,11 +120,11 @@ public class TicketService
 
     public async Task<PagedResult<TicketResponse>> GetAllTicketsAsync(long userId, TicketFilterRequest filter)
     {
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
 
         // Sayfa/sayfa boyutu için mantıksız/kötü niyetli değerlere karşı sınır koyuyoruz.
-        var page = filter.Page < 1 ? 1 : filter.Page;
-        var pageSize = filter.PageSize is < 1 or > 100 ? 20 : filter.PageSize;
+        var page = _paginationOptions.NormalizePage(filter.Page);
+        var pageSize = _paginationOptions.NormalizePageSize(filter.PageSize);
 
         var (items, totalCount) = await _ticketRepository.GetAllAsync(
             userId,
@@ -185,6 +191,19 @@ public class TicketService
         };
 
         ticket.StatusId = newStatusId;
+
+        // Talep "Çözüldü"ye geçtiğinde çözülme anını damgalıyoruz; dashboard'daki
+        // "Bugün Çözülen" sayacı bu alanı okuyor. Tekrar açılırsa (Çözüldü'den
+        // başka bir duruma dönerse) damga temizlenmeli, yoksa kapanmamış bir
+        // talep çözülmüş gibi sayılır.
+        if (newStatusId == TicketStatuses.Cozuldu)
+        {
+            ticket.ResolvedAt ??= DateTimeOffset.UtcNow;
+        }
+        else if (newStatusId != TicketStatuses.Kapatildi)
+        {
+            ticket.ResolvedAt = null;
+        }
 
         await _ticketRepository.UpdateStatusAsync(ticket, history);
 

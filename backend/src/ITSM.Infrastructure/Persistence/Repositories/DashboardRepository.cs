@@ -1,4 +1,5 @@
 using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using ITSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,12 @@ namespace ITSM.Infrastructure.Persistence.Repositories;
 
 public class DashboardRepository : IDashboardRepository
 {
+    /// <summary>
+    /// "SLA riski" sayılan pencere: teslim tarihine bu kadar saat veya daha az
+    /// kalmış açık ticket'lar riskli kabul edilir.
+    /// </summary>
+    private const int SlaRiskThresholdHours = 2;
+
     private readonly AppDbContext _context;
 
     public DashboardRepository(AppDbContext context)
@@ -68,12 +75,11 @@ public class DashboardRepository : IDashboardRepository
 
     public async Task<int> GetSlaAtRiskCountAsync(long userId, bool includeAll)
     {
-        // Henüz çözülmemiş/kapatılmamış (StatusId 40/50 dışı) ve teslim tarihi
-        // 2 saat içinde olan ya da geçmiş ticket'lar - tickets.js'teki
-        // due-soon/due-overdue eşiğiyle aynı tanım.
-        var riskThreshold = DateTimeOffset.UtcNow.AddHours(2);
+        // Henüz kapanmamış ve teslim tarihi 2 saat içinde olan ya da geçmiş
+        // ticket'lar - tickets.js'teki due-soon/due-overdue eşiğiyle aynı tanım.
+        var riskThreshold = DateTimeOffset.UtcNow.AddHours(SlaRiskThresholdHours);
         return await VisibleTickets(userId, includeAll)
-            .CountAsync(t => t.StatusId != 40 && t.StatusId != 50 && t.DueAt != null && t.DueAt <= riskThreshold);
+            .CountAsync(t => !TicketStatuses.ClosedStates.Contains(t.StatusId) && t.DueAt != null && t.DueAt <= riskThreshold);
     }
 
     public async Task<int> GetResolvedTodayCountAsync(long userId, bool includeAll)

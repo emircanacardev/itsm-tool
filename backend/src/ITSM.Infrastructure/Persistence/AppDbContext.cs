@@ -1,3 +1,4 @@
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -79,7 +80,7 @@ public class AppDbContext : DbContext
 
     private long? GetCurrentUserId()
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
-        return userIdClaim is not null ? long.Parse(userIdClaim) : null;
+        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimNames.UserId)?.Value;
+        return long.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }

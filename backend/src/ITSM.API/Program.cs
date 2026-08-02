@@ -1,5 +1,7 @@
+using ITSM.Application.Configuration;
 using ITSM.Application.Interfaces;
 using ITSM.Application.Services;
+using ITSM.Domain.Constants;
 using ITSM.Infrastructure.Authorization;
 using ITSM.Infrastructure.BackgroundServices;
 using ITSM.Infrastructure.Email;
@@ -16,6 +18,8 @@ using System.Text;
 
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
+const string CorsPolicyName = "AllowFrontend";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -27,13 +31,38 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddOpenApi();
 
+// Ayarları tek yerden okunabilir kılmak için Options pattern ile bind ediyoruz.
+builder.Services.Configure<PaginationOptions>(
+    builder.Configuration.GetSection(PaginationOptions.SectionName));
+builder.Services.Configure<StorageOptions>(
+    builder.Configuration.GetSection(StorageOptions.SectionName));
+builder.Services.Configure<SlaMonitoringOptions>(
+    builder.Configuration.GetSection(SlaMonitoringOptions.SectionName));
+
+// CORS: izin verilen origin'ler config'den geliyor. AllowAnyOrigin() yerine
+// açık liste kullanıyoruz ki kimlik bilgisi taşıyan istekler de güvenli olsun.
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy(CorsPolicyName, policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            // Origin tanımlanmamışsa (ör. ilk kurulum) geliştirme kolaylığı için
+            // eski davranışa düşüyoruz; production'da Cors:AllowedOrigins dolu olmalı.
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
     });
 });
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -99,16 +128,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Her yetki kodu için bir policy kaydediliyor. Permissions.All üzerinden
+// döndüğümüz için yeni bir yetki eklendiğinde burayı güncellemek gerekmiyor.
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("TICKET_CREATE", policy =>
-        policy.Requirements.Add(new PermissionRequirement("TICKET_CREATE")));
-    options.AddPolicy("TICKET_ASSIGN", policy =>
-        policy.Requirements.Add(new PermissionRequirement("TICKET_ASSIGN")));
-    options.AddPolicy("TICKET_STATUS_UPDATE", policy =>
-        policy.Requirements.Add(new PermissionRequirement("TICKET_STATUS_UPDATE")));
-    options.AddPolicy("ADMIN_MANAGE", policy =>
-        policy.Requirements.Add(new PermissionRequirement("ADMIN_MANAGE")));
+    foreach (var permissionCode in Permissions.All)
+    {
+        options.AddPolicy(permissionCode, policy =>
+            policy.Requirements.Add(new PermissionRequirement(permissionCode)));
+    }
 });
 
 var app = builder.Build();
@@ -121,14 +149,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowFrontend");
+app.UseCors(CorsPolicyName);
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-//todo: bunu sonradan kaldırıcam
-app.MapGet("/hash-test", (IPasswordHasher hasher) => hasher.Hash("Test1234!"));
 
 await app.RunAsync();
