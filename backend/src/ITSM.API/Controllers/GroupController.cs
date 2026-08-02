@@ -25,8 +25,16 @@ public class GroupController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllGroups()
+    public async Task<IActionResult> GetAllGroups([FromQuery] int? page, [FromQuery] int? pageSize)
     {
+        // page verilmezse eski davranış (tam liste) korunuyor - şu an tek
+        // tüketicisi admin panelindeki Gruplar sekmesi, o da artık page geçiyor.
+        if (page.HasValue)
+        {
+            var pagedResult = await _groupService.GetAllGroupsPagedAsync(page.Value, pageSize ?? 20);
+            return Ok(pagedResult);
+        }
+
         var result = await _groupService.GetAllGroupsAsync();
         return Ok(result);
     }

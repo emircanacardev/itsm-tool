@@ -29,6 +29,16 @@ public class GroupRepository : IGroupRepository
         return await _context.Groups.ToListAsync();
     }
 
+    public async Task<(List<Group> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize)
+    {
+        var query = _context.Groups.OrderBy(g => g.Name);
+
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task AddAsync(Group group)
     {
         _context.Groups.Add(group);

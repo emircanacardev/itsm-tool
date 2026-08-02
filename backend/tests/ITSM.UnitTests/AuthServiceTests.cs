@@ -15,6 +15,7 @@ public class AuthServiceTests
     private readonly Mock<IPasswordHasher> _passwordHasher = new();
     private readonly Mock<IJwtTokenGenerator> _jwtTokenGenerator = new();
     private readonly Mock<IUserPermissionRepository> _userPermissionRepository = new();
+    private readonly Mock<IPermissionRepository> _permissionRepository = new();
     private readonly AuthService _service;
 
     public AuthServiceTests()
@@ -22,7 +23,7 @@ public class AuthServiceTests
         // PermissionService'in metodları virtual değil, Moq onu mock'layamıyor -
         // bu yüzden gerçek PermissionService'i kendi (mock'lanmış) repository'siyle
         // kuruyoruz. Sadece asıl dış sınır olan repository'ler mock'lanıyor.
-        var permissionService = new PermissionService(_userPermissionRepository.Object);
+        var permissionService = new PermissionService(_userPermissionRepository.Object, _permissionRepository.Object);
         _service = new AuthService(
             _userRepository.Object,
             _groupRepository.Object,

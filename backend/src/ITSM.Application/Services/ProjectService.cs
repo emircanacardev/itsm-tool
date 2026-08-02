@@ -51,6 +51,40 @@ public class ProjectService
         return projects.Select(MapToResponse).ToList();
     }
 
+    // Admin panelindeki proje listesi büyüyebileceği için (bkz. kullanıcı
+    // arama endpoint'indeki aynı gerekçe) ayrı bir sayfalanmış yol - mevcut
+    // GetAllProjectsAsync'i (dropdown'lar, ticket oluşturma vb. çağırıyor)
+    // değiştirmeden, sadece sayfa istenince kullanılıyor.
+    public async Task<PagedResult<ProjectResponse>> GetAllProjectsPagedAsync(long userId, int page, int pageSize)
+    {
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+
+        if (isAdmin)
+        {
+            var (items, totalCount) = await _projectRepository.GetAllPagedAsync(page, pageSize);
+            return new PagedResult<ProjectResponse>
+            {
+                Items = items.Select(MapToResponse).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+        // Admin olmayan bir kullanıcı zaten admin panelini görmüyor, ama
+        // endpoint genel [Authorize] olduğu için burada da tutarlı bir
+        // sonuç dönmek adına üye olduğu projeleri bellekte sayfalıyoruz.
+        var allForUser = await _projectRepository.GetAllForUserAsync(userId);
+        var pagedForUser = allForUser.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return new PagedResult<ProjectResponse>
+        {
+            Items = pagedForUser.Select(MapToResponse).ToList(),
+            TotalCount = allForUser.Count,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
     public async Task<ProjectResponse?> GetProjectByIdAsync(long id, long userId)
     {
         var project = await _projectRepository.GetByIdAsync(id);

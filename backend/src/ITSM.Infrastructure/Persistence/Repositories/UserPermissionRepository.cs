@@ -35,4 +35,17 @@ public class UserPermissionRepository : IUserPermissionRepository
             .Where(up => up.UserId == userId)
             .ToListAsync();
     }
+
+    public async Task<UserPermission?> GetByIdAsync(long id)
+    {
+        return await _context.UserPermissions
+            .Include(up => up.Permission)
+            .FirstOrDefaultAsync(up => up.Id == id);
+    }
+
+    public async Task RevokeAsync(UserPermission userPermission)
+    {
+        _context.UserPermissions.Remove(userPermission);
+        await _context.SaveChangesAsync();
+    }
 }

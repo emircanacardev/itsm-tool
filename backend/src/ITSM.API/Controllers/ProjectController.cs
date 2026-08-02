@@ -30,10 +30,19 @@ public class ProjectController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllProjects()
+    public async Task<IActionResult> GetAllProjects([FromQuery] int? page, [FromQuery] int? pageSize)
     {
         var userIdClaim = User.FindFirst("sub")?.Value;
         var userId = long.Parse(userIdClaim!);
+
+        // page verilmezse eski davranış (tam liste) korunuyor - dropdown'lar
+        // (yeni talep formu, ticket filtresi, yetki verme ekranı) bunu bekliyor.
+        // page verilince admin panelindeki Projeler tablosu için sayfalanmış sonuç dönülüyor.
+        if (page.HasValue)
+        {
+            var pagedResult = await _projectService.GetAllProjectsPagedAsync(userId, page.Value, pageSize ?? 20);
+            return Ok(pagedResult);
+        }
 
         var result = await _projectService.GetAllProjectsAsync(userId);
         return Ok(result);

@@ -46,4 +46,17 @@ public class ProjectRepository : IProjectRepository
             .Where(p => _context.ProjectMembers.Any(pm => pm.ProjectId == p.Id && pm.UserId == userId))
             .ToListAsync();
     }
+
+    public async Task<(List<Project> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize)
+    {
+        var query = _context.Projects.OrderBy(p => p.Name);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
 }

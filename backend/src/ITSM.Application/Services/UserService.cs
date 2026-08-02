@@ -13,10 +13,22 @@ public class UserService
         _userRepository = userRepository;
     }
 
-    public async Task<List<UserResponse>> GetAllUsersAsync()
+    public async Task<List<UserResponse>> GetAllUsersAsync(string? search = null)
     {
-        var users = await _userRepository.GetAllAsync();
+        var users = await _userRepository.GetAllAsync(search);
         return users.Select(MapToResponse).ToList();
+    }
+
+    public async Task<PagedResult<UserResponse>> GetAllUsersPagedAsync(string? search, int page, int pageSize)
+    {
+        var (users, totalCount) = await _userRepository.GetAllPagedAsync(search, page, pageSize);
+        return new PagedResult<UserResponse>
+        {
+            Items = users.Select(MapToResponse).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<UserResponse?> GetUserByIdAsync(long id)
@@ -40,7 +52,7 @@ public class UserService
 
     public async Task<List<AssignableUserResponse>> GetAssignableUsersAsync()
     {
-        var users = await _userRepository.GetAllAsync();
+        var users = await _userRepository.GetAllAsync(null);
         return users
             .Where(u => u.IsActive)
             .Select(u => new AssignableUserResponse { Id = u.Id, FullName = u.FullName })

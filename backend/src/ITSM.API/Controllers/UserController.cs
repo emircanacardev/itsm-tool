@@ -18,9 +18,19 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllUsers()
+    public async Task<IActionResult> GetAllUsers([FromQuery] string? search, [FromQuery] int? page, [FromQuery] int? pageSize)
     {
-        var result = await _userService.GetAllUsersAsync();
+        // page verilmezse eski davranış korunuyor: search doluysa typeahead
+        // (Yetkilendirme sekmesindeki arama kutusu, en fazla 20 sonuç),
+        // boşsa tam liste. page verilince Kullanıcılar tablosu için
+        // sayfalanmış + toplam sayılı sonuç dönülüyor.
+        if (page.HasValue)
+        {
+            var pagedResult = await _userService.GetAllUsersPagedAsync(search, page.Value, pageSize ?? 20);
+            return Ok(pagedResult);
+        }
+
+        var result = await _userService.GetAllUsersAsync(search);
         return Ok(result);
     }
 
