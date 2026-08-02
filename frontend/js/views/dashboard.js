@@ -153,15 +153,15 @@ function renderSummary(container, summary) {
   const criticalCount = summary.ticketsByPriority.find((p) => p.priorityName === 'Kritik')?.count || 0;
 
   const statusRowsHtml = summary.ticketsByStatus.length > 0
-    ? summary.ticketsByStatus
+    ? `<div class="bar-list">${summary.ticketsByStatus
         .map((s) => barRow(s.statusName, s.count, statusMax, STATUS_COLORS[s.statusName] || 'var(--color-text-muted)'))
-        .join('')
+        .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
   const priorityRowsHtml = summary.ticketsByPriority.length > 0
-    ? summary.ticketsByPriority
+    ? `<div class="bar-list">${summary.ticketsByPriority
         .map((p) => barRow(p.priorityName, p.count, priorityMax, PRIORITY_COLORS[p.priorityName] || 'var(--color-text-muted)'))
-        .join('')
+        .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
   container.innerHTML = `

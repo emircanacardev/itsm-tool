@@ -874,6 +874,14 @@ tbody tr:hover .row-chevron {
   margin-bottom: var(--space-5);
 }
 
+/* Genel ".card + .card { margin-top }" kuralı (kart yığınları için) burada
+   da eşleşip grid'deki 2., 3., 4. ... kartları aşağı kaydırıp sıraları
+   "kayık" gösteriyordu - grid içindeki kartlarda bunu iptal ediyoruz. */
+.dashboard-kpi-grid > .card,
+.dashboard-chart-grid > .card {
+  margin-top: 0;
+}
+
 .kpi-tile {
   display: flex;
   flex-direction: column;
@@ -907,7 +915,16 @@ tbody tr:hover .row-chevron {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-  align-items: start;
+  /* align-items varsayılanı (stretch) bilinçli olarak korunuyor - durum ve
+     öncelik kartlarının satır sayısı farklı olsa bile (ör. biri 2, diğeri 5
+     satır) her ikisi de aynı sıradaki en uzun kartın yüksekliğine uzanıp alt
+     kenarları hizalı kalsın diye. */
+}
+
+.dashboard-chart-grid > .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .dashboard-card-title {
@@ -917,15 +934,17 @@ tbody tr:hover .row-chevron {
   margin: 0 0 var(--space-4);
 }
 
-.bar-row {
-  display: grid;
-  grid-template-columns: 90px 1fr 32px;
-  align-items: center;
+.bar-list {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
 }
 
-.bar-row + .bar-row {
-  margin-top: var(--space-3);
+.bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 32px;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .bar-label {
