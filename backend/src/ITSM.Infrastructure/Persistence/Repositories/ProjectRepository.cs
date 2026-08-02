@@ -47,9 +47,28 @@ public class ProjectRepository : IProjectRepository
             .ToListAsync();
     }
 
-    public async Task<(List<Project> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize)
+    public async Task<(List<Project> Items, int TotalCount)> GetAllPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)
     {
-        var query = _context.Projects.OrderBy(p => p.Name);
+        var query = _context.Projects.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(p =>
+                EF.Functions.ILike(p.Name, $"%{search}%") ||
+                EF.Functions.ILike(p.Code, $"%{search}%") ||
+                (p.Description != null && EF.Functions.ILike(p.Description, $"%{search}%")));
+        }
+
+        // Projeler tablosundaki sütun başlıklarına tıklayarak sıralama -
+        // bkz. TicketRepository.GetAllAsync'teki aynı sortBy switch pattern'i.
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "code" => sortDescending ? query.OrderByDescending(p => p.Code) : query.OrderBy(p => p.Code),
+            "description" => sortDescending ? query.OrderByDescending(p => p.Description) : query.OrderBy(p => p.Description),
+            "status" => sortDescending ? query.OrderByDescending(p => p.IsActive) : query.OrderBy(p => p.IsActive),
+            "createdat" => sortDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt),
+            _ => sortDescending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name)
+        };
 
         var totalCount = await query.CountAsync();
         var items = await query

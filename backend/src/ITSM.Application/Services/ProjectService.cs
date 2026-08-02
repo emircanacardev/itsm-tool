@@ -55,13 +55,13 @@ public class ProjectService
     // arama endpoint'indeki aynı gerekçe) ayrı bir sayfalanmış yol - mevcut
     // GetAllProjectsAsync'i (dropdown'lar, ticket oluşturma vb. çağırıyor)
     // değiştirmeden, sadece sayfa istenince kullanılıyor.
-    public async Task<PagedResult<ProjectResponse>> GetAllProjectsPagedAsync(long userId, int page, int pageSize)
+    public async Task<PagedResult<ProjectResponse>> GetAllProjectsPagedAsync(long userId, string? search, string? sortBy, bool sortDescending, int page, int pageSize)
     {
         var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
 
         if (isAdmin)
         {
-            var (items, totalCount) = await _projectRepository.GetAllPagedAsync(page, pageSize);
+            var (items, totalCount) = await _projectRepository.GetAllPagedAsync(search, sortBy, sortDescending, page, pageSize);
             return new PagedResult<ProjectResponse>
             {
                 Items = items.Select(MapToResponse).ToList(),
@@ -73,13 +73,33 @@ public class ProjectService
 
         // Admin olmayan bir kullanıcı zaten admin panelini görmüyor, ama
         // endpoint genel [Authorize] olduğu için burada da tutarlı bir
-        // sonuç dönmek adına üye olduğu projeleri bellekte sayfalıyoruz.
+        // sonuç dönmek adına üye olduğu projeleri bellekte filtreleyip sıralıyoruz.
         var allForUser = await _projectRepository.GetAllForUserAsync(userId);
-        var pagedForUser = allForUser.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        IEnumerable<Project> filtered = allForUser;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            filtered = filtered.Where(p =>
+                p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                p.Code.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                (p.Description is not null && p.Description.Contains(search, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        filtered = sortBy?.ToLowerInvariant() switch
+        {
+            "code" => sortDescending ? filtered.OrderByDescending(p => p.Code) : filtered.OrderBy(p => p.Code),
+            "description" => sortDescending ? filtered.OrderByDescending(p => p.Description) : filtered.OrderBy(p => p.Description),
+            "status" => sortDescending ? filtered.OrderByDescending(p => p.IsActive) : filtered.OrderBy(p => p.IsActive),
+            "createdat" => sortDescending ? filtered.OrderByDescending(p => p.CreatedAt) : filtered.OrderBy(p => p.CreatedAt),
+            _ => sortDescending ? filtered.OrderByDescending(p => p.Name) : filtered.OrderBy(p => p.Name)
+        };
+
+        var filteredList = filtered.ToList();
+        var pagedForUser = filteredList.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         return new PagedResult<ProjectResponse>
         {
             Items = pagedForUser.Select(MapToResponse).ToList(),
-            TotalCount = allForUser.Count,
+            TotalCount = filteredList.Count,
             Page = page,
             PageSize = pageSize
         };

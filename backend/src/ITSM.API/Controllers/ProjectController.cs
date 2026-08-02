@@ -30,7 +30,12 @@ public class ProjectController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllProjects([FromQuery] int? page, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetAllProjects(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? search,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending = false)
     {
         var userIdClaim = User.FindFirst("sub")?.Value;
         var userId = long.Parse(userIdClaim!);
@@ -40,7 +45,7 @@ public class ProjectController : ControllerBase
         // page verilince admin panelindeki Projeler tablosu için sayfalanmış sonuç dönülüyor.
         if (page.HasValue)
         {
-            var pagedResult = await _projectService.GetAllProjectsPagedAsync(userId, page.Value, pageSize ?? 20);
+            var pagedResult = await _projectService.GetAllProjectsPagedAsync(userId, search, sortBy, sortDescending, page.Value, pageSize ?? 20);
             return Ok(pagedResult);
         }
 

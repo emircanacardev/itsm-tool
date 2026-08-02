@@ -18,7 +18,12 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllUsers([FromQuery] string? search, [FromQuery] int? page, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetAllUsers(
+        [FromQuery] string? search,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending = false)
     {
         // page verilmezse eski davranış korunuyor: search doluysa typeahead
         // (Yetkilendirme sekmesindeki arama kutusu, en fazla 20 sonuç),
@@ -26,7 +31,7 @@ public class UserController : ControllerBase
         // sayfalanmış + toplam sayılı sonuç dönülüyor.
         if (page.HasValue)
         {
-            var pagedResult = await _userService.GetAllUsersPagedAsync(search, page.Value, pageSize ?? 20);
+            var pagedResult = await _userService.GetAllUsersPagedAsync(search, sortBy, sortDescending, page.Value, pageSize ?? 20);
             return Ok(pagedResult);
         }
 

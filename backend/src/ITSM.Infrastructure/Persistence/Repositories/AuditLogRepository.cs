@@ -14,11 +14,13 @@ public class AuditLogRepository : IAuditLogRepository
     }
 
     public async Task<(List<AuditLog> Items, int TotalCount)> GetAllAsync(
-        string? entityName,
+        string? search,
         long? userId,
         string? action,
         DateTimeOffset? fromDate,
         DateTimeOffset? toDate,
+        string? sortBy,
+        bool sortDescending,
         int page,
         int pageSize)
     {
@@ -34,12 +36,16 @@ public class AuditLogRepository : IAuditLogRepository
             .Include(a => a.User)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(entityName))
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            // Tam eşleşme yerine ILike kullanıyoruz - "Ticket" yazınca hem
-            // "Ticket" hem "TicketAssignment"/"TicketStatusHistory" gibi
-            // ilişkili kayıtları da bulsun, büyük/küçük harf de önemli olmasın.
-            query = query.Where(a => EF.Functions.ILike(a.EntityName, $"%{entityName}%"));
+            // Hem varlık adına (ör. "Ticket" yazınca "Ticket" ve
+            // "TicketAssignment"/"TicketStatusHistory" gibi ilişkili kayıtları
+            // da bulur) hem de işlemi yapan kullanıcının adına bakıyoruz (OR) -
+            // arama kutusunun placeholder'ı bir kişi adı örneği de içeriyor,
+            // önceden sadece varlık adına bakıp kullanıcı adını hiç aramıyordu.
+            query = query.Where(a =>
+                EF.Functions.ILike(a.EntityName, $"%{search}%") ||
+                (a.User != null && EF.Functions.ILike(a.User.FullName, $"%{search}%")));
         }
 
         if (userId is not null)
@@ -64,8 +70,19 @@ public class AuditLogRepository : IAuditLogRepository
 
         var totalCount = await query.CountAsync();
 
+        // Audit Log tablosundaki sütun başlıklarına tıklayarak sıralama -
+        // bkz. TicketRepository.GetAllAsync'teki assignedToName ile aynı null-safe pattern.
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "user" => sortDescending
+                ? query.OrderByDescending(a => a.User != null ? a.User.FullName : null)
+                : query.OrderBy(a => a.User != null ? a.User.FullName : null),
+            "entity" => sortDescending ? query.OrderByDescending(a => a.EntityName) : query.OrderBy(a => a.EntityName),
+            "action" => sortDescending ? query.OrderByDescending(a => a.Action) : query.OrderBy(a => a.Action),
+            _ => sortDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt)
+        };
+
         var items = await query
-            .OrderByDescending(a => a.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

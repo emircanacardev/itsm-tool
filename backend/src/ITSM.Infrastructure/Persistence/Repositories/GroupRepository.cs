@@ -29,9 +29,25 @@ public class GroupRepository : IGroupRepository
         return await _context.Groups.ToListAsync();
     }
 
-    public async Task<(List<Group> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize)
+    public async Task<(List<Group> Items, int TotalCount)> GetAllPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)
     {
-        var query = _context.Groups.OrderBy(g => g.Name);
+        var query = _context.Groups.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(g =>
+                EF.Functions.ILike(g.Name, $"%{search}%") ||
+                (g.Description != null && EF.Functions.ILike(g.Description, $"%{search}%")));
+        }
+
+        // Gruplar tablosundaki sütun başlıklarına tıklayarak sıralama -
+        // bkz. TicketRepository.GetAllAsync'teki aynı sortBy switch pattern'i.
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "description" => sortDescending ? query.OrderByDescending(g => g.Description) : query.OrderBy(g => g.Description),
+            "createdat" => sortDescending ? query.OrderByDescending(g => g.CreatedAt) : query.OrderBy(g => g.CreatedAt),
+            _ => sortDescending ? query.OrderByDescending(g => g.Name) : query.OrderBy(g => g.Name)
+        };
 
         var totalCount = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();

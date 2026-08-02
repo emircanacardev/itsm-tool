@@ -19,9 +19,9 @@ public class UserService
         return users.Select(MapToResponse).ToList();
     }
 
-    public async Task<PagedResult<UserResponse>> GetAllUsersPagedAsync(string? search, int page, int pageSize)
+    public async Task<PagedResult<UserResponse>> GetAllUsersPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)
     {
-        var (users, totalCount) = await _userRepository.GetAllPagedAsync(search, page, pageSize);
+        var (users, totalCount) = await _userRepository.GetAllPagedAsync(search, sortBy, sortDescending, page, pageSize);
         return new PagedResult<UserResponse>
         {
             Items = users.Select(MapToResponse).ToList(),

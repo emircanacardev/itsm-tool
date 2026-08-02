@@ -32,9 +32,9 @@ public class GroupService
         return groups.Select(MapToResponse).ToList();
     }
 
-    public async Task<PagedResult<GroupResponse>> GetAllGroupsPagedAsync(int page, int pageSize)
+    public async Task<PagedResult<GroupResponse>> GetAllGroupsPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)
     {
-        var (groups, totalCount) = await _groupRepository.GetAllPagedAsync(page, pageSize);
+        var (groups, totalCount) = await _groupRepository.GetAllPagedAsync(search, sortBy, sortDescending, page, pageSize);
         return new PagedResult<GroupResponse>
         {
             Items = groups.Select(MapToResponse).ToList(),

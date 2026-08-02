@@ -52,7 +52,7 @@ public class UserRepository : IUserRepository
     // sunucu tarafında sayfalanmış sonuç + toplam sayı. GetAllAsync yukarıda
     // typeahead (Yetkilendirme sekmesindeki arama kutusu) için ayrı kalıyor,
     // burada onu bozmadan aynı ILike filtresini sayfalamayla birleştiriyoruz.
-    public async Task<(List<User> Items, int TotalCount)> GetAllPagedAsync(string? search, int page, int pageSize)
+    public async Task<(List<User> Items, int TotalCount)> GetAllPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)
     {
         var query = _context.Users.Include(u => u.Group).AsQueryable();
 
@@ -63,7 +63,16 @@ public class UserRepository : IUserRepository
                 EF.Functions.ILike(u.Email, $"%{search}%"));
         }
 
-        query = query.OrderBy(u => u.FullName);
+        // Kullanıcılar tablosundaki sütun başlıklarına tıklayarak sıralama -
+        // bkz. TicketRepository.GetAllAsync'teki aynı sortBy switch pattern'i.
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "email" => sortDescending ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
+            "group" => sortDescending ? query.OrderByDescending(u => u.Group.Name) : query.OrderBy(u => u.Group.Name),
+            "status" => sortDescending ? query.OrderByDescending(u => u.IsActive) : query.OrderBy(u => u.IsActive),
+            "createdat" => sortDescending ? query.OrderByDescending(u => u.CreatedAt) : query.OrderBy(u => u.CreatedAt),
+            _ => sortDescending ? query.OrderByDescending(u => u.FullName) : query.OrderBy(u => u.FullName)
+        };
 
         var totalCount = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();

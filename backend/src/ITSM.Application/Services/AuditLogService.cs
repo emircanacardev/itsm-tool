@@ -19,11 +19,13 @@ public class AuditLogService
         var pageSize = filter.PageSize is < 1 or > 100 ? 20 : filter.PageSize;
 
         var (items, totalCount) = await _auditLogRepository.GetAllAsync(
-            filter.EntityName,
+            filter.Search,
             filter.UserId,
             filter.Action,
             filter.FromDate,
             filter.ToDate,
+            filter.SortBy,
+            filter.SortDescending,
             page,
             pageSize);
 
