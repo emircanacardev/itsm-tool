@@ -95,6 +95,9 @@
   --sla-urgent: #B7791F;
   --sla-ok: #2F8F46;
   --sla-done: #6B7280;
+
+  --color-danger: #D64545;
+  --color-danger-hover: #C13636;
 }
 
 /* ==========================================================
@@ -140,6 +143,9 @@
   --sla-urgent: #F0B429;
   --sla-ok: #6FDB8B;
   --sla-done: #9AA1B2;
+
+  --color-danger: #E05252;
+  --color-danger-hover: #EB6C6C;
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-elevated: 0 4px 6px rgba(0, 0, 0, 0.3), 0 10px 24px rgba(0, 0, 0, 0.4);
@@ -238,6 +244,9 @@ body {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
+/* Marka kilidi bir <a> - ana sayfaya (talep listesi) dönüş için. Link olduğu
+   için varsayılan link stillerini sıfırlıyoruz; tıklanabilir olduğu hover'da
+   hafif parlama ve kutunun büyümesiyle belli oluyor. */
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -245,22 +254,89 @@ body {
   padding: 0 var(--space-2) var(--space-5);
   margin-bottom: var(--space-5);
   border-bottom: 1px solid var(--color-topbar-border);
+  text-decoration: none;
+  color: inherit;
+  transition: opacity var(--transition-fast);
 }
 
-.sidebar-brand .brand-mark-sm {
-  width: 32px;
-  height: 32px;
-  background: var(--color-accent);
+.sidebar-brand:hover {
+  opacity: 0.85;
+}
+
+.sidebar-brand:hover .brand-mark-sm {
+  transform: scale(1.06);
+}
+
+.sidebar-brand:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
   border-radius: var(--radius-sm);
+}
+
+/* Marka kutusu: düz kare yerine "squircle" (superellipse) form + accent
+   renginden diyagonal degrade. Üstteki açık parlama ve içeriden gelen ince
+   beyaz kenar, kutuya düz bir renk bloğu yerine hafif bir derinlik veriyor. */
+.sidebar-brand .brand-mark-sm {
+  width: 34px;
+  height: 34px;
+  background:
+    linear-gradient(145deg, var(--color-accent-hover) 0%, var(--color-accent) 55%, #4A2FB8 100%);
+  border-radius: 34%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 2px 6px rgba(109, 79, 224, 0.32);
+  transition: transform var(--transition-fast);
+}
+
+/* Sol üstten geçen yumuşak ışık huzmesi. */
+.sidebar-brand .brand-mark-sm::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.4), transparent 62%);
+  pointer-events: none;
 }
 
 .sidebar-brand .brand-mark-sm svg {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+/* Hover boyunca EKG çizgisi soldan sağa çizilip baştan başlıyor (döngü) -
+   bir kalp ritmi monitörünün ekranı gibi. Path'in toplam uzunluğu ~31.1
+   kullanıcı birimi; pathLength yerine gerçek uzunluğu kullanıyoruz ki dash
+   boşluğu tam otursun. Döngüde hız sabit görünsün diye timing linear. */
+.brand-ekg {
+  stroke-dasharray: 31.1;
+  stroke-dashoffset: 0;
+}
+
+.sidebar-brand:hover .brand-ekg {
+  animation: brand-ekg-sweep 1.1s linear infinite;
+}
+
+@keyframes brand-ekg-sweep {
+  0% {
+    stroke-dashoffset: 31.1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-brand:hover .brand-ekg {
+    animation: none;
+  }
 }
 
 .sidebar-brand .brand-name-sm {

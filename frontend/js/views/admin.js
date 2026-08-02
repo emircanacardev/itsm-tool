@@ -1,6 +1,7 @@
 import { enhanceSelect } from '../customSelect.js';
 import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
+import { showConfirmDialog } from '../confirmDialog.js';
 
 const ACTION_BADGE_MAP = {
   Added: { i18nKey: 'admin.actionAdded', bg: 'var(--status-resolved-bg)', fg: 'var(--status-resolved-fg)' },
@@ -13,12 +14,89 @@ const PROJECT_PAGE_SIZE = 20;
 const USER_PAGE_SIZE = 20;
 const GROUP_PAGE_SIZE = 20;
 
+// Tablolardaki düzenle/sil/kaldır butonları için ortak ikonlar - metin yerine
+// sadece ikon + title tooltip kullanıyoruz, satırlar daha az kalabalık oluyor.
+const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
+// Sekmeler lazy-render edilip birbirinden bağımsız closure'lar olarak
+// yaşadığı için, Projeler <-> Proje Ayarları arasındaki çapraz-sekme
+// iletişimi (Düzenle'ye basınca Proje Ayarları'na geçip ilgili projeyi
+// seçtirme, orada kaydedince Projeler listesini tazeleme) bu paylaşımlı
+// referanslar üzerinden yapılıyor.
+let activateAdminTab = null;
+const adminCrossTab = {
+  projectsTab: null, // { reload() }
+  projectSettingsTab: null // { selectProject(id): Promise }
+};
+
 function debounce(fn, delayMs) {
   let timer = null;
   return (...args) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delayMs);
   };
+}
+
+// Sıralanabilir kolon başlığı - tickets.js'teki aynı işaret ok ikonlu th
+// pattern'i, admin panelindeki tüm tablolar (Users, Groups, Projects, SLA,
+// Permissions, Audit Log) bunu paylaşıyor. col: { key, i18nKey, className }
+function sortableColumnHtml(col) {
+  return `
+    <th class="col-sortable ${col.className || ''}" data-sort-key="${col.key}">
+      <div class="th-inner">
+        <span data-i18n="${col.i18nKey}"></span>
+        <svg class="sort-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+    </th>
+  `;
+}
+
+// Bir tablodaki .col-sortable başlıklarını tıklanabilir yapar; state nesnesi
+// { sortField, sortDescending } tutar, tıklanınca günceller ve onChange'i
+// çağırır (genelde currentPage'i 1'e çekip listeyi yeniden yükleyen fonksiyon).
+function wireSortableHeaders(section, state, onChange) {
+  function updateUI() {
+    section.querySelectorAll('.col-sortable').forEach((th) => {
+      const isActive = th.dataset.sortKey === state.sortField;
+      th.classList.toggle('is-active', isActive);
+      th.classList.toggle('is-asc', isActive && !state.sortDescending);
+    });
+  }
+
+  section.querySelectorAll('.col-sortable').forEach((th) => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sortKey;
+      if (state.sortField === key) {
+        state.sortDescending = !state.sortDescending;
+      } else {
+        state.sortField = key;
+        state.sortDescending = true;
+      }
+      updateUI();
+      onChange();
+    });
+  });
+
+  updateUI();
+  return updateUI;
+}
+
+// Backend'de sayfalanmayan (tam liste tek seferde çekilen) SLA ve Permissions
+// tabloları için istemci tarafında sıralama - accessor değeri sayı ise sayısal,
+// değilse dile duyarlı (tr/en) metin karşılaştırması yapar.
+function sortItemsBy(items, accessor, descending) {
+  const sorted = [...items].sort((a, b) => {
+    const va = accessor(a);
+    const vb = accessor(b);
+    if (typeof va === 'number' && typeof vb === 'number') {
+      return va - vb;
+    }
+    return String(va ?? '').localeCompare(String(vb ?? ''), getLanguage() === 'tr' ? 'tr' : 'en', { sensitivity: 'base' });
+  });
+  return descending ? sorted.reverse() : sorted;
 }
 
 function formatDate(isoString) {
@@ -55,6 +133,26 @@ function actionBadge(action) {
   return span;
 }
 
+// Ticket listesindeki öncelik rozetleriyle aynı renk/desen - kullanıcı aynı
+// önceliği hem talep listesinde hem admin panelinde aynı renkte tanısın.
+const PRIORITY_BADGE_MAP = {
+  'Kritik': { bg: 'var(--priority-critical-bg)', fg: 'var(--priority-critical-fg)' },
+  'Yüksek': { bg: 'var(--priority-high-bg)', fg: 'var(--priority-high-fg)' },
+  'Orta': { bg: 'var(--priority-medium-bg)', fg: 'var(--priority-medium-fg)' },
+  'Düşük': { bg: 'var(--priority-low-bg)', fg: 'var(--priority-low-fg)' }
+};
+
+function priorityBadge(name) {
+  const colors = PRIORITY_BADGE_MAP[name] || { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };
+  const span = document.createElement('span');
+  span.className = 'badge';
+  span.style.background = colors.bg;
+  span.style.color = colors.fg;
+  span.style.border = `1px solid ${colors.fg}`;
+  span.textContent = name;
+  return span;
+}
+
 function statusBadge(isActive) {
   const span = document.createElement('span');
   span.className = 'badge';
@@ -78,32 +176,54 @@ const TABS = [
   { key: 'users', i18nKey: 'admin.tabUsers', render: renderUsersSection },
   { key: 'groups', i18nKey: 'admin.tabGroups', render: renderGroupsSection },
   { key: 'projects', i18nKey: 'admin.tabProjects', render: renderProjectsSection },
-  { key: 'projectSettings', i18nKey: 'admin.tabProjectSettings', render: renderProjectSettingsSection },
+  // Kendi başına bir sekmesi yok - Projeler tab'ındaki Düzenle butonundan
+  // activateAdminTab('projectSettings') ile ulaşılıyor (bkz. renderProjectsSection),
+  // burada ayrıca bir giriş noktası olması aynı ekrana çift yoldan gitmeyi
+  // gerektirirdi. Panel yine de burada kayıtlı, çünkü lazy-render/activateTab
+  // mantığı tüm sekmeler için ortak. parentKey sayesinde bu panel açıkken
+  // sekme çubuğunda "Projects" seçili görünmeye devam ediyor.
+  { key: 'projectSettings', i18nKey: 'admin.tabProjectSettings', render: renderProjectSettingsSection, hidden: true, parentKey: 'projects' },
   { key: 'sla', i18nKey: 'admin.tabSla', render: renderSlaSection },
   { key: 'permissions', i18nKey: 'admin.tabPermissions', render: renderPermissionsSection },
   { key: 'auditLog', i18nKey: 'admin.tabAuditLog', render: renderAuditLogSection }
 ];
 
 export function render(container) {
-  const tabButtonsHtml = TABS.map((tab, index) => `
+  const visibleTabs = TABS.filter((tab) => !tab.hidden);
+  const tabButtonsHtml = visibleTabs.map((tab, index) => `
     <button type="button" class="admin-tab ${index === 0 ? 'is-active' : ''}" data-tab-key="${tab.key}" data-i18n="${tab.i18nKey}"></button>
   `).join('');
-  const panelsHtml = TABS.map((tab, index) => `
-    <div id="panel-${tab.key}" style="${index === 0 ? '' : 'display: none;'}"></div>
+  const panelsHtml = TABS.map((tab) => `
+    <div id="panel-${tab.key}" style="${!tab.hidden && tab.key === visibleTabs[0].key ? '' : 'display: none;'}"></div>
   `).join('');
 
+  // .admin-view sarmalayıcısı sadece bu sayfaya özel buton renklendirmesi
+  // (bkz. app.css) için var - container (#view) her sayfa geçişinde sadece
+  // innerHTML ile temizleniyor, class'ı temizlenmiyor; bu yüzden rengi
+  // container'a değil kendi iç div'imize veriyoruz ki başka sayfaya
+  // geçildiğinde iz bırakmasın.
   container.innerHTML = `
-    <div class="admin-tabs">${tabButtonsHtml}</div>
-    ${panelsHtml}
+    <div class="admin-view">
+      <div class="admin-tabs">${tabButtonsHtml}</div>
+      ${panelsHtml}
+    </div>
   `;
   applyTranslations();
 
   const loadedTabs = new Set();
 
   function activateTab(activeKey) {
+    // Gizli sekmelerin (ör. projectSettings) kendi butonu yok - parentKey
+    // ile işaretlendiği sekmenin butonu seçili görünmeye devam ediyor,
+    // yani Projeler'den Düzenle'ye basınca sekme çubuğunda hâlâ "Projects"
+    // altı çizili kalıyor, sadece panel Proje Ayarları'na değişiyor.
+    const activatingTab = TABS.find((tab) => tab.key === activeKey);
+    const activeButtonKey = (activatingTab && activatingTab.parentKey) || activeKey;
+
     TABS.forEach((tab) => {
       const isActive = tab.key === activeKey;
-      container.querySelector(`[data-tab-key="${tab.key}"]`).classList.toggle('is-active', isActive);
+      const button = container.querySelector(`[data-tab-key="${tab.key}"]`);
+      if (button) button.classList.toggle('is-active', tab.key === activeButtonKey);
       const panel = container.querySelector(`#panel-${tab.key}`);
       panel.style.display = isActive ? '' : 'none';
 
@@ -114,14 +234,25 @@ export function render(container) {
     });
   }
 
-  TABS.forEach((tab) => {
+  activateAdminTab = activateTab;
+
+  visibleTabs.forEach((tab) => {
     container.querySelector(`[data-tab-key="${tab.key}"]`).addEventListener('click', () => activateTab(tab.key));
   });
 
-  activateTab(TABS[0].key);
+  activateTab(visibleTabs[0].key);
 }
 
+const USER_SORTABLE_COLUMNS = [
+  { key: 'fullName', i18nKey: 'admin.colName' },
+  { key: 'email', i18nKey: 'admin.colEmail' },
+  { key: 'group', i18nKey: 'admin.colGroup' },
+  { key: 'status', i18nKey: 'admin.colStatus' },
+  { key: 'createdAt', i18nKey: 'admin.colCreated', className: 'col-center' }
+];
+
 function renderUsersSection(section) {
+  const columnsHtml = USER_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
       <div class="filter-group filter-group-search">
@@ -139,11 +270,7 @@ function renderUsersSection(section) {
       <table>
         <thead>
           <tr>
-            <th><span data-i18n="admin.colName"></span></th>
-            <th><span data-i18n="admin.colEmail"></span></th>
-            <th><span data-i18n="admin.colGroup"></span></th>
-            <th><span data-i18n="admin.colStatus"></span></th>
-            <th class="col-center"><span data-i18n="admin.colCreated"></span></th>
+            ${columnsHtml}
             <th class="col-center"><span data-i18n="admin.colAction"></span></th>
           </tr>
         </thead>
@@ -173,6 +300,7 @@ function renderUsersSection(section) {
   const nextPageButton = section.querySelector('#userNextPageButton');
 
   let currentPage = 1;
+  const sortState = { sortField: 'fullName', sortDescending: false };
 
   function showToast(key, isError) {
     userToast.textContent = t(key);
@@ -184,7 +312,8 @@ function renderUsersSection(section) {
   async function toggleUserStatus(user, button) {
     const nextActive = !user.isActive;
     const confirmKey = nextActive ? 'admin.confirmActivate' : 'admin.confirmDeactivate';
-    if (!window.confirm(t(confirmKey).replace('{name}', user.fullName))) {
+    const confirmed = await showConfirmDialog(t(confirmKey).replace('{name}', user.fullName), { danger: !nextActive });
+    if (!confirmed) {
       return;
     }
     button.disabled = true;
@@ -242,10 +371,7 @@ function renderUsersSection(section) {
       const actionButton = document.createElement('button');
       actionButton.type = 'button';
       actionButton.className = 'btn-secondary';
-      const actionIcon = user.isActive
-        ? `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 6px; color: var(--priority-critical-fg);"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/></svg>`
-        : `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 6px; color: var(--status-resolved-fg);"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>`;
-      actionButton.innerHTML = `${actionIcon}<span>${t(user.isActive ? 'admin.deactivate' : 'admin.activate')}</span>`;
+      actionButton.textContent = t(user.isActive ? 'admin.deactivate' : 'admin.activate');
       actionButton.addEventListener('click', () => toggleUserStatus(user, actionButton));
       actionCell.appendChild(actionButton);
 
@@ -283,6 +409,8 @@ function renderUsersSection(section) {
       const search = userSearchInput.value.trim();
       const params = new URLSearchParams();
       if (search) params.set('search', search);
+      params.set('sortBy', sortState.sortField);
+      params.set('sortDescending', String(sortState.sortDescending));
       params.set('page', String(currentPage));
       params.set('pageSize', String(USER_PAGE_SIZE));
 
@@ -309,6 +437,8 @@ function renderUsersSection(section) {
     loadUsers();
   }
 
+  wireSortableHeaders(section, sortState, resetPageAndLoad);
+
   userSearchInput.addEventListener('input', debounce(resetPageAndLoad, 300));
 
   prevPageButton.addEventListener('click', () => {
@@ -326,7 +456,14 @@ function renderUsersSection(section) {
   loadUsers();
 }
 
+const GROUP_SORTABLE_COLUMNS = [
+  { key: 'name', i18nKey: 'admin.colGroupName' },
+  { key: 'description', i18nKey: 'admin.colDescription' },
+  { key: 'createdAt', i18nKey: 'admin.colCreated', className: 'col-center' }
+];
+
 function renderGroupsSection(section) {
+  const columnsHtml = GROUP_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
       <div class="filter-group">
@@ -344,13 +481,23 @@ function renderGroupsSection(section) {
         <span data-i18n="admin.addGroup"></span>
       </button>
     </div>
+    <div class="filter-bar">
+      <div class="filter-group filter-group-search">
+        <label for="groupSearchInput" data-i18n="admin.searchLabel"></label>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.3-4.3"/>
+          </svg>
+          <input type="text" id="groupSearchInput" data-i18n-placeholder="admin.groupSearchPlaceholder">
+        </div>
+      </div>
+    </div>
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
           <tr>
-            <th><span data-i18n="admin.colGroupName"></span></th>
-            <th><span data-i18n="admin.colDescription"></span></th>
-            <th class="col-center"><span data-i18n="admin.colCreated"></span></th>
+            ${columnsHtml}
             <th class="col-center"><span data-i18n="admin.colAction"></span></th>
           </tr>
         </thead>
@@ -375,6 +522,7 @@ function renderGroupsSection(section) {
   const groupNameInput = section.querySelector('#groupNameInput');
   const groupDescriptionInput = section.querySelector('#groupDescriptionInput');
   const addGroupButton = section.querySelector('#addGroupButton');
+  const groupSearchInput = section.querySelector('#groupSearchInput');
   const groupToast = section.querySelector('#groupToast');
   const paginationInfo = section.querySelector('#groupPaginationInfo');
   const pageIndicator = section.querySelector('#groupPageIndicator');
@@ -382,6 +530,7 @@ function renderGroupsSection(section) {
   const nextPageButton = section.querySelector('#groupNextPageButton');
 
   let currentPage = 1;
+  const sortState = { sortField: 'name', sortDescending: false };
 
   function showToast(key, isError) {
     groupToast.textContent = t(key);
@@ -474,8 +623,9 @@ function renderGroupsSection(section) {
       actionCell.className = 'col-center';
       const editButton = document.createElement('button');
       editButton.type = 'button';
-      editButton.className = 'btn-secondary';
-      editButton.textContent = t('admin.edit');
+      editButton.className = 'btn-secondary btn-icon-only';
+      editButton.title = t('admin.edit');
+      editButton.innerHTML = EDIT_ICON;
       editButton.addEventListener('click', () => enterEditMode(row, group));
       actionCell.appendChild(editButton);
 
@@ -505,11 +655,19 @@ function renderGroupsSection(section) {
   }
 
   // Grup sayısı binlere çıkabileceği için (aynı gerekçe: Kullanıcılar ve
-  // Projeler sekmeleri) tam listeyi çekmek yerine sunucu tarafında sayfalıyoruz.
+  // Projeler sekmeleri) tam listeyi çekmek yerine sunucu tarafında arayıp sayfalıyoruz.
   async function loadGroups() {
     groupTableBody.innerHTML = `<tr><td colspan="4" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.groupsLoading'))}</td></tr>`;
     try {
-      const result = await apiRequest(`/group?page=${currentPage}&pageSize=${GROUP_PAGE_SIZE}`);
+      const search = groupSearchInput.value.trim();
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      params.set('sortBy', sortState.sortField);
+      params.set('sortDescending', String(sortState.sortDescending));
+      params.set('page', String(currentPage));
+      params.set('pageSize', String(GROUP_PAGE_SIZE));
+
+      const result = await apiRequest(`/group?${params.toString()}`);
       renderRows(result.items);
       updatePaginationUI(result);
     } catch (error) {
@@ -526,6 +684,15 @@ function renderGroupsSection(section) {
       updatePaginationUI(null);
     }
   }
+
+  function resetPageAndLoad() {
+    currentPage = 1;
+    loadGroups();
+  }
+
+  wireSortableHeaders(section, sortState, resetPageAndLoad);
+
+  groupSearchInput.addEventListener('input', debounce(resetPageAndLoad, 300));
 
   prevPageButton.addEventListener('click', () => {
     if (currentPage > 1) {
@@ -563,7 +730,16 @@ function renderGroupsSection(section) {
   loadGroups();
 }
 
+const PROJECT_SORTABLE_COLUMNS = [
+  { key: 'name', i18nKey: 'admin.colProjectName' },
+  { key: 'code', i18nKey: 'admin.colProjectCode' },
+  { key: 'description', i18nKey: 'admin.colDescription' },
+  { key: 'status', i18nKey: 'admin.colStatus' },
+  { key: 'createdAt', i18nKey: 'admin.colCreated', className: 'col-center' }
+];
+
 function renderProjectsSection(section) {
+  const columnsHtml = PROJECT_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
       <div class="filter-group">
@@ -585,15 +761,23 @@ function renderProjectsSection(section) {
         <span data-i18n="admin.addProject"></span>
       </button>
     </div>
+    <div class="filter-bar">
+      <div class="filter-group filter-group-search">
+        <label for="projectSearchInput" data-i18n="admin.searchLabel"></label>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.3-4.3"/>
+          </svg>
+          <input type="text" id="projectSearchInput" data-i18n-placeholder="admin.projectSearchPlaceholder">
+        </div>
+      </div>
+    </div>
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
           <tr>
-            <th><span data-i18n="admin.colProjectName"></span></th>
-            <th><span data-i18n="admin.colProjectCode"></span></th>
-            <th><span data-i18n="admin.colDescription"></span></th>
-            <th><span data-i18n="admin.colStatus"></span></th>
-            <th class="col-center"><span data-i18n="admin.colCreated"></span></th>
+            ${columnsHtml}
             <th class="col-center"><span data-i18n="admin.colAction"></span></th>
           </tr>
         </thead>
@@ -619,6 +803,7 @@ function renderProjectsSection(section) {
   const projectCodeInput = section.querySelector('#projectCodeInput');
   const projectDescriptionInput = section.querySelector('#projectDescriptionInput');
   const addProjectButton = section.querySelector('#addProjectButton');
+  const projectSearchInput = section.querySelector('#projectSearchInput');
   const projectToast = section.querySelector('#projectToast');
   const paginationInfo = section.querySelector('#projectPaginationInfo');
   const pageIndicator = section.querySelector('#projectPageIndicator');
@@ -626,80 +811,13 @@ function renderProjectsSection(section) {
   const nextPageButton = section.querySelector('#projectNextPageButton');
 
   let currentPage = 1;
+  const sortState = { sortField: 'name', sortDescending: false };
 
   function showToast(key, isError) {
     projectToast.textContent = t(key);
     projectToast.className = `toast ${isError ? 'error' : 'success'}`;
     projectToast.style.display = 'block';
     setTimeout(() => { projectToast.style.display = 'none'; }, 3000);
-  }
-
-  function enterEditMode(row, project) {
-    const [nameCell, , descriptionCell, statusCell, , actionCell] = row.children;
-
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.className = 'table-edit-input';
-    nameInput.value = project.name;
-    nameCell.innerHTML = '';
-    nameCell.appendChild(nameInput);
-
-    const descriptionInput = document.createElement('input');
-    descriptionInput.type = 'text';
-    descriptionInput.className = 'table-edit-input';
-    descriptionInput.value = project.description || '';
-    descriptionCell.innerHTML = '';
-    descriptionCell.appendChild(descriptionInput);
-
-    const statusSelect = document.createElement('select');
-    statusSelect.id = `projectStatusSelect-${project.id}`;
-    const activeOption = document.createElement('option');
-    activeOption.value = 'true';
-    activeOption.textContent = t('admin.statusActive');
-    const inactiveOption = document.createElement('option');
-    inactiveOption.value = 'false';
-    inactiveOption.textContent = t('admin.statusInactive');
-    statusSelect.append(activeOption, inactiveOption);
-    statusSelect.value = String(project.isActive);
-    statusCell.innerHTML = '';
-    statusCell.appendChild(statusSelect);
-    enhanceSelect(statusSelect);
-
-    actionCell.innerHTML = '';
-
-    const saveButton = document.createElement('button');
-    saveButton.type = 'button';
-    saveButton.className = 'btn-secondary';
-    saveButton.style.marginRight = '6px';
-    saveButton.textContent = t('admin.save');
-    saveButton.addEventListener('click', async () => {
-      const newName = nameInput.value.trim();
-      if (!newName) return;
-      saveButton.disabled = true;
-      try {
-        await apiRequest(`/project/${project.id}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            name: newName,
-            description: descriptionInput.value.trim() || null,
-            isActive: statusSelect.value === 'true'
-          })
-        });
-        showToast('admin.projectUpdated', false);
-        loadProjects();
-      } catch (error) {
-        showToast('admin.projectUpdateError', true);
-        saveButton.disabled = false;
-      }
-    });
-
-    const cancelButton = document.createElement('button');
-    cancelButton.type = 'button';
-    cancelButton.className = 'btn-secondary';
-    cancelButton.textContent = t('admin.cancel');
-    cancelButton.addEventListener('click', () => loadProjects());
-
-    actionCell.append(saveButton, cancelButton);
   }
 
   function renderRows(projects) {
@@ -742,9 +860,16 @@ function renderProjectsSection(section) {
       actionCell.className = 'col-center';
       const editButton = document.createElement('button');
       editButton.type = 'button';
-      editButton.className = 'btn-secondary';
-      editButton.textContent = t('admin.edit');
-      editButton.addEventListener('click', () => enterEditMode(row, project));
+      editButton.className = 'btn-secondary btn-icon-only';
+      editButton.title = t('admin.edit');
+      editButton.innerHTML = EDIT_ICON;
+      // Projeler tab'ında artık satır içi düzenleme yok - proje adı/açıklama/
+      // durum artık Kategoriler ve Kurallarla aynı ekranda (Proje Ayarları)
+      // düzenleniyor, tekrarlı iki ekran olmasın diye oraya yönlendiriyoruz.
+      editButton.addEventListener('click', () => {
+        if (activateAdminTab) activateAdminTab('projectSettings');
+        if (adminCrossTab.projectSettingsTab) adminCrossTab.projectSettingsTab.selectProject(project.id);
+      });
       actionCell.appendChild(editButton);
 
       row.append(nameCell, codeCell, descriptionCell, statusCell, createdCell, actionCell);
@@ -778,7 +903,15 @@ function renderProjectsSection(section) {
   async function loadProjects() {
     projectTableBody.innerHTML = `<tr><td colspan="6" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.projectsLoading'))}</td></tr>`;
     try {
-      const result = await apiRequest(`/project?page=${currentPage}&pageSize=${PROJECT_PAGE_SIZE}`);
+      const search = projectSearchInput.value.trim();
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      params.set('sortBy', sortState.sortField);
+      params.set('sortDescending', String(sortState.sortDescending));
+      params.set('page', String(currentPage));
+      params.set('pageSize', String(PROJECT_PAGE_SIZE));
+
+      const result = await apiRequest(`/project?${params.toString()}`);
       renderRows(result.items);
       updatePaginationUI(result);
     } catch (error) {
@@ -795,6 +928,15 @@ function renderProjectsSection(section) {
       updatePaginationUI(null);
     }
   }
+
+  function resetPageAndLoad() {
+    currentPage = 1;
+    loadProjects();
+  }
+
+  wireSortableHeaders(section, sortState, resetPageAndLoad);
+
+  projectSearchInput.addEventListener('input', debounce(resetPageAndLoad, 300));
 
   prevPageButton.addEventListener('click', () => {
     if (currentPage > 1) {
@@ -835,6 +977,10 @@ function renderProjectsSection(section) {
     }
   });
 
+  // Proje Ayarları'ndan (Proje Bilgileri paneli) kaydedince bu liste bayat
+  // kalmasın diye tazeleme fonksiyonunu paylaşımlı registry'ye kaydediyoruz.
+  adminCrossTab.projectsTab = { reload: loadProjects };
+
   loadProjects();
 }
 
@@ -855,10 +1001,34 @@ function renderProjectSettingsSection(section) {
       <span data-i18n="admin.selectProjectHint"></span>
     </div>
     <div id="psPanels" style="display: none;">
-      <div style="font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--color-text); margin: var(--space-2) 0 var(--space-3);" data-i18n="admin.categoriesHeading"></div>
+      <div style="font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--color-text); margin: var(--space-2) 0 var(--space-3);" data-i18n="admin.projectInfoHeading"></div>
       <div class="filter-bar">
         <div class="filter-group">
-          <label for="categoryNameInput" data-i18n="admin.projectName"></label>
+          <label for="psInfoNameInput" data-i18n="admin.projectName"></label>
+          <input type="text" id="psInfoNameInput">
+        </div>
+        <div class="filter-group">
+          <label for="psInfoCodeInput" data-i18n="admin.colProjectCode"></label>
+          <input type="text" id="psInfoCodeInput" disabled>
+        </div>
+        <div class="filter-group" style="flex: 1;">
+          <label for="psInfoDescriptionInput" data-i18n="admin.groupDescription"></label>
+          <input type="text" id="psInfoDescriptionInput">
+        </div>
+        <div class="filter-group">
+          <label for="psInfoStatusSelect" data-i18n="admin.colStatus"></label>
+          <select id="psInfoStatusSelect">
+            <option value="true" data-i18n="admin.statusActive"></option>
+            <option value="false" data-i18n="admin.statusInactive"></option>
+          </select>
+        </div>
+        <button type="button" class="btn-primary" id="psSaveInfoButton" data-i18n="admin.save"></button>
+      </div>
+
+      <div style="font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--color-text); margin: var(--space-6) 0 var(--space-3);" data-i18n="admin.categoriesHeading"></div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="categoryNameInput" data-i18n="admin.categoryName"></label>
           <input type="text" id="categoryNameInput" data-i18n-placeholder="admin.categoryNamePlaceholder">
         </div>
         <div class="filter-group" style="flex: 1;">
@@ -876,7 +1046,7 @@ function renderProjectSettingsSection(section) {
         <table>
           <thead>
             <tr>
-              <th><span data-i18n="admin.colProjectName"></span></th>
+              <th><span data-i18n="admin.colCategoryName"></span></th>
               <th><span data-i18n="admin.colDescription"></span></th>
               <th class="col-center"><span data-i18n="admin.colAction"></span></th>
             </tr>
@@ -947,6 +1117,13 @@ function renderProjectSettingsSection(section) {
   const psPanels = section.querySelector('#psPanels');
   const psToast = section.querySelector('#psToast');
 
+  const psInfoNameInput = section.querySelector('#psInfoNameInput');
+  const psInfoCodeInput = section.querySelector('#psInfoCodeInput');
+  const psInfoDescriptionInput = section.querySelector('#psInfoDescriptionInput');
+  const psInfoStatusSelect = section.querySelector('#psInfoStatusSelect');
+  const psSaveInfoButton = section.querySelector('#psSaveInfoButton');
+  enhanceSelect(psInfoStatusSelect);
+
   const categoryTableBody = section.querySelector('#categoryTableBody');
   const categoryNameInput = section.querySelector('#categoryNameInput');
   const categoryDescriptionInput = section.querySelector('#categoryDescriptionInput');
@@ -963,6 +1140,7 @@ function renderProjectSettingsSection(section) {
   let currentProjectId = null;
   let currentCategories = [];
   let allGroups = [];
+  let allProjects = [];
   let selectedRuleUserId = null;
   const userCache = {};
 
@@ -972,6 +1150,41 @@ function renderProjectSettingsSection(section) {
     psToast.style.display = 'block';
     setTimeout(() => { psToast.style.display = 'none'; }, 3000);
   }
+
+  // --- Proje Bilgileri ---
+
+  psSaveInfoButton.addEventListener('click', async () => {
+    if (!currentProjectId) return;
+    const newName = psInfoNameInput.value.trim();
+    if (!newName) return;
+    psSaveInfoButton.disabled = true;
+    try {
+      const isActive = psInfoStatusSelect.value === 'true';
+      const description = psInfoDescriptionInput.value.trim() || null;
+      await apiRequest(`/project/${currentProjectId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: newName, description, isActive })
+      });
+
+      const project = allProjects.find((p) => p.id === currentProjectId);
+      if (project) {
+        project.name = newName;
+        project.description = description;
+        project.isActive = isActive;
+        const option = psProjectSelect.querySelector(`option[value="${currentProjectId}"]`);
+        if (option) option.textContent = newName;
+        enhanceSelect(psProjectSelect);
+      }
+
+      showToast('admin.projectUpdated', false);
+      // Projeler tab'ı daha önce render edildiyse listesi bayat kalmasın diye tazele.
+      if (adminCrossTab.projectsTab) adminCrossTab.projectsTab.reload();
+    } catch (error) {
+      showToast('admin.projectUpdateError', true);
+    } finally {
+      psSaveInfoButton.disabled = false;
+    }
+  });
 
   async function resolveUserName(userId) {
     if (userCache[userId]) return userCache[userId];
@@ -1037,7 +1250,8 @@ function renderProjectSettingsSection(section) {
   }
 
   async function deleteCategory(category, button) {
-    if (!window.confirm(t('admin.confirmDeleteCategory').replace('{name}', category.name))) {
+    const confirmed = await showConfirmDialog(t('admin.confirmDeleteCategory').replace('{name}', category.name), { danger: true });
+    if (!confirmed) {
       return;
     }
     button.disabled = true;
@@ -1081,14 +1295,16 @@ function renderProjectSettingsSection(section) {
       actionCell.className = 'col-center';
       const editButton = document.createElement('button');
       editButton.type = 'button';
-      editButton.className = 'btn-secondary';
+      editButton.className = 'btn-secondary btn-icon-only';
       editButton.style.marginRight = '6px';
-      editButton.textContent = t('admin.edit');
+      editButton.title = t('admin.edit');
+      editButton.innerHTML = EDIT_ICON;
       editButton.addEventListener('click', () => enterCategoryEditMode(row, category));
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
-      deleteButton.className = 'btn-secondary';
-      deleteButton.textContent = t('admin.delete');
+      deleteButton.className = 'btn-secondary btn-icon-only btn-danger';
+      deleteButton.title = t('admin.delete');
+      deleteButton.innerHTML = DELETE_ICON;
       deleteButton.addEventListener('click', () => deleteCategory(category, deleteButton));
       actionCell.append(editButton, deleteButton);
 
@@ -1223,7 +1439,8 @@ function renderProjectSettingsSection(section) {
   });
 
   async function deleteRule(rule, button) {
-    if (!window.confirm(t('admin.confirmDeleteRule'))) {
+    const confirmed = await showConfirmDialog(t('admin.confirmDeleteRule'), { danger: true });
+    if (!confirmed) {
       return;
     }
     button.disabled = true;
@@ -1282,8 +1499,9 @@ function renderProjectSettingsSection(section) {
       actionCell.className = 'col-center';
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
-      deleteButton.className = 'btn-secondary';
-      deleteButton.textContent = t('admin.delete');
+      deleteButton.className = 'btn-secondary btn-icon-only btn-danger';
+      deleteButton.title = t('admin.delete');
+      deleteButton.innerHTML = DELETE_ICON;
       deleteButton.addEventListener('click', () => deleteRule(rule, deleteButton));
       actionCell.appendChild(deleteButton);
 
@@ -1355,6 +1573,16 @@ function renderProjectSettingsSection(section) {
     }
     psEmptyState.style.display = 'none';
     psPanels.style.display = '';
+
+    const project = allProjects.find((p) => p.id === currentProjectId);
+    if (project) {
+      psInfoNameInput.value = project.name;
+      psInfoCodeInput.value = project.code;
+      psInfoDescriptionInput.value = project.description || '';
+      psInfoStatusSelect.value = String(project.isActive);
+      enhanceSelect(psInfoStatusSelect);
+    }
+
     categoryNameInput.value = '';
     categoryDescriptionInput.value = '';
     ruleUserSearch.value = '';
@@ -1375,6 +1603,7 @@ function renderProjectSettingsSection(section) {
         apiRequest('/group')
       ]);
 
+      allProjects = projects;
       projects.forEach((project) => {
         const option = document.createElement('option');
         option.value = project.id;
@@ -1396,10 +1625,31 @@ function renderProjectSettingsSection(section) {
     }
   }
 
-  loadInitialData();
+  const initialDataPromise = loadInitialData();
+
+  // Projeler tab'ındaki Düzenle butonu bu sekmeye geçip ilgili projeyi
+  // seçtirmek için bunu çağırıyor. Proje Ayarları ilk kez bu şekilde
+  // render ediliyor olabilir - proje/grup listesi henüz gelmemiş olabileceği
+  // için önce loadInitialData'nın bitmesini bekliyoruz.
+  adminCrossTab.projectSettingsTab = {
+    async selectProject(id) {
+      await initialDataPromise;
+      psProjectSelect.value = String(id);
+      psProjectSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  };
 }
 
+const SLA_SORTABLE_COLUMNS = [
+  { key: 'project', i18nKey: 'admin.colProject' },
+  { key: 'category', i18nKey: 'admin.colCategory' },
+  { key: 'priority', i18nKey: 'admin.colPriority' },
+  { key: 'responseTime', i18nKey: 'admin.colResponseTime', className: 'col-center' },
+  { key: 'resolutionTime', i18nKey: 'admin.colResolutionTime', className: 'col-center' }
+];
+
 function renderSlaSection(section) {
+  const columnsHtml = SLA_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
       <div class="filter-group">
@@ -1437,11 +1687,7 @@ function renderSlaSection(section) {
       <table>
         <thead>
           <tr>
-            <th><span data-i18n="admin.colProject"></span></th>
-            <th><span data-i18n="admin.colCategory"></span></th>
-            <th><span data-i18n="admin.colPriority"></span></th>
-            <th class="col-center"><span data-i18n="admin.colResponseTime"></span></th>
-            <th class="col-center"><span data-i18n="admin.colResolutionTime"></span></th>
+            ${columnsHtml}
             <th class="col-center"><span data-i18n="admin.colAction"></span></th>
           </tr>
         </thead>
@@ -1464,10 +1710,28 @@ function renderSlaSection(section) {
   const slaToast = section.querySelector('#slaToast');
 
   let allProjects = [];
+  let currentSlas = [];
+  const sortState = { sortField: 'project', sortDescending: false };
   // Kategoriler proje bazlı (nested route) olduğu için tek bir "tüm
   // kategoriler" endpoint'i yok - listede kategori adı göstermek için
   // ihtiyaç oldukça projeye göre önbelleğe alıyoruz.
   const categoriesByProject = {};
+
+  // SLA listesi backend'de sayfalanmadığı (tam liste tek seferde) için
+  // sıralama istemci tarafında yapılıyor - proje/kategori adları da tabloda
+  // gösterildikleri gibi (id değil, çözümlenmiş isim) sıralansın diye
+  // accessor'lar aynı lookup'ları kullanıyor.
+  const SLA_SORT_ACCESSORS = {
+    project: (sla) => (sla.projectId ? (allProjects.find((p) => p.id === sla.projectId)?.name || '') : ''),
+    category: (sla) => {
+      if (!sla.categoryId) return '';
+      const categoryList = sla.projectId ? (categoriesByProject[sla.projectId] || []) : [];
+      return categoryList.find((c) => c.id === sla.categoryId)?.name || '';
+    },
+    priority: (sla) => sla.priorityName || '',
+    responseTime: (sla) => sla.responseTimeMinutes,
+    resolutionTime: (sla) => sla.resolutionTimeMinutes
+  };
 
   function showToast(key, isError) {
     slaToast.textContent = t(key);
@@ -1564,7 +1828,8 @@ function renderSlaSection(section) {
   }
 
   async function deleteSla(sla, button) {
-    if (!window.confirm(t('admin.confirmDeleteSla'))) {
+    const confirmed = await showConfirmDialog(t('admin.confirmDeleteSla'), { danger: true });
+    if (!confirmed) {
       return;
     }
     button.disabled = true;
@@ -1578,10 +1843,10 @@ function renderSlaSection(section) {
     }
   }
 
-  async function renderRows(slas) {
+  async function renderRows() {
     slaTableBody.innerHTML = '';
 
-    if (slas.length === 0) {
+    if (currentSlas.length === 0) {
       slaTableBody.innerHTML = `
         <tr><td colspan="6" style="padding: 0; border-bottom: none;">
           <div class="state-box" style="border: none;">
@@ -1595,12 +1860,16 @@ function renderSlaSection(section) {
       return;
     }
 
-    // Kategori adlarını göstermeden önce, listede geçen projelerin
-    // kategorilerini (henüz önbelleğe alınmamışsa) paralel çekiyoruz.
+    // Kategori adlarını göstermeden (ve onlara göre sıralamadan) önce,
+    // listede geçen projelerin kategorilerini (henüz önbelleğe alınmamışsa)
+    // paralel çekiyoruz.
     const projectIdsNeedingCategories = [...new Set(
-      slas.filter((sla) => sla.categoryId && sla.projectId).map((sla) => sla.projectId)
+      currentSlas.filter((sla) => sla.categoryId && sla.projectId).map((sla) => sla.projectId)
     )];
     await Promise.all(projectIdsNeedingCategories.map((projectId) => getCategoriesForProject(projectId)));
+
+    const accessor = SLA_SORT_ACCESSORS[sortState.sortField] || SLA_SORT_ACCESSORS.project;
+    const slas = sortItemsBy(currentSlas, accessor, sortState.sortDescending);
 
     slas.forEach((sla) => {
       const row = document.createElement('tr');
@@ -1615,7 +1884,7 @@ function renderSlaSection(section) {
       categoryCell.textContent = sla.categoryId ? (category ? category.name : `#${sla.categoryId}`) : t('admin.allCategories');
 
       const priorityCell = document.createElement('td');
-      priorityCell.textContent = sla.priorityName;
+      priorityCell.appendChild(priorityBadge(sla.priorityName));
 
       const responseCell = document.createElement('td');
       responseCell.className = 'col-center';
@@ -1629,14 +1898,16 @@ function renderSlaSection(section) {
       actionCell.className = 'col-center';
       const editButton = document.createElement('button');
       editButton.type = 'button';
-      editButton.className = 'btn-secondary';
+      editButton.className = 'btn-secondary btn-icon-only';
       editButton.style.marginRight = '6px';
-      editButton.textContent = t('admin.edit');
+      editButton.title = t('admin.edit');
+      editButton.innerHTML = EDIT_ICON;
       editButton.addEventListener('click', () => enterEditMode(row, sla));
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
-      deleteButton.className = 'btn-secondary';
-      deleteButton.textContent = t('admin.delete');
+      deleteButton.className = 'btn-secondary btn-icon-only btn-danger';
+      deleteButton.title = t('admin.delete');
+      deleteButton.innerHTML = DELETE_ICON;
       deleteButton.addEventListener('click', () => deleteSla(sla, deleteButton));
       actionCell.append(editButton, deleteButton);
 
@@ -1648,8 +1919,8 @@ function renderSlaSection(section) {
   async function loadSlas() {
     slaTableBody.innerHTML = `<tr><td colspan="6" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.slaLoading'))}</td></tr>`;
     try {
-      const slas = await apiRequest('/sla');
-      await renderRows(slas);
+      currentSlas = await apiRequest('/sla');
+      await renderRows();
     } catch (error) {
       slaTableBody.innerHTML = `
         <tr><td colspan="6" style="padding: 0; border-bottom: none;">
@@ -1723,11 +1994,20 @@ function renderSlaSection(section) {
     }
   }
 
+  wireSortableHeaders(section, sortState, () => renderRows());
+
   loadInitialData();
   loadSlas();
 }
 
+const PERMISSION_SORTABLE_COLUMNS = [
+  { key: 'permission', i18nKey: 'admin.colPermission' },
+  { key: 'project', i18nKey: 'admin.colProject' },
+  { key: 'grantedAt', i18nKey: 'admin.colGrantedAt', className: 'col-center' }
+];
+
 function renderPermissionsSection(section) {
+  const columnsHtml = PERMISSION_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
       <div class="filter-group" style="min-width: 280px;">
@@ -1749,9 +2029,7 @@ function renderPermissionsSection(section) {
         <table>
           <thead>
             <tr>
-              <th><span data-i18n="admin.colPermission"></span></th>
-              <th><span data-i18n="admin.colProject"></span></th>
-              <th class="col-center"><span data-i18n="admin.colGrantedAt"></span></th>
+              ${columnsHtml}
               <th class="col-center"><span data-i18n="admin.colAction"></span></th>
             </tr>
           </thead>
@@ -1792,6 +2070,19 @@ function renderPermissionsSection(section) {
 
   let allProjects = [];
   let currentUserId = null;
+  let currentPermissions = [];
+  const sortState = { sortField: 'permission', sortDescending: false };
+
+  // Bu tablo backend'de sayfalanmıyor (seçilen kullanıcının tüm yetkileri tek
+  // seferde geliyor) - sıralama istemci tarafında, proje adı da (id değil)
+  // tabloda göründüğü gibi sıralansın diye aynı lookup'ı kullanıyor.
+  const PERMISSION_SORT_ACCESSORS = {
+    permission: (p) => p.permissionName || '',
+    project: (p) => (p.projectId ? (allProjects.find((proj) => proj.id === p.projectId)?.name || '') : ''),
+    grantedAt: (p) => new Date(p.grantedAt).getTime()
+  };
+
+  wireSortableHeaders(section, sortState, () => renderPermissionRows());
 
   function showToast(key, isError) {
     permissionToast.textContent = t(key);
@@ -1801,7 +2092,8 @@ function renderPermissionsSection(section) {
   }
 
   async function revokePermission(permission, button) {
-    if (!window.confirm(t('admin.confirmRevoke').replace('{name}', permission.permissionName))) {
+    const confirmed = await showConfirmDialog(t('admin.confirmRevoke').replace('{name}', permission.permissionName), { danger: true });
+    if (!confirmed) {
       return;
     }
     button.disabled = true;
@@ -1815,10 +2107,10 @@ function renderPermissionsSection(section) {
     }
   }
 
-  function renderPermissionRows(permissions) {
+  function renderPermissionRows() {
     permissionTableBody.innerHTML = '';
 
-    if (permissions.length === 0) {
+    if (currentPermissions.length === 0) {
       permissionTableBody.innerHTML = `
         <tr><td colspan="4" style="padding: 0; border-bottom: none;">
           <div class="state-box" style="border: none;">
@@ -1830,6 +2122,9 @@ function renderPermissionsSection(section) {
         </td></tr>`;
       return;
     }
+
+    const accessor = PERMISSION_SORT_ACCESSORS[sortState.sortField] || PERMISSION_SORT_ACCESSORS.permission;
+    const permissions = sortItemsBy(currentPermissions, accessor, sortState.sortDescending);
 
     permissions.forEach((permission) => {
       const row = document.createElement('tr');
@@ -1849,8 +2144,9 @@ function renderPermissionsSection(section) {
       actionCell.className = 'col-center';
       const revokeButton = document.createElement('button');
       revokeButton.type = 'button';
-      revokeButton.className = 'btn-secondary';
-      revokeButton.textContent = t('admin.revoke');
+      revokeButton.className = 'btn-secondary btn-icon-only btn-danger';
+      revokeButton.title = t('admin.revoke');
+      revokeButton.innerHTML = DELETE_ICON;
       revokeButton.addEventListener('click', () => revokePermission(permission, revokeButton));
       actionCell.appendChild(revokeButton);
 
@@ -1862,8 +2158,8 @@ function renderPermissionsSection(section) {
   async function loadUserPermissions() {
     permissionTableBody.innerHTML = `<tr><td colspan="4" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.permissionsLoading'))}</td></tr>`;
     try {
-      const permissions = await apiRequest(`/users/${currentUserId}/permissions`);
-      renderPermissionRows(permissions);
+      currentPermissions = await apiRequest(`/users/${currentUserId}/permissions`);
+      renderPermissionRows();
     } catch (error) {
       permissionTableBody.innerHTML = `
         <tr><td colspan="4" style="padding: 0; border-bottom: none;">
@@ -1999,12 +2295,20 @@ function renderPermissionsSection(section) {
   loadInitialData();
 }
 
+const AUDIT_SORTABLE_COLUMNS = [
+  { key: 'createdAt', i18nKey: 'admin.auditColDate' },
+  { key: 'user', i18nKey: 'admin.auditColUser' },
+  { key: 'entity', i18nKey: 'admin.auditColEntity' },
+  { key: 'action', i18nKey: 'admin.auditColAction' }
+];
+
 function renderAuditLogSection(section) {
+  const columnsHtml = AUDIT_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
       <div class="filter-group">
-        <label for="auditFilterEntity" data-i18n="admin.filterEntity"></label>
-        <input type="text" id="auditFilterEntity" data-i18n-placeholder="admin.filterEntityPlaceholder">
+        <label for="auditFilterEntity" data-i18n="admin.auditSearchLabel"></label>
+        <input type="text" id="auditFilterEntity" data-i18n-placeholder="admin.auditSearchPlaceholder">
       </div>
       <div class="filter-group">
         <label for="auditFilterAction" data-i18n="admin.filterAction"></label>
@@ -2034,10 +2338,7 @@ function renderAuditLogSection(section) {
       <table>
         <thead>
           <tr>
-            <th><span data-i18n="admin.auditColDate"></span></th>
-            <th><span data-i18n="admin.auditColUser"></span></th>
-            <th><span data-i18n="admin.auditColEntity"></span></th>
-            <th><span data-i18n="admin.auditColAction"></span></th>
+            ${columnsHtml}
             <th><span data-i18n="admin.auditColDetails"></span></th>
           </tr>
         </thead>
@@ -2070,6 +2371,7 @@ function renderAuditLogSection(section) {
   enhanceSelect(filterAction);
 
   let currentPage = 1;
+  const sortState = { sortField: 'createdAt', sortDescending: true };
 
   function renderRows(logs) {
     auditTableBody.innerHTML = '';
@@ -2133,10 +2435,12 @@ function renderAuditLogSection(section) {
 
   function buildQueryString() {
     const params = new URLSearchParams();
-    if (filterEntity.value.trim()) params.set('entityName', filterEntity.value.trim());
+    if (filterEntity.value.trim()) params.set('search', filterEntity.value.trim());
     if (filterAction.value) params.set('action', filterAction.value);
     if (filterFromDate.value) params.set('fromDate', filterFromDate.value);
     if (filterToDate.value) params.set('toDate', `${filterToDate.value}T23:59:59`);
+    params.set('sortBy', sortState.sortField);
+    params.set('sortDescending', String(sortState.sortDescending));
     params.set('page', String(currentPage));
     params.set('pageSize', String(AUDIT_PAGE_SIZE));
     const query = params.toString();
@@ -2168,6 +2472,8 @@ function renderAuditLogSection(section) {
     currentPage = 1;
     loadAuditLog();
   }
+
+  wireSortableHeaders(section, sortState, resetPageAndLoad);
 
   filterEntity.addEventListener('input', debounce(resetPageAndLoad, 300));
   filterAction.addEventListener('change', resetPageAndLoad);
