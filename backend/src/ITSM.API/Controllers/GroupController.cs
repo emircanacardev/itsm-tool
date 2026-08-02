@@ -25,9 +25,22 @@ public class GroupController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllGroups()
+    public async Task<IActionResult> GetAllGroups(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? search,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending = false)
     {
-        var result = await _groupService.GetAllGroupsAsync();
+        // page verilmezse eski davranış (tam liste) korunuyor - şu an tek
+        // tüketicisi admin panelindeki Gruplar sekmesi, o da artık page geçiyor.
+        if (page.HasValue)
+        {
+            var pagedResult = await _groupService.GetAllGroupsPagedAsync(search, sortBy, sortDescending, page.Value, pageSize ?? 20);
+            return Ok(pagedResult);
+        }
+
+        var result = await _groupService.GetAllGroupsAsync(search);
         return Ok(result);
     }
 

@@ -54,6 +54,33 @@ public class SlaService
         return MapToResponse(sla);
     }
 
+    public async Task<bool> UpdateSlaAsync(long id, UpdateSlaRequest request)
+    {
+        var sla = await _slaRepository.GetByIdAsync(id);
+        if (sla is null)
+        {
+            return false;
+        }
+
+        sla.ResponseTimeMinutes = request.ResponseTimeMinutes;
+        sla.ResolutionTimeMinutes = request.ResolutionTimeMinutes;
+
+        await _slaRepository.UpdateAsync(sla);
+        return true;
+    }
+
+    public async Task<bool> DeleteSlaAsync(long id)
+    {
+        var sla = await _slaRepository.GetByIdAsync(id);
+        if (sla is null)
+        {
+            return false;
+        }
+
+        await _slaRepository.DeleteAsync(sla);
+        return true;
+    }
+
     private static SlaResponse MapToResponse(Sla sla)
     {
         return new SlaResponse

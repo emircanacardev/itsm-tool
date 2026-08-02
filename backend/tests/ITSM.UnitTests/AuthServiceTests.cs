@@ -8,10 +8,14 @@ namespace ITSM.UnitTests;
 
 public class AuthServiceTests
 {
+    private const string DefaultGroupName = "Atanmamış";
+
     private readonly Mock<IUserRepository> _userRepository = new();
+    private readonly Mock<IGroupRepository> _groupRepository = new();
     private readonly Mock<IPasswordHasher> _passwordHasher = new();
     private readonly Mock<IJwtTokenGenerator> _jwtTokenGenerator = new();
     private readonly Mock<IUserPermissionRepository> _userPermissionRepository = new();
+    private readonly Mock<IPermissionRepository> _permissionRepository = new();
     private readonly AuthService _service;
 
     public AuthServiceTests()
@@ -19,9 +23,10 @@ public class AuthServiceTests
         // PermissionService'in metodları virtual değil, Moq onu mock'layamıyor -
         // bu yüzden gerçek PermissionService'i kendi (mock'lanmış) repository'siyle
         // kuruyoruz. Sadece asıl dış sınır olan repository'ler mock'lanıyor.
-        var permissionService = new PermissionService(_userPermissionRepository.Object);
+        var permissionService = new PermissionService(_userPermissionRepository.Object, _permissionRepository.Object);
         _service = new AuthService(
             _userRepository.Object,
+            _groupRepository.Object,
             _passwordHasher.Object,
             _jwtTokenGenerator.Object,
             permissionService);
@@ -31,6 +36,7 @@ public class AuthServiceTests
     {
         Id = 1,
         GroupId = 5,
+        Group = new Group { Id = 5, Name = "Test Grubu" },
         FullName = "Test Kullanıcı",
         Email = "test@turkcell.com.tr",
         PasswordHash = "hashed-password",
@@ -95,8 +101,26 @@ public class AuthServiceTests
         {
             Email = existing.Email,
             Password = "1234",
-            FullName = "Yeni Kullanıcı",
-            GroupID = 5
+            FullName = "Yeni Kullanıcı"
+        };
+
+        var result = await _service.RegisterAsync(request);
+
+        Assert.Null(result);
+        _userRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_WhenDefaultGroupMissing_ReturnsNull()
+    {
+        _userRepository.Setup(r => r.GetByEmailAsync("yeni@turkcell.com.tr")).ReturnsAsync((User?)null);
+        _groupRepository.Setup(g => g.GetByNameAsync(DefaultGroupName)).ReturnsAsync((Group?)null);
+
+        var request = new RegisterRequest
+        {
+            Email = "yeni@turkcell.com.tr",
+            Password = "1234",
+            FullName = "Yeni Kullanıcı"
         };
 
         var result = await _service.RegisterAsync(request);
@@ -108,7 +132,9 @@ public class AuthServiceTests
     [Fact]
     public async Task RegisterAsync_WhenEmailIsNew_CreatesUserAndReturnsToken()
     {
+        var defaultGroup = new Group { Id = 1, Name = DefaultGroupName };
         _userRepository.Setup(r => r.GetByEmailAsync("yeni@turkcell.com.tr")).ReturnsAsync((User?)null);
+        _groupRepository.Setup(g => g.GetByNameAsync(DefaultGroupName)).ReturnsAsync(defaultGroup);
         _passwordHasher.Setup(h => h.Hash("1234")).Returns("hashed-1234");
         _jwtTokenGenerator.Setup(j => j.GenerateToken(It.IsAny<User>())).Returns("fake-jwt-token");
 
@@ -116,8 +142,7 @@ public class AuthServiceTests
         {
             Email = "yeni@turkcell.com.tr",
             Password = "1234",
-            FullName = "Yeni Kullanıcı",
-            GroupID = 5
+            FullName = "Yeni Kullanıcı"
         };
 
         var result = await _service.RegisterAsync(request);
@@ -126,7 +151,7 @@ public class AuthServiceTests
         Assert.Equal("fake-jwt-token", result!.Token);
         _userRepository.Verify(r => r.AddAsync(It.Is<User>(u =>
             u.Email == "yeni@turkcell.com.tr" &&
-            u.GroupId == 5 &&
+            u.GroupId == defaultGroup.Id &&
             u.PasswordHash == "hashed-1234")), Times.Once);
     }
 

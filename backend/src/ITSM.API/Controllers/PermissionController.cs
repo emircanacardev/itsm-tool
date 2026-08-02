@@ -30,4 +30,25 @@ public class PermissionController : ControllerBase
         var result = await _permissionService.GetUserPermissionsAsync(userId);
         return Ok(result);
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> RevokePermission(long userId, long id)
+    {
+        var success = await _permissionService.RevokeAsync(userId, id);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+
+    // Bu controller "api/users/{userId}/permissions" altında iç içe geçmiş
+    // durumda; sistemde tanımlı TÜM yetki kataloğunu listelemek (bir
+    // kullanıcıya özel olmadan) için mutlak yol ile ayrı bir uç nokta.
+    [HttpGet("/api/permissions")]
+    public async Task<IActionResult> GetAllPermissions()
+    {
+        var result = await _permissionService.GetAllPermissionsAsync();
+        return Ok(result);
+    }
 }

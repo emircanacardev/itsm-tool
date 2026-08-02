@@ -5,7 +5,7 @@ export function render(container) {
         <div class="brand-lockup">
           <div class="brand-mark">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 12H6L9 5L14 19L17 12H22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path class="brand-ekg" d="M3 12.2h3.4l2.2-5 3.2 9.6 2.2-4.6H21" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <span class="brand-name">PULSE</span>

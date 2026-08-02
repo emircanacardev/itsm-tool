@@ -8,11 +8,16 @@ public class CategoryService
 {
     private readonly ICategoryRepository _categoryRepository;
     private readonly IProjectRepository _projectRepository;
+    private readonly ITicketRepository _ticketRepository;
 
-    public CategoryService(ICategoryRepository categoryRepository, IProjectRepository projectRepository)
+    public CategoryService(
+        ICategoryRepository categoryRepository,
+        IProjectRepository projectRepository,
+        ITicketRepository ticketRepository)
     {
         _categoryRepository = categoryRepository;
         _projectRepository = projectRepository;
+        _ticketRepository = ticketRepository;
     }
 
     public async Task<CategoryResponse?> CreateCategoryAsync(long projectId, CreateCategoryRequest request)
@@ -64,6 +69,30 @@ public class CategoryService
 
         await _categoryRepository.UpdateAsync(category);
         return true;
+    }
+
+    // Ticket.CategoryId FK'si Restrict (bkz. TicketConfiguration), yani
+    // kategoriye bağlı ticket varken silmeye çalışırsak veritabanı hatası
+    // alırdık. Application katmanı EF Core'a bağımlı olmadığı için
+    // (ITSM.Application.csproj sadece Domain'e referans veriyor)
+    // DbUpdateException yakalamak yerine önce ExistsByCategoryIdAsync ile
+    // kontrol edip anlamlı bir sonuç (InUse) dönüyoruz.
+    public async Task<DeleteCategoryResult> DeleteCategoryAsync(long projectId, long id)
+    {
+        var category = await _categoryRepository.GetByIdAsync(id);
+        if (category is null || category.ProjectId != projectId)
+        {
+            return DeleteCategoryResult.NotFound;
+        }
+
+        var hasTickets = await _ticketRepository.ExistsByCategoryIdAsync(id);
+        if (hasTickets)
+        {
+            return DeleteCategoryResult.InUse;
+        }
+
+        await _categoryRepository.DeleteAsync(category);
+        return DeleteCategoryResult.Success;
     }
 
     private static CategoryResponse MapToResponse(Category category)
