@@ -78,6 +78,8 @@ const TABS = [
   { key: 'users', i18nKey: 'admin.tabUsers', render: renderUsersSection },
   { key: 'groups', i18nKey: 'admin.tabGroups', render: renderGroupsSection },
   { key: 'projects', i18nKey: 'admin.tabProjects', render: renderProjectsSection },
+  { key: 'projectSettings', i18nKey: 'admin.tabProjectSettings', render: renderProjectSettingsSection },
+  { key: 'sla', i18nKey: 'admin.tabSla', render: renderSlaSection },
   { key: 'permissions', i18nKey: 'admin.tabPermissions', render: renderPermissionsSection },
   { key: 'auditLog', i18nKey: 'admin.tabAuditLog', render: renderAuditLogSection }
 ];
@@ -834,6 +836,895 @@ function renderProjectsSection(section) {
   });
 
   loadProjects();
+}
+
+function renderProjectSettingsSection(section) {
+  section.innerHTML = `
+    <div class="filter-bar">
+      <div class="filter-group" style="min-width: 260px;">
+        <label for="psProjectSelect" data-i18n="admin.selectProjectLabel"></label>
+        <select id="psProjectSelect">
+          <option value="" data-i18n="admin.selectProjectPlaceholder"></option>
+        </select>
+      </div>
+    </div>
+    <div class="state-box" id="psEmptyState">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 7h5l2 2h11v10a2 2 0 0 1-2 2H3z"/>
+      </svg>
+      <span data-i18n="admin.selectProjectHint"></span>
+    </div>
+    <div id="psPanels" style="display: none;">
+      <div style="font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--color-text); margin: var(--space-2) 0 var(--space-3);" data-i18n="admin.categoriesHeading"></div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="categoryNameInput" data-i18n="admin.projectName"></label>
+          <input type="text" id="categoryNameInput" data-i18n-placeholder="admin.categoryNamePlaceholder">
+        </div>
+        <div class="filter-group" style="flex: 1;">
+          <label for="categoryDescriptionInput" data-i18n="admin.groupDescription"></label>
+          <input type="text" id="categoryDescriptionInput" data-i18n-placeholder="admin.projectDescriptionPlaceholder">
+        </div>
+        <button type="button" class="btn-primary" id="addCategoryButton">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span data-i18n="admin.addCategory"></span>
+        </button>
+      </div>
+      <div class="ticket-table-wrap table-static">
+        <table>
+          <thead>
+            <tr>
+              <th><span data-i18n="admin.colProjectName"></span></th>
+              <th><span data-i18n="admin.colDescription"></span></th>
+              <th class="col-center"><span data-i18n="admin.colAction"></span></th>
+            </tr>
+          </thead>
+          <tbody id="categoryTableBody"></tbody>
+        </table>
+      </div>
+
+      <div style="font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--color-text); margin: var(--space-6) 0 var(--space-3);" data-i18n="admin.rulesHeading"></div>
+      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin: 0 0 var(--space-3);" data-i18n="admin.rulesHint"></p>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="ruleCategorySelect" data-i18n="admin.slaCategoryLabel"></label>
+          <select id="ruleCategorySelect">
+            <option value="" data-i18n="admin.allCategories"></option>
+          </select>
+        </div>
+        <div class="filter-group" style="min-width: 220px;">
+          <label for="ruleUserSearch" data-i18n="admin.assignToUserLabel"></label>
+          <div style="position: relative;">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="M21 21l-4.3-4.3"/>
+              </svg>
+              <input type="text" id="ruleUserSearch" autocomplete="off" data-i18n-placeholder="admin.selectUserPlaceholder">
+            </div>
+            <div class="custom-select-menu" id="ruleUserResults"></div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label for="ruleGroupSelect" data-i18n="admin.assignToGroupLabel"></label>
+          <select id="ruleGroupSelect">
+            <option value="" data-i18n="admin.noneOption"></option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="rulePriorityOrderInput" data-i18n="admin.priorityOrderLabel"></label>
+          <input type="number" min="0" id="rulePriorityOrderInput" class="table-edit-input" style="width: 80px;" value="0">
+        </div>
+        <button type="button" class="btn-primary" id="addRuleButton">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span data-i18n="admin.addRule"></span>
+        </button>
+      </div>
+      <div class="ticket-table-wrap table-static">
+        <table>
+          <thead>
+            <tr>
+              <th><span data-i18n="admin.colCategory"></span></th>
+              <th><span data-i18n="admin.colAssignedTo"></span></th>
+              <th class="col-center"><span data-i18n="admin.colPriorityOrder"></span></th>
+              <th class="col-center"><span data-i18n="admin.colAction"></span></th>
+            </tr>
+          </thead>
+          <tbody id="ruleTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="toast" id="psToast" style="display: none;"></div>
+  `;
+  applyTranslations();
+
+  const psProjectSelect = section.querySelector('#psProjectSelect');
+  const psEmptyState = section.querySelector('#psEmptyState');
+  const psPanels = section.querySelector('#psPanels');
+  const psToast = section.querySelector('#psToast');
+
+  const categoryTableBody = section.querySelector('#categoryTableBody');
+  const categoryNameInput = section.querySelector('#categoryNameInput');
+  const categoryDescriptionInput = section.querySelector('#categoryDescriptionInput');
+  const addCategoryButton = section.querySelector('#addCategoryButton');
+
+  const ruleTableBody = section.querySelector('#ruleTableBody');
+  const ruleCategorySelect = section.querySelector('#ruleCategorySelect');
+  const ruleUserSearch = section.querySelector('#ruleUserSearch');
+  const ruleUserResults = section.querySelector('#ruleUserResults');
+  const ruleGroupSelect = section.querySelector('#ruleGroupSelect');
+  const rulePriorityOrderInput = section.querySelector('#rulePriorityOrderInput');
+  const addRuleButton = section.querySelector('#addRuleButton');
+
+  let currentProjectId = null;
+  let currentCategories = [];
+  let allGroups = [];
+  let selectedRuleUserId = null;
+  const userCache = {};
+
+  function showToast(key, isError) {
+    psToast.textContent = t(key);
+    psToast.className = `toast ${isError ? 'error' : 'success'}`;
+    psToast.style.display = 'block';
+    setTimeout(() => { psToast.style.display = 'none'; }, 3000);
+  }
+
+  async function resolveUserName(userId) {
+    if (userCache[userId]) return userCache[userId];
+    try {
+      const user = await apiRequest(`/user/${userId}`);
+      userCache[userId] = user.fullName;
+    } catch (error) {
+      userCache[userId] = `#${userId}`;
+    }
+    return userCache[userId];
+  }
+
+  // --- Kategoriler ---
+
+  function enterCategoryEditMode(row, category) {
+    const [nameCell, descriptionCell, actionCell] = row.children;
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'table-edit-input';
+    nameInput.value = category.name;
+    nameCell.innerHTML = '';
+    nameCell.appendChild(nameInput);
+
+    const descriptionInput = document.createElement('input');
+    descriptionInput.type = 'text';
+    descriptionInput.className = 'table-edit-input';
+    descriptionInput.value = category.description || '';
+    descriptionCell.innerHTML = '';
+    descriptionCell.appendChild(descriptionInput);
+
+    actionCell.innerHTML = '';
+
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.className = 'btn-secondary';
+    saveButton.style.marginRight = '6px';
+    saveButton.textContent = t('admin.save');
+    saveButton.addEventListener('click', async () => {
+      const newName = nameInput.value.trim();
+      if (!newName) return;
+      saveButton.disabled = true;
+      try {
+        await apiRequest(`/project/${currentProjectId}/categories/${category.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ name: newName, description: descriptionInput.value.trim() || null })
+        });
+        showToast('admin.categoryUpdated', false);
+        loadCategories();
+      } catch (error) {
+        showToast('admin.categoryUpdateError', true);
+        saveButton.disabled = false;
+      }
+    });
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'btn-secondary';
+    cancelButton.textContent = t('admin.cancel');
+    cancelButton.addEventListener('click', () => loadCategories());
+
+    actionCell.append(saveButton, cancelButton);
+  }
+
+  async function deleteCategory(category, button) {
+    if (!window.confirm(t('admin.confirmDeleteCategory').replace('{name}', category.name))) {
+      return;
+    }
+    button.disabled = true;
+    try {
+      await apiRequest(`/project/${currentProjectId}/categories/${category.id}`, { method: 'DELETE' });
+      showToast('admin.categoryDeleted', false);
+      loadCategories();
+    } catch (error) {
+      showToast('admin.categoryInUseError', true);
+      button.disabled = false;
+    }
+  }
+
+  function renderCategoryRows() {
+    categoryTableBody.innerHTML = '';
+
+    if (currentCategories.length === 0) {
+      categoryTableBody.innerHTML = `
+        <tr><td colspan="3" style="padding: 0; border-bottom: none;">
+          <div class="state-box" style="border: none;">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M8 12h8"/>
+            </svg>
+            <span>${t('admin.categoriesEmpty')}</span>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
+    currentCategories.forEach((category) => {
+      const row = document.createElement('tr');
+
+      const nameCell = document.createElement('td');
+      nameCell.textContent = category.name;
+
+      const descriptionCell = document.createElement('td');
+      descriptionCell.textContent = category.description || '-';
+
+      const actionCell = document.createElement('td');
+      actionCell.className = 'col-center';
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'btn-secondary';
+      editButton.style.marginRight = '6px';
+      editButton.textContent = t('admin.edit');
+      editButton.addEventListener('click', () => enterCategoryEditMode(row, category));
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn-secondary';
+      deleteButton.textContent = t('admin.delete');
+      deleteButton.addEventListener('click', () => deleteCategory(category, deleteButton));
+      actionCell.append(editButton, deleteButton);
+
+      row.append(nameCell, descriptionCell, actionCell);
+      categoryTableBody.appendChild(row);
+    });
+  }
+
+  function populateRuleCategorySelect() {
+    ruleCategorySelect.innerHTML = `<option value="" data-i18n="admin.allCategories">${t('admin.allCategories')}</option>`;
+    currentCategories.forEach((category) => {
+      const option = document.createElement('option');
+      option.value = category.id;
+      option.textContent = category.name;
+      ruleCategorySelect.appendChild(option);
+    });
+    enhanceSelect(ruleCategorySelect);
+  }
+
+  async function loadCategories() {
+    categoryTableBody.innerHTML = `<tr><td colspan="3" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.categoriesLoading'))}</td></tr>`;
+    try {
+      currentCategories = await apiRequest(`/project/${currentProjectId}/categories`);
+      renderCategoryRows();
+      populateRuleCategorySelect();
+    } catch (error) {
+      currentCategories = [];
+      categoryTableBody.innerHTML = `
+        <tr><td colspan="3" style="padding: 0; border-bottom: none;">
+          <div class="state-box" style="border: none;">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>${t('admin.categoriesError')}</span>
+          </div>
+        </td></tr>`;
+    }
+  }
+
+  addCategoryButton.addEventListener('click', async () => {
+    const name = categoryNameInput.value.trim();
+    if (!name) return;
+    addCategoryButton.disabled = true;
+    try {
+      await apiRequest(`/project/${currentProjectId}/categories`, {
+        method: 'POST',
+        body: JSON.stringify({ name, description: categoryDescriptionInput.value.trim() || null })
+      });
+      categoryNameInput.value = '';
+      categoryDescriptionInput.value = '';
+      showToast('admin.categoryCreated', false);
+      loadCategories();
+    } catch (error) {
+      showToast('admin.categoryCreateError', true);
+    } finally {
+      addCategoryButton.disabled = false;
+    }
+  });
+
+  // --- Otomatik Atama Kuralları ---
+
+  function selectRuleUser(user) {
+    selectedRuleUserId = user.id;
+    ruleUserSearch.value = `${user.fullName} (${user.email})`;
+    ruleUserResults.style.display = 'none';
+    ruleUserResults.innerHTML = '';
+    ruleGroupSelect.value = '';
+    enhanceSelect(ruleGroupSelect);
+  }
+
+  function renderRuleUserResults(users) {
+    ruleUserResults.innerHTML = '';
+    if (users.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'custom-select-option';
+      empty.style.cursor = 'default';
+      empty.style.color = 'var(--color-text-muted)';
+      empty.textContent = t('admin.noUsersFound');
+      ruleUserResults.appendChild(empty);
+    } else {
+      users.forEach((user) => {
+        const item = document.createElement('div');
+        item.className = 'custom-select-option';
+        item.textContent = `${user.fullName} (${user.email})`;
+        item.addEventListener('click', () => selectRuleUser(user));
+        ruleUserResults.appendChild(item);
+      });
+    }
+    ruleUserResults.style.display = 'block';
+  }
+
+  const debouncedRuleUserSearch = debounce(async () => {
+    const query = ruleUserSearch.value.trim();
+    if (query.length < 2) {
+      ruleUserResults.style.display = 'none';
+      ruleUserResults.innerHTML = '';
+      return;
+    }
+    try {
+      const users = await apiRequest(`/user?search=${encodeURIComponent(query)}`);
+      renderRuleUserResults(users);
+    } catch (error) {
+      ruleUserResults.style.display = 'none';
+      ruleUserResults.innerHTML = '';
+    }
+  }, 300);
+
+  ruleUserSearch.addEventListener('input', () => {
+    selectedRuleUserId = null;
+    debouncedRuleUserSearch();
+  });
+
+  ruleUserSearch.addEventListener('focus', () => {
+    if (ruleUserResults.innerHTML) {
+      ruleUserResults.style.display = 'block';
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!section.contains(event.target)) return;
+    if (event.target !== ruleUserSearch && !ruleUserResults.contains(event.target)) {
+      ruleUserResults.style.display = 'none';
+    }
+  });
+
+  ruleGroupSelect.addEventListener('change', () => {
+    if (ruleGroupSelect.value) {
+      selectedRuleUserId = null;
+      ruleUserSearch.value = '';
+    }
+  });
+
+  async function deleteRule(rule, button) {
+    if (!window.confirm(t('admin.confirmDeleteRule'))) {
+      return;
+    }
+    button.disabled = true;
+    try {
+      await apiRequest(`/project/${currentProjectId}/auto-assignment-rules/${rule.id}`, { method: 'DELETE' });
+      showToast('admin.ruleDeleted', false);
+      loadRules();
+    } catch (error) {
+      showToast('admin.ruleDeleteError', true);
+      button.disabled = false;
+    }
+  }
+
+  async function renderRuleRows(rules) {
+    ruleTableBody.innerHTML = '';
+
+    if (rules.length === 0) {
+      ruleTableBody.innerHTML = `
+        <tr><td colspan="4" style="padding: 0; border-bottom: none;">
+          <div class="state-box" style="border: none;">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M8 12h8"/>
+            </svg>
+            <span>${t('admin.rulesEmpty')}</span>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
+    const userIdsNeeded = [...new Set(rules.filter((r) => r.assignToUserId).map((r) => r.assignToUserId))];
+    await Promise.all(userIdsNeeded.map((id) => resolveUserName(id)));
+
+    rules.forEach((rule) => {
+      const row = document.createElement('tr');
+
+      const categoryCell = document.createElement('td');
+      const category = rule.categoryId ? currentCategories.find((c) => c.id === rule.categoryId) : null;
+      categoryCell.textContent = rule.categoryId ? (category ? category.name : `#${rule.categoryId}`) : t('admin.allCategories');
+
+      const assignedCell = document.createElement('td');
+      if (rule.assignToUserId) {
+        assignedCell.textContent = userCache[rule.assignToUserId] || `#${rule.assignToUserId}`;
+      } else if (rule.assignToGroupId) {
+        const group = allGroups.find((g) => g.id === rule.assignToGroupId);
+        assignedCell.textContent = group ? `${group.name} (${t('admin.groupBadge')})` : `#${rule.assignToGroupId}`;
+      } else {
+        assignedCell.textContent = '-';
+      }
+
+      const priorityOrderCell = document.createElement('td');
+      priorityOrderCell.className = 'col-center';
+      priorityOrderCell.textContent = rule.priorityOrder;
+
+      const actionCell = document.createElement('td');
+      actionCell.className = 'col-center';
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn-secondary';
+      deleteButton.textContent = t('admin.delete');
+      deleteButton.addEventListener('click', () => deleteRule(rule, deleteButton));
+      actionCell.appendChild(deleteButton);
+
+      row.append(categoryCell, assignedCell, priorityOrderCell, actionCell);
+      ruleTableBody.appendChild(row);
+    });
+  }
+
+  async function loadRules() {
+    ruleTableBody.innerHTML = `<tr><td colspan="4" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.rulesLoading'))}</td></tr>`;
+    try {
+      const rules = await apiRequest(`/project/${currentProjectId}/auto-assignment-rules`);
+      await renderRuleRows(rules);
+    } catch (error) {
+      ruleTableBody.innerHTML = `
+        <tr><td colspan="4" style="padding: 0; border-bottom: none;">
+          <div class="state-box" style="border: none;">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>${t('admin.rulesError')}</span>
+          </div>
+        </td></tr>`;
+    }
+  }
+
+  addRuleButton.addEventListener('click', async () => {
+    const hasUser = !!selectedRuleUserId;
+    const hasGroup = !!ruleGroupSelect.value;
+    if (hasUser === hasGroup) {
+      showToast('admin.ruleAssignValidationError', true);
+      return;
+    }
+
+    addRuleButton.disabled = true;
+    try {
+      await apiRequest(`/project/${currentProjectId}/auto-assignment-rules`, {
+        method: 'POST',
+        body: JSON.stringify({
+          categoryId: ruleCategorySelect.value ? Number(ruleCategorySelect.value) : null,
+          assignToUserId: hasUser ? selectedRuleUserId : null,
+          assignToGroupId: hasGroup ? Number(ruleGroupSelect.value) : null,
+          priorityOrder: Number(rulePriorityOrderInput.value) || 0
+        })
+      });
+      ruleUserSearch.value = '';
+      selectedRuleUserId = null;
+      ruleGroupSelect.value = '';
+      enhanceSelect(ruleGroupSelect);
+      rulePriorityOrderInput.value = '0';
+      showToast('admin.ruleCreated', false);
+      loadRules();
+    } catch (error) {
+      showToast('admin.ruleCreateError', true);
+    } finally {
+      addRuleButton.disabled = false;
+    }
+  });
+
+  // --- Proje seçimi ---
+
+  function onProjectChange() {
+    currentProjectId = psProjectSelect.value ? Number(psProjectSelect.value) : null;
+    if (!currentProjectId) {
+      psEmptyState.style.display = '';
+      psPanels.style.display = 'none';
+      return;
+    }
+    psEmptyState.style.display = 'none';
+    psPanels.style.display = '';
+    categoryNameInput.value = '';
+    categoryDescriptionInput.value = '';
+    ruleUserSearch.value = '';
+    selectedRuleUserId = null;
+    ruleGroupSelect.value = '';
+    enhanceSelect(ruleGroupSelect);
+    rulePriorityOrderInput.value = '0';
+    loadCategories();
+    loadRules();
+  }
+
+  psProjectSelect.addEventListener('change', onProjectChange);
+
+  async function loadInitialData() {
+    try {
+      const [projects, groups] = await Promise.all([
+        apiRequest('/project'),
+        apiRequest('/group')
+      ]);
+
+      projects.forEach((project) => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = project.name;
+        psProjectSelect.appendChild(option);
+      });
+      enhanceSelect(psProjectSelect);
+
+      allGroups = groups;
+      groups.forEach((group) => {
+        const option = document.createElement('option');
+        option.value = group.id;
+        option.textContent = group.name;
+        ruleGroupSelect.appendChild(option);
+      });
+      enhanceSelect(ruleGroupSelect);
+    } catch (error) {
+      // Proje/grup listesi yüklenemese de seçim kutuları boş kalır, kritik değil.
+    }
+  }
+
+  loadInitialData();
+}
+
+function renderSlaSection(section) {
+  section.innerHTML = `
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label for="slaProjectSelect" data-i18n="admin.slaProjectLabel"></label>
+        <select id="slaProjectSelect">
+          <option value="" data-i18n="admin.allProjects"></option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="slaCategorySelect" data-i18n="admin.slaCategoryLabel"></label>
+        <select id="slaCategorySelect" disabled>
+          <option value="" data-i18n="admin.allCategories"></option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="slaPrioritySelect" data-i18n="admin.slaPriorityLabel"></label>
+        <select id="slaPrioritySelect"></select>
+      </div>
+      <div class="filter-group">
+        <label for="slaResponseInput" data-i18n="admin.slaResponseLabel"></label>
+        <input type="number" min="1" id="slaResponseInput" class="table-edit-input" style="width: 100px;">
+      </div>
+      <div class="filter-group">
+        <label for="slaResolutionInput" data-i18n="admin.slaResolutionLabel"></label>
+        <input type="number" min="1" id="slaResolutionInput" class="table-edit-input" style="width: 100px;">
+      </div>
+      <button type="button" class="btn-primary" id="addSlaButton">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span data-i18n="admin.addSla"></span>
+      </button>
+    </div>
+    <div class="ticket-table-wrap table-static">
+      <table>
+        <thead>
+          <tr>
+            <th><span data-i18n="admin.colProject"></span></th>
+            <th><span data-i18n="admin.colCategory"></span></th>
+            <th><span data-i18n="admin.colPriority"></span></th>
+            <th class="col-center"><span data-i18n="admin.colResponseTime"></span></th>
+            <th class="col-center"><span data-i18n="admin.colResolutionTime"></span></th>
+            <th class="col-center"><span data-i18n="admin.colAction"></span></th>
+          </tr>
+        </thead>
+        <tbody id="slaTableBody">
+          <tr><td colspan="6" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.slaLoading'))}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="toast" id="slaToast" style="display: none;"></div>
+  `;
+  applyTranslations();
+
+  const slaTableBody = section.querySelector('#slaTableBody');
+  const slaProjectSelect = section.querySelector('#slaProjectSelect');
+  const slaCategorySelect = section.querySelector('#slaCategorySelect');
+  const slaPrioritySelect = section.querySelector('#slaPrioritySelect');
+  const slaResponseInput = section.querySelector('#slaResponseInput');
+  const slaResolutionInput = section.querySelector('#slaResolutionInput');
+  const addSlaButton = section.querySelector('#addSlaButton');
+  const slaToast = section.querySelector('#slaToast');
+
+  let allProjects = [];
+  // Kategoriler proje bazlı (nested route) olduğu için tek bir "tüm
+  // kategoriler" endpoint'i yok - listede kategori adı göstermek için
+  // ihtiyaç oldukça projeye göre önbelleğe alıyoruz.
+  const categoriesByProject = {};
+
+  function showToast(key, isError) {
+    slaToast.textContent = t(key);
+    slaToast.className = `toast ${isError ? 'error' : 'success'}`;
+    slaToast.style.display = 'block';
+    setTimeout(() => { slaToast.style.display = 'none'; }, 3000);
+  }
+
+  async function getCategoriesForProject(projectId) {
+    if (!projectId) return [];
+    if (!categoriesByProject[projectId]) {
+      try {
+        categoriesByProject[projectId] = await apiRequest(`/project/${projectId}/categories`);
+      } catch (error) {
+        categoriesByProject[projectId] = [];
+      }
+    }
+    return categoriesByProject[projectId];
+  }
+
+  async function populateFormCategorySelect(projectId) {
+    slaCategorySelect.innerHTML = `<option value="" data-i18n="admin.allCategories">${t('admin.allCategories')}</option>`;
+    if (!projectId) {
+      slaCategorySelect.disabled = true;
+      enhanceSelect(slaCategorySelect);
+      return;
+    }
+    slaCategorySelect.disabled = false;
+    const categories = await getCategoriesForProject(projectId);
+    categories.forEach((category) => {
+      const option = document.createElement('option');
+      option.value = category.id;
+      option.textContent = category.name;
+      slaCategorySelect.appendChild(option);
+    });
+    enhanceSelect(slaCategorySelect);
+  }
+
+  slaProjectSelect.addEventListener('change', () => {
+    populateFormCategorySelect(slaProjectSelect.value || null);
+  });
+
+  function enterEditMode(row, sla) {
+    const [, , , responseCell, resolutionCell, actionCell] = row.children;
+
+    const responseInput = document.createElement('input');
+    responseInput.type = 'number';
+    responseInput.min = '1';
+    responseInput.className = 'table-edit-input';
+    responseInput.value = sla.responseTimeMinutes;
+    responseCell.innerHTML = '';
+    responseCell.appendChild(responseInput);
+
+    const resolutionInput = document.createElement('input');
+    resolutionInput.type = 'number';
+    resolutionInput.min = '1';
+    resolutionInput.className = 'table-edit-input';
+    resolutionInput.value = sla.resolutionTimeMinutes;
+    resolutionCell.innerHTML = '';
+    resolutionCell.appendChild(resolutionInput);
+
+    actionCell.innerHTML = '';
+
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.className = 'btn-secondary';
+    saveButton.style.marginRight = '6px';
+    saveButton.textContent = t('admin.save');
+    saveButton.addEventListener('click', async () => {
+      const responseMinutes = Number(responseInput.value);
+      const resolutionMinutes = Number(resolutionInput.value);
+      if (!responseMinutes || !resolutionMinutes) return;
+      saveButton.disabled = true;
+      try {
+        await apiRequest(`/sla/${sla.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ responseTimeMinutes: responseMinutes, resolutionTimeMinutes: resolutionMinutes })
+        });
+        showToast('admin.slaUpdated', false);
+        loadSlas();
+      } catch (error) {
+        showToast('admin.slaUpdateError', true);
+        saveButton.disabled = false;
+      }
+    });
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'btn-secondary';
+    cancelButton.textContent = t('admin.cancel');
+    cancelButton.addEventListener('click', () => loadSlas());
+
+    actionCell.append(saveButton, cancelButton);
+  }
+
+  async function deleteSla(sla, button) {
+    if (!window.confirm(t('admin.confirmDeleteSla'))) {
+      return;
+    }
+    button.disabled = true;
+    try {
+      await apiRequest(`/sla/${sla.id}`, { method: 'DELETE' });
+      showToast('admin.slaDeleted', false);
+      loadSlas();
+    } catch (error) {
+      showToast('admin.slaDeleteError', true);
+      button.disabled = false;
+    }
+  }
+
+  async function renderRows(slas) {
+    slaTableBody.innerHTML = '';
+
+    if (slas.length === 0) {
+      slaTableBody.innerHTML = `
+        <tr><td colspan="6" style="padding: 0; border-bottom: none;">
+          <div class="state-box" style="border: none;">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M8 12h8"/>
+            </svg>
+            <span>${t('admin.slaEmpty')}</span>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
+    // Kategori adlarını göstermeden önce, listede geçen projelerin
+    // kategorilerini (henüz önbelleğe alınmamışsa) paralel çekiyoruz.
+    const projectIdsNeedingCategories = [...new Set(
+      slas.filter((sla) => sla.categoryId && sla.projectId).map((sla) => sla.projectId)
+    )];
+    await Promise.all(projectIdsNeedingCategories.map((projectId) => getCategoriesForProject(projectId)));
+
+    slas.forEach((sla) => {
+      const row = document.createElement('tr');
+
+      const projectCell = document.createElement('td');
+      const project = sla.projectId ? allProjects.find((p) => p.id === sla.projectId) : null;
+      projectCell.textContent = project ? project.name : t('admin.allProjects');
+
+      const categoryCell = document.createElement('td');
+      const categoryList = sla.projectId ? (categoriesByProject[sla.projectId] || []) : [];
+      const category = sla.categoryId ? categoryList.find((c) => c.id === sla.categoryId) : null;
+      categoryCell.textContent = sla.categoryId ? (category ? category.name : `#${sla.categoryId}`) : t('admin.allCategories');
+
+      const priorityCell = document.createElement('td');
+      priorityCell.textContent = sla.priorityName;
+
+      const responseCell = document.createElement('td');
+      responseCell.className = 'col-center';
+      responseCell.textContent = `${sla.responseTimeMinutes} ${t('admin.minutesUnit')}`;
+
+      const resolutionCell = document.createElement('td');
+      resolutionCell.className = 'col-center';
+      resolutionCell.textContent = `${sla.resolutionTimeMinutes} ${t('admin.minutesUnit')}`;
+
+      const actionCell = document.createElement('td');
+      actionCell.className = 'col-center';
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'btn-secondary';
+      editButton.style.marginRight = '6px';
+      editButton.textContent = t('admin.edit');
+      editButton.addEventListener('click', () => enterEditMode(row, sla));
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn-secondary';
+      deleteButton.textContent = t('admin.delete');
+      deleteButton.addEventListener('click', () => deleteSla(sla, deleteButton));
+      actionCell.append(editButton, deleteButton);
+
+      row.append(projectCell, categoryCell, priorityCell, responseCell, resolutionCell, actionCell);
+      slaTableBody.appendChild(row);
+    });
+  }
+
+  async function loadSlas() {
+    slaTableBody.innerHTML = `<tr><td colspan="6" style="padding: 0; border-bottom: none;">${pulseLoader(t('admin.slaLoading'))}</td></tr>`;
+    try {
+      const slas = await apiRequest('/sla');
+      await renderRows(slas);
+    } catch (error) {
+      slaTableBody.innerHTML = `
+        <tr><td colspan="6" style="padding: 0; border-bottom: none;">
+          <div class="state-box" style="border: none;">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>${t('admin.slaError')}</span>
+          </div>
+        </td></tr>`;
+    }
+  }
+
+  addSlaButton.addEventListener('click', async () => {
+    const priorityId = slaPrioritySelect.value;
+    const responseMinutes = Number(slaResponseInput.value);
+    const resolutionMinutes = Number(slaResolutionInput.value);
+    if (!priorityId || !responseMinutes || !resolutionMinutes) return;
+
+    addSlaButton.disabled = true;
+    try {
+      await apiRequest('/sla', {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: slaProjectSelect.value ? Number(slaProjectSelect.value) : null,
+          categoryId: slaCategorySelect.value ? Number(slaCategorySelect.value) : null,
+          priorityId: Number(priorityId),
+          responseTimeMinutes: responseMinutes,
+          resolutionTimeMinutes: resolutionMinutes
+        })
+      });
+      slaResponseInput.value = '';
+      slaResolutionInput.value = '';
+      showToast('admin.slaCreated', false);
+      loadSlas();
+    } catch (error) {
+      showToast('admin.slaCreateError', true);
+    } finally {
+      addSlaButton.disabled = false;
+    }
+  });
+
+  async function loadInitialData() {
+    try {
+      const [projects, priorities] = await Promise.all([
+        apiRequest('/project'),
+        apiRequest('/priority')
+      ]);
+
+      allProjects = projects;
+
+      projects.forEach((project) => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = project.name;
+        slaProjectSelect.appendChild(option);
+      });
+      enhanceSelect(slaProjectSelect);
+      enhanceSelect(slaCategorySelect);
+
+      priorities.forEach((priority) => {
+        const option = document.createElement('option');
+        option.value = priority.id;
+        option.textContent = priority.name;
+        slaPrioritySelect.appendChild(option);
+      });
+      enhanceSelect(slaPrioritySelect);
+    } catch (error) {
+      // Seçenekler yüklenemese de liste görüntülenmeye devam eder.
+    }
+  }
+
+  loadInitialData();
+  loadSlas();
 }
 
 function renderPermissionsSection(section) {
