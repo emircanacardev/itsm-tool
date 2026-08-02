@@ -10,9 +10,9 @@ const ACTION_BADGE_MAP = {
 };
 
 const AUDIT_PAGE_SIZE = 20;
-const PROJECT_PAGE_SIZE = 20;
-const USER_PAGE_SIZE = 20;
-const GROUP_PAGE_SIZE = 20;
+const PROJECT_PAGE_SIZE = 10;
+const USER_PAGE_SIZE = 10;
+const GROUP_PAGE_SIZE = 10;
 
 // Tablolardaki düzenle/sil/kaldır butonları için ortak ikonlar - metin yerine
 // sadece ikon + title tooltip kullanıyoruz, satırlar daha az kalabalık oluyor.
@@ -1670,11 +1670,11 @@ function renderSlaSection(section) {
       </div>
       <div class="filter-group">
         <label for="slaResponseInput" data-i18n="admin.slaResponseLabel"></label>
-        <input type="number" min="1" id="slaResponseInput" class="table-edit-input" style="width: 100px;">
+        <input type="number" min="1" id="slaResponseInput" class="table-edit-input" style="width: 100px;" placeholder="0">
       </div>
       <div class="filter-group">
         <label for="slaResolutionInput" data-i18n="admin.slaResolutionLabel"></label>
-        <input type="number" min="1" id="slaResolutionInput" class="table-edit-input" style="width: 100px;">
+        <input type="number" min="1" id="slaResolutionInput" class="table-edit-input" style="width: 100px;" placeholder="0">
       </div>
       <button type="button" class="btn-primary" id="addSlaButton">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;">
@@ -1682,6 +1682,18 @@ function renderSlaSection(section) {
         </svg>
         <span data-i18n="admin.addSla"></span>
       </button>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-group filter-group-search">
+        <label for="slaSearchInput" data-i18n="admin.searchLabel"></label>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.3-4.3"/>
+          </svg>
+          <input type="text" id="slaSearchInput" data-i18n-placeholder="admin.slaSearchPlaceholder">
+        </div>
+      </div>
     </div>
     <div class="ticket-table-wrap table-static">
       <table>
@@ -1707,6 +1719,7 @@ function renderSlaSection(section) {
   const slaResponseInput = section.querySelector('#slaResponseInput');
   const slaResolutionInput = section.querySelector('#slaResolutionInput');
   const addSlaButton = section.querySelector('#addSlaButton');
+  const slaSearchInput = section.querySelector('#slaSearchInput');
   const slaToast = section.querySelector('#slaToast');
 
   let allProjects = [];
@@ -1860,7 +1873,7 @@ function renderSlaSection(section) {
       return;
     }
 
-    // Kategori adlarını göstermeden (ve onlara göre sıralamadan) önce,
+    // Kategori adlarını göstermeden (ve onlara/aramaya göre sıralamadan) önce,
     // listede geçen projelerin kategorilerini (henüz önbelleğe alınmamışsa)
     // paralel çekiyoruz.
     const projectIdsNeedingCategories = [...new Set(
@@ -1868,8 +1881,34 @@ function renderSlaSection(section) {
     )];
     await Promise.all(projectIdsNeedingCategories.map((projectId) => getCategoriesForProject(projectId)));
 
+    // SLA listesi backend'de sayfalanmadığı için arama da istemci tarafında -
+    // proje/kategori/öncelik adı (tabloda göründüğü gibi) eşleşirse gösteriliyor.
+    const query = slaSearchInput.value.trim().toLowerCase();
+    const filtered = query
+      ? currentSlas.filter((sla) => {
+          const projectName = SLA_SORT_ACCESSORS.project(sla).toLowerCase();
+          const categoryName = SLA_SORT_ACCESSORS.category(sla).toLowerCase();
+          const priorityName = (sla.priorityName || '').toLowerCase();
+          return projectName.includes(query) || categoryName.includes(query) || priorityName.includes(query);
+        })
+      : currentSlas;
+
+    if (filtered.length === 0) {
+      slaTableBody.innerHTML = `
+        <tr><td colspan="6" style="padding: 0; border-bottom: none;">
+          <div class="state-box" style="border: none;">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M8 12h8"/>
+            </svg>
+            <span>${t('admin.slaEmpty')}</span>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
     const accessor = SLA_SORT_ACCESSORS[sortState.sortField] || SLA_SORT_ACCESSORS.project;
-    const slas = sortItemsBy(currentSlas, accessor, sortState.sortDescending);
+    const slas = sortItemsBy(filtered, accessor, sortState.sortDescending);
 
     slas.forEach((sla) => {
       const row = document.createElement('tr');
@@ -1995,6 +2034,7 @@ function renderSlaSection(section) {
   }
 
   wireSortableHeaders(section, sortState, () => renderRows());
+  slaSearchInput.addEventListener('input', debounce(() => renderRows(), 300));
 
   loadInitialData();
   loadSlas();
@@ -2010,7 +2050,7 @@ function renderPermissionsSection(section) {
   const columnsHtml = PERMISSION_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
-      <div class="filter-group" style="min-width: 280px;">
+      <div class="filter-group filter-group-search">
         <label for="permissionUserSearch" data-i18n="admin.selectUserLabel"></label>
         <div style="position: relative;">
           <div class="search-box">
@@ -2023,6 +2063,13 @@ function renderPermissionsSection(section) {
           <div class="custom-select-menu" id="permissionUserResults"></div>
         </div>
       </div>
+    </div>
+    <div class="state-box" id="permissionEmptyState">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="7" r="4"/>
+        <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+      </svg>
+      <span data-i18n="admin.selectUserHint"></span>
     </div>
     <div id="permissionUserPanel" style="display: none;">
       <div class="ticket-table-wrap table-static">
@@ -2062,6 +2109,7 @@ function renderPermissionsSection(section) {
   const userSearchInput = section.querySelector('#permissionUserSearch');
   const userResultsPanel = section.querySelector('#permissionUserResults');
   const userPanel = section.querySelector('#permissionUserPanel');
+  const permissionEmptyState = section.querySelector('#permissionEmptyState');
   const permissionTableBody = section.querySelector('#permissionTableBody');
   const grantPermissionSelect = section.querySelector('#grantPermissionSelect');
   const grantProjectSelect = section.querySelector('#grantProjectSelect');
@@ -2204,6 +2252,7 @@ function renderPermissionsSection(section) {
     userSearchInput.value = `${user.fullName} (${user.email})`;
     userResultsPanel.style.display = 'none';
     userResultsPanel.innerHTML = '';
+    permissionEmptyState.style.display = 'none';
     userPanel.style.display = '';
     loadUserPermissions();
   }
@@ -2227,6 +2276,7 @@ function renderPermissionsSection(section) {
   userSearchInput.addEventListener('input', () => {
     currentUserId = null;
     userPanel.style.display = 'none';
+    permissionEmptyState.style.display = '';
     debouncedUserSearch();
   });
 
@@ -2306,9 +2356,15 @@ function renderAuditLogSection(section) {
   const columnsHtml = AUDIT_SORTABLE_COLUMNS.map(sortableColumnHtml).join('');
   section.innerHTML = `
     <div class="filter-bar">
-      <div class="filter-group">
+      <div class="filter-group filter-group-search">
         <label for="auditFilterEntity" data-i18n="admin.auditSearchLabel"></label>
-        <input type="text" id="auditFilterEntity" data-i18n-placeholder="admin.auditSearchPlaceholder">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.3-4.3"/>
+          </svg>
+          <input type="text" id="auditFilterEntity" data-i18n-placeholder="admin.auditSearchPlaceholder">
+        </div>
       </div>
       <div class="filter-group">
         <label for="auditFilterAction" data-i18n="admin.filterAction"></label>

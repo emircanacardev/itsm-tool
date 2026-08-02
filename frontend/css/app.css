@@ -507,6 +507,16 @@ input[type="number"]::-webkit-inner-spin-button {
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
+/* Admin panelindeki tablolar sayfa başına en fazla 10-20 satır gösteriyor
+   (bkz. admin.js PAGE_SIZE sabitleri), bu yüzden Tickets sayfasındaki gibi
+   ayrı bir iç scroll'a gerek yok - uzun tablolarda sayfanın kendi scroll'u
+   yeterli. Sadece admin panelinde override ediyoruz ki Tickets sayfasındaki
+   davranış değişmesin. */
+.admin-view .ticket-table-wrap {
+  overflow: visible;
+  max-height: none;
+}
+
 .col-right {
   text-align: right;
 }
