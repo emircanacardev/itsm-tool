@@ -26,9 +26,9 @@ public class GroupService
         return MapToResponse(group);
     }
 
-    public async Task<List<GroupResponse>> GetAllGroupsAsync()
+    public async Task<List<GroupResponse>> GetAllGroupsAsync(string? search = null)
     {
-        var groups = await _groupRepository.GetAllAsync();
+        var groups = await _groupRepository.GetAllAsync(search);
         return groups.Select(MapToResponse).ToList();
     }
 

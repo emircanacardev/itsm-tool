@@ -309,6 +309,155 @@ function renderUsersSection(section) {
     setTimeout(() => { userToast.style.display = 'none'; }, 3000);
   }
 
+  // Backend'de PUT /user/{id}/group zaten vardı ama admin panelinde kullanıcının
+  // grubunu değiştirecek bir UI yoktu. İlk sürüm tüm grupları önceden çekip
+  // her satıra bir <select> koyuyordu - grup sayısı binlere çıkınca hem ağ
+  // yükü hem de her satırda binlerce option DOM node'u ölçeklenmiyor. Bunun
+  // yerine Yetkilendirme/Otomatik Atama sekmelerindeki debounce'lu arama
+  // kutusu deseniyle aynı şekilde, sadece yazılan harfe uyan (sunucu
+  // tarafında en fazla 20 sonuçla sınırlı) grupları getiren bir arama kutusu
+  // kullanıyoruz - tam liste hiç istemciye inmiyor.
+  function createGroupCell(user) {
+    const cell = document.createElement('td');
+
+    // Varsayılan görünüm: düz metin + küçük bir düzenle butonu (diğer admin
+    // tablolarındaki satır-içi düzenleme deseniyle aynı). Arama kutusu ancak
+    // düzenle'ye basılınca beliriyor - böylece hücre normalde bir arama
+    // kutusu gibi durmuyor.
+    const displayWrap = document.createElement('div');
+    displayWrap.className = 'group-display-wrap';
+    displayWrap.style.display = 'flex';
+    displayWrap.style.alignItems = 'center';
+    displayWrap.style.gap = '6px';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = user.groupName || '';
+
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.className = 'btn-secondary btn-icon-only';
+    editButton.title = t('admin.edit');
+    editButton.innerHTML = EDIT_ICON;
+    editButton.style.width = '24px';
+    editButton.style.height = '24px';
+    editButton.style.padding = '0';
+    editButton.querySelector('svg').style.width = '12px';
+    editButton.querySelector('svg').style.height = '12px';
+
+    displayWrap.append(nameSpan, editButton);
+
+    const pickerWrap = document.createElement('div');
+    pickerWrap.className = 'group-picker-wrap';
+    pickerWrap.style.position = 'relative';
+    pickerWrap.style.minWidth = '160px';
+    pickerWrap.style.display = 'none';
+
+    const searchBox = document.createElement('div');
+    searchBox.className = 'search-box';
+    searchBox.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="M21 21l-4.3-4.3"/>
+      </svg>
+    `;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.autocomplete = 'off';
+    searchBox.appendChild(input);
+
+    const resultsPanel = document.createElement('div');
+    resultsPanel.className = 'custom-select-menu';
+
+    pickerWrap.append(searchBox, resultsPanel);
+    cell.append(displayWrap, pickerWrap);
+
+    function closeResults() {
+      resultsPanel.style.display = 'none';
+      resultsPanel.innerHTML = '';
+    }
+
+    function showDisplay() {
+      closeResults();
+      pickerWrap.style.display = 'none';
+      displayWrap.style.display = '';
+    }
+
+    function showPicker() {
+      displayWrap.style.display = 'none';
+      pickerWrap.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+
+    editButton.addEventListener('click', showPicker);
+
+    async function selectGroup(group) {
+      if (group.id === user.groupId) {
+        showDisplay();
+        return;
+      }
+      input.disabled = true;
+      try {
+        await apiRequest(`/user/${user.id}/group`, {
+          method: 'PUT',
+          body: JSON.stringify({ groupId: group.id })
+        });
+        user.groupId = group.id;
+        user.groupName = group.name;
+        nameSpan.textContent = group.name;
+        showToast('admin.userGroupUpdated', false);
+        showDisplay();
+      } catch (error) {
+        showToast('admin.userGroupUpdateError', true);
+      } finally {
+        input.disabled = false;
+      }
+    }
+
+    function renderResults(groups) {
+      resultsPanel.innerHTML = '';
+      if (groups.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'custom-select-option';
+        empty.style.cursor = 'default';
+        empty.style.color = 'var(--color-text-muted)';
+        empty.textContent = t('admin.noGroupsFound');
+        resultsPanel.appendChild(empty);
+      } else {
+        groups.forEach((group) => {
+          const item = document.createElement('div');
+          item.className = 'custom-select-option';
+          item.textContent = group.name;
+          item.addEventListener('click', () => selectGroup(group));
+          resultsPanel.appendChild(item);
+        });
+      }
+      resultsPanel.style.display = 'block';
+    }
+
+    const debouncedGroupSearch = debounce(async () => {
+      const query = input.value.trim();
+      if (query.length < 2) {
+        closeResults();
+        return;
+      }
+      try {
+        const groups = await apiRequest(`/group?search=${encodeURIComponent(query)}`);
+        renderResults(groups);
+      } catch (error) {
+        closeResults();
+      }
+    }, 300);
+
+    input.addEventListener('input', debouncedGroupSearch);
+
+    // Aramayı iptal edip görünüme geri dön - dışarı tıklama, aşağıdaki
+    // section'a bağlı delegasyon listener'ı üzerinden yönetiliyor.
+    cell.cancelEdit = showDisplay;
+
+    return cell;
+  }
+
   async function toggleUserStatus(user, button) {
     const nextActive = !user.isActive;
     const confirmKey = nextActive ? 'admin.confirmActivate' : 'admin.confirmDeactivate';
@@ -356,8 +505,7 @@ function renderUsersSection(section) {
       const emailCell = document.createElement('td');
       emailCell.textContent = user.email;
 
-      const groupCell = document.createElement('td');
-      groupCell.textContent = user.groupName;
+      const groupCell = createGroupCell(user);
 
       const statusCell = document.createElement('td');
       statusCell.appendChild(statusBadge(user.isActive));
@@ -451,6 +599,19 @@ function renderUsersSection(section) {
   nextPageButton.addEventListener('click', () => {
     currentPage += 1;
     loadUsers();
+  });
+
+  // Her satırdaki grup arama kutusunun kendi document click listener'ı
+  // olması, tablo her yeniden çizildiğinde (arama/sıralama/sayfalama)
+  // eskilerinin birikmesine yol açar - bunun yerine tek bir delegasyon
+  // listener'ı ile açık duran düzenleme kutularını dışarı tıklamada
+  // görünüm moduna geri döndürüyoruz.
+  section.addEventListener('click', (event) => {
+    userTableBody.querySelectorAll('td').forEach((cell) => {
+      if (typeof cell.cancelEdit === 'function' && !cell.contains(event.target)) {
+        cell.cancelEdit();
+      }
+    });
   });
 
   loadUsers();

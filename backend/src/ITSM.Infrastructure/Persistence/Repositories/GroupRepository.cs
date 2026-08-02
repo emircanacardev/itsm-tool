@@ -24,9 +24,22 @@ public class GroupRepository : IGroupRepository
         return await _context.Groups.FirstOrDefaultAsync(g => g.Name == name);
     }
 
-    public async Task<List<Group>> GetAllAsync()
+    public async Task<List<Group>> GetAllAsync(string? search = null)
     {
-        return await _context.Groups.ToListAsync();
+        var query = _context.Groups.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            // Grup sayısı büyüdükçe (ör. binlerce) tüm listeyi çekip
+            // arayüzde filtrelemek ölçeklenmez - arama terimi verilince
+            // sunucu tarafında filtreleyip sonucu makul bir sayıyla
+            // sınırlıyoruz (kullanıcı satırındaki grup seçme kutusu gibi
+            // typeahead senaryoları için, bkz. UserRepository.GetAllAsync).
+            query = query.Where(g => EF.Functions.ILike(g.Name, $"%{search}%"));
+            return await query.OrderBy(g => g.Name).Take(20).ToListAsync();
+        }
+
+        return await query.OrderBy(g => g.Name).ToListAsync();
     }
 
     public async Task<(List<Group> Items, int TotalCount)> GetAllPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)

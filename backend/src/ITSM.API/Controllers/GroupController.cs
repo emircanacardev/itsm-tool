@@ -40,7 +40,7 @@ public class GroupController : ControllerBase
             return Ok(pagedResult);
         }
 
-        var result = await _groupService.GetAllGroupsAsync();
+        var result = await _groupService.GetAllGroupsAsync(search);
         return Ok(result);
     }
 
