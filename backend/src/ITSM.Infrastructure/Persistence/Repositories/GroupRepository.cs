@@ -24,9 +24,48 @@ public class GroupRepository : IGroupRepository
         return await _context.Groups.FirstOrDefaultAsync(g => g.Name == name);
     }
 
-    public async Task<List<Group>> GetAllAsync()
+    public async Task<List<Group>> GetAllAsync(string? search = null)
     {
-        return await _context.Groups.ToListAsync();
+        var query = _context.Groups.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            // Grup sayısı büyüdükçe (ör. binlerce) tüm listeyi çekip
+            // arayüzde filtrelemek ölçeklenmez - arama terimi verilince
+            // sunucu tarafında filtreleyip sonucu makul bir sayıyla
+            // sınırlıyoruz (kullanıcı satırındaki grup seçme kutusu gibi
+            // typeahead senaryoları için, bkz. UserRepository.GetAllAsync).
+            query = query.Where(g => EF.Functions.ILike(g.Name, $"%{search}%"));
+            return await query.OrderBy(g => g.Name).Take(20).ToListAsync();
+        }
+
+        return await query.OrderBy(g => g.Name).ToListAsync();
+    }
+
+    public async Task<(List<Group> Items, int TotalCount)> GetAllPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)
+    {
+        var query = _context.Groups.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(g =>
+                EF.Functions.ILike(g.Name, $"%{search}%") ||
+                (g.Description != null && EF.Functions.ILike(g.Description, $"%{search}%")));
+        }
+
+        // Gruplar tablosundaki sütun başlıklarına tıklayarak sıralama -
+        // bkz. TicketRepository.GetAllAsync'teki aynı sortBy switch pattern'i.
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "description" => sortDescending ? query.OrderByDescending(g => g.Description) : query.OrderBy(g => g.Description),
+            "createdat" => sortDescending ? query.OrderByDescending(g => g.CreatedAt) : query.OrderBy(g => g.CreatedAt),
+            _ => sortDescending ? query.OrderByDescending(g => g.Name) : query.OrderBy(g => g.Name)
+        };
+
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return (items, totalCount);
     }
 
     public async Task AddAsync(Group group)

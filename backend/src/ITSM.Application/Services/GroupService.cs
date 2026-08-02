@@ -26,10 +26,22 @@ public class GroupService
         return MapToResponse(group);
     }
 
-    public async Task<List<GroupResponse>> GetAllGroupsAsync()
+    public async Task<List<GroupResponse>> GetAllGroupsAsync(string? search = null)
     {
-        var groups = await _groupRepository.GetAllAsync();
+        var groups = await _groupRepository.GetAllAsync(search);
         return groups.Select(MapToResponse).ToList();
+    }
+
+    public async Task<PagedResult<GroupResponse>> GetAllGroupsPagedAsync(string? search, string? sortBy, bool sortDescending, int page, int pageSize)
+    {
+        var (groups, totalCount) = await _groupRepository.GetAllPagedAsync(search, sortBy, sortDescending, page, pageSize);
+        return new PagedResult<GroupResponse>
+        {
+            Items = groups.Select(MapToResponse).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<GroupResponse?> GetGroupByIdAsync(long id)

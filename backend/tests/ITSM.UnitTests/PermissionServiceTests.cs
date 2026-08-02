@@ -9,11 +9,12 @@ namespace ITSM.UnitTests;
 public class PermissionServiceTests
 {
     private readonly Mock<IUserPermissionRepository> _userPermissionRepository = new();
+    private readonly Mock<IPermissionRepository> _permissionRepository = new();
     private readonly PermissionService _service;
 
     public PermissionServiceTests()
     {
-        _service = new PermissionService(_userPermissionRepository.Object);
+        _service = new PermissionService(_userPermissionRepository.Object, _permissionRepository.Object);
     }
 
     [Fact]
@@ -71,5 +72,56 @@ public class PermissionServiceTests
         var result = await _service.GetUserPermissionsAsync(42);
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetAllPermissionsAsync_MapsCatalogEntitiesToResponseDtos()
+    {
+        _permissionRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Permission>
+        {
+            new() { Id = 1, Code = "TICKET_CREATE", Name = "Talep Oluştur", Description = "Yeni talep açabilir" }
+        });
+
+        var result = await _service.GetAllPermissionsAsync();
+
+        Assert.Single(result);
+        Assert.Equal("TICKET_CREATE", result[0].Code);
+        Assert.Equal("Talep Oluştur", result[0].Name);
+        Assert.Equal("Yeni talep açabilir", result[0].Description);
+    }
+
+    [Fact]
+    public async Task RevokeAsync_WhenUserPermissionBelongsToUser_RemovesItAndReturnsTrue()
+    {
+        var userPermission = new UserPermission { Id = 5, UserId = 42, PermissionId = 7 };
+        _userPermissionRepository.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(userPermission);
+
+        var result = await _service.RevokeAsync(userId: 42, id: 5);
+
+        Assert.True(result);
+        _userPermissionRepository.Verify(r => r.RevokeAsync(userPermission), Times.Once);
+    }
+
+    [Fact]
+    public async Task RevokeAsync_WhenUserPermissionNotFound_ReturnsFalse()
+    {
+        _userPermissionRepository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserPermission?)null);
+
+        var result = await _service.RevokeAsync(userId: 42, id: 99);
+
+        Assert.False(result);
+        _userPermissionRepository.Verify(r => r.RevokeAsync(It.IsAny<UserPermission>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RevokeAsync_WhenUserPermissionBelongsToDifferentUser_ReturnsFalse()
+    {
+        var userPermission = new UserPermission { Id = 5, UserId = 999, PermissionId = 7 };
+        _userPermissionRepository.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(userPermission);
+
+        var result = await _service.RevokeAsync(userId: 42, id: 5);
+
+        Assert.False(result);
+        _userPermissionRepository.Verify(r => r.RevokeAsync(It.IsAny<UserPermission>()), Times.Never);
     }
 }

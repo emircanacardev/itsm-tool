@@ -33,6 +33,19 @@ public class SlaRepository : ISlaRepository
         _context.Slas.Add(sla);
         await _context.SaveChangesAsync();
     }
+
+    public async Task UpdateAsync(Sla sla)
+    {
+        _context.Slas.Update(sla);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Sla sla)
+    {
+        _context.Slas.Remove(sla);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<Sla?> GetByProjectCategoryPriorityAsync(long? projectId, long? categoryId, long priorityId)
     {
         return await _context.Slas.FirstOrDefaultAsync(s =>

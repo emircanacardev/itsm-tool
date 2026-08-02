@@ -39,6 +39,14 @@ public class TicketRepository : ITicketRepository
         int page,
         int pageSize)
     {
+        // Npgsql, 'timestamp with time zone' kolonuna sadece Offset=0 (UTC) olan
+        // DateTimeOffset değerleri yazılmasına izin veriyor. Query string'den
+        // gelen tarih değerleri (ör. "2026-08-02") .NET tarafından sunucunun
+        // yerel saat dilimiyle (ör. +03:00) parse ediliyor - ToUniversalTime()
+        // aynı ânı UTC karşılığına çevirip Npgsql'in kabul ettiği forma sokuyor.
+        fromDate = fromDate?.ToUniversalTime();
+        toDate = toDate?.ToUniversalTime();
+
         var query = _context.Tickets
             .Include(t => t.Status)
             .Include(t => t.Priority)
@@ -147,5 +155,10 @@ public class TicketRepository : ITicketRepository
                 t.AssignedTo == u.Id && t.StatusId != 40 && t.StatusId != 50))
             .Select(u => (long?)u.Id)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<bool> ExistsByCategoryIdAsync(long categoryId)
+    {
+        return await _context.Tickets.AnyAsync(t => t.CategoryId == categoryId);
     }
 }

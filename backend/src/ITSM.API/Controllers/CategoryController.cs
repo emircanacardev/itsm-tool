@@ -58,4 +58,17 @@ public class CategoryController : ControllerBase
         }
         return NoContent();
     }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "ADMIN_MANAGE")]
+    public async Task<IActionResult> DeleteCategory(long projectId, long id)
+    {
+        var result = await _categoryService.DeleteCategoryAsync(projectId, id);
+        return result switch
+        {
+            DeleteCategoryResult.NotFound => NotFound(),
+            DeleteCategoryResult.InUse => Conflict("Bu kategoriye bağlı talepler var, önce onları taşıyın veya silin."),
+            _ => NoContent()
+        };
+    }
 }

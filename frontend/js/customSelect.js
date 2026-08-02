@@ -75,7 +75,7 @@ export function enhanceSelect(nativeSelect) {
     menu.className = 'custom-select-menu';
 
     wrapper.append(trigger, menu);
-    nativeSelect.classList.add('custom-select-native');
+    nativeSelect.classList.add('sr-only-native');
     nativeSelect.tabIndex = -1;
     nativeSelect.insertAdjacentElement('afterend', wrapper);
 

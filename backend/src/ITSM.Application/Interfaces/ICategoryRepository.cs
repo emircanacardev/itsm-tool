@@ -8,4 +8,5 @@ public interface ICategoryRepository
     Task<List<Category>> GetAllByProjectIdAsync(long projectId);
     Task AddAsync(Category category);
     Task UpdateAsync(Category category);
+    Task DeleteAsync(Category category);
 }
