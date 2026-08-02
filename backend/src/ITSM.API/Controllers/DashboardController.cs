@@ -6,7 +6,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "ADMIN_MANAGE")]
+[Authorize]
 public class DashboardController : ControllerBase
 {
     private readonly DashboardService _dashboardService;
@@ -16,10 +16,17 @@ public class DashboardController : ControllerBase
         _dashboardService = dashboardService;
     }
 
+    // Dashboard artık herkese açık - ADMIN_MANAGE yetkisi olmayan kullanıcılar
+    // için servis kendi oluşturduğu/atandığı/üyesi olduğu proje ticket'larıyla
+    // sınırlı bir özet döner (bkz. TicketService.GetAllTicketsAsync'teki aynı
+    // görünürlük kuralı).
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummary()
     {
-        var result = await _dashboardService.GetSummaryAsync();
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userId = long.Parse(userIdClaim!);
+
+        var result = await _dashboardService.GetSummaryAsync(userId);
         return Ok(result);
     }
 }
