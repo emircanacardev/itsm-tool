@@ -156,4 +156,9 @@ public class TicketRepository : ITicketRepository
             .Select(u => (long?)u.Id)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<bool> ExistsByCategoryIdAsync(long categoryId)
+    {
+        return await _context.Tickets.AnyAsync(t => t.CategoryId == categoryId);
+    }
 }

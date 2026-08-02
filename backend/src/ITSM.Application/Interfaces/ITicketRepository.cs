@@ -23,4 +23,5 @@ public interface ITicketRepository
     Task AssignAsync(Ticket ticket, TicketAssignment assignment);
     Task<List<Ticket>> GetActiveTicketsWithSlaAsync();
     Task<long?> GetLeastLoadedUserInGroupAsync(long groupId);
+    Task<bool> ExistsByCategoryIdAsync(long categoryId);
 }

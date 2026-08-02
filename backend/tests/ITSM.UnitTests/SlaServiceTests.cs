@@ -119,6 +119,67 @@ public class SlaServiceTests
     }
 
     [Fact]
+    public async Task UpdateSlaAsync_WhenSlaNotFound_ReturnsFalse()
+    {
+        _slaRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((Sla?)null);
+
+        var result = await _service.UpdateSlaAsync(1, new UpdateSlaRequest { ResponseTimeMinutes = 10, ResolutionTimeMinutes = 60 });
+
+        Assert.False(result);
+        _slaRepository.Verify(r => r.UpdateAsync(It.IsAny<Sla>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateSlaAsync_WhenSlaFound_UpdatesOnlyDurationFieldsAndReturnsTrue()
+    {
+        var sla = new Sla
+        {
+            Id = 1,
+            ProjectId = 4,
+            CategoryId = 2,
+            PriorityId = 3,
+            ResponseTimeMinutes = 30,
+            ResolutionTimeMinutes = 240,
+            Priority = new Priority { Id = 3, Name = "Kritik" }
+        };
+        _slaRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(sla);
+
+        var result = await _service.UpdateSlaAsync(1, new UpdateSlaRequest { ResponseTimeMinutes = 15, ResolutionTimeMinutes = 120 });
+
+        Assert.True(result);
+        Assert.Equal(15, sla.ResponseTimeMinutes);
+        Assert.Equal(120, sla.ResolutionTimeMinutes);
+        // Kapsam (proje/kategori/öncelik) update ile değişmiyor - kimlik gibi sabit.
+        Assert.Equal(4, sla.ProjectId);
+        Assert.Equal(2, sla.CategoryId);
+        Assert.Equal(3, sla.PriorityId);
+        _slaRepository.Verify(r => r.UpdateAsync(sla), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteSlaAsync_WhenSlaNotFound_ReturnsFalse()
+    {
+        _slaRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((Sla?)null);
+
+        var result = await _service.DeleteSlaAsync(1);
+
+        Assert.False(result);
+        _slaRepository.Verify(r => r.DeleteAsync(It.IsAny<Sla>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteSlaAsync_WhenSlaFound_DeletesAndReturnsTrue()
+    {
+        var sla = new Sla { Id = 1, PriorityId = 1, ResponseTimeMinutes = 30, ResolutionTimeMinutes = 120, Priority = new Priority { Id = 1, Name = "Düşük" } };
+        _slaRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(sla);
+
+        var result = await _service.DeleteSlaAsync(1);
+
+        Assert.True(result);
+        _slaRepository.Verify(r => r.DeleteAsync(sla), Times.Once);
+    }
+
+    [Fact]
     public async Task GetAllSlasAsync_ReturnsMappedListForEachSla()
     {
         var slas = new List<Sla>

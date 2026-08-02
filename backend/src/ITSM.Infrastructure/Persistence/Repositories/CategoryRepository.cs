@@ -37,4 +37,10 @@ public class CategoryRepository : ICategoryRepository
         _context.Categories.Update(category);
         await _context.SaveChangesAsync();
     }
+
+    public async Task DeleteAsync(Category category)
+    {
+        _context.Categories.Remove(category);
+        await _context.SaveChangesAsync();
+    }
 }

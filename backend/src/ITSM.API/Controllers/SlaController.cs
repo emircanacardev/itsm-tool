@@ -46,4 +46,28 @@ public class SlaController : ControllerBase
         }
         return Ok(result);
     }
+
+    [HttpPut("{id}")]
+    [Authorize(Policy = "ADMIN_MANAGE")]
+    public async Task<IActionResult> UpdateSla(long id, UpdateSlaRequest request)
+    {
+        var success = await _slaService.UpdateSlaAsync(id, request);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "ADMIN_MANAGE")]
+    public async Task<IActionResult> DeleteSla(long id)
+    {
+        var success = await _slaService.DeleteSlaAsync(id);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
 }
