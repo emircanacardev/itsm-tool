@@ -500,36 +500,21 @@ input[type="number"]::-webkit-inner-spin-button {
   border-color: var(--color-danger-hover);
 }
 
+/* Tablo kendi içinde DİKEY kaydırılmaz (tasarım dili §1): sayfa başına satır
+   sayısı zaten sabit, sayfanın kendi scroll'u yeterli. İç scroll ayrıca
+   sayfayı iki ayrı kaydırma alanına bölüp tekerleğin hangisini süreceğini
+   belirsizleştiriyordu.
+
+   Yatay kaydırma ise kalıyor: dar ekranda çok kolonlu tablolar (yönetim
+   paneli, proje detayı) hiçbir şekilde sığmıyor ve sayfanın tamamının yana
+   kayması §10'a aykırı olurdu. Taşma tablonun kendi içinde kalıyor. */
 .ticket-table-wrap {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  overflow: auto;
-  max-height: calc(100vh - 320px);
+  overflow-x: auto;
   transition: background-color var(--transition-base), border-color var(--transition-base);
-}
-
-/* Admin panelindeki tablolar sayfa başına en fazla 10-20 satır gösteriyor
-   (bkz. admin.js PAGE_SIZE sabitleri), bu yüzden Tickets sayfasındaki gibi
-   ayrı bir iç scroll'a gerek yok - uzun tablolarda sayfanın kendi scroll'u
-   yeterli. Sadece admin panelinde override ediyoruz ki Tickets sayfasındaki
-   davranış değişmesin. */
-.admin-view .ticket-table-wrap,
-.project-detail-view .ticket-table-wrap {
-  overflow: visible;
-  max-height: none;
-}
-
-/* Dar ekranda çok kolonlu tablolar (yönetim paneli, proje detayı) hiçbir
-   şekilde sığmıyor. Yukarıdaki "iç scroll yok" kuralı masaüstü içindi;
-   burada tablonun kendi içinde yatay kaydırılmasına izin veriyoruz ki
-   sayfanın tamamı yana kaymasın (tasarım dili §10). Dikey scroll yine yok. */
-@media (max-width: 900px) {
-  .admin-view .ticket-table-wrap,
-  .project-detail-view .ticket-table-wrap {
-    overflow-x: auto;
-  }
 }
 
 .col-right {
@@ -564,6 +549,34 @@ input[type="number"]::-webkit-inner-spin-button {
   flex-shrink: 0;
 }
 
+/* Kullanıcı satırındaki grup değiştirme kutusu. Hücre konumlanma bağlamı
+   oluyor, kutu da onun üstünde mutlak duruyor: satır yüksekliği düzenleme
+   açılınca değişmiyor ve sonuç listesi tablo satırlarının üstüne binebiliyor
+   (aksi halde tablo hücresi tarafından kırpılırdı). */
+.group-cell {
+  position: relative;
+}
+
+.group-picker-wrap {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: var(--space-4);
+  right: var(--space-4);
+  z-index: 5;
+}
+
+/* Proje Ayarları'nda düzenlenen projenin adı. Sekmenin içinde proje
+   değiştirilemediği için (bkz. admin.js) hangi projede olunduğunu tek
+   söyleyen şey bu başlık. */
+.ps-project-heading {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-4);
+}
+
 .admin-tab {
   background: none;
   border: none;
@@ -591,10 +604,11 @@ table {
   border-collapse: collapse;
 }
 
+/* Başlık satırı bir zamanlar sticky idi; anlamı vardı, çünkü tablo kendi
+   içinde dikey kayıyordu. İç scroll kalkınca (bkz. .ticket-table-wrap)
+   yapışma referansı sayfa oluyor ve başlıklar, üstlerindeki topbar yukarı
+   kayıp gittikten sonra ekranın tepesinde havada asılı kalıyordu. */
 thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   text-align: left;
   font-size: 11px;
   font-weight: var(--weight-bold);
@@ -883,12 +897,14 @@ tbody tr:hover .row-chevron {
   gap: 6px;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  color: var(--color-text);
+  /* Sayfadaki diğer butonlar mor; geri linki nötr kaldığı için tıklanabilir
+     bir öğe olduğu yeterince belli olmuyordu. */
+  color: var(--color-accent);
   text-decoration: none;
   margin-bottom: var(--space-4);
   cursor: pointer;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-accent-bg);
+  border: 1px solid var(--color-accent);
   padding: 7px var(--space-3);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
@@ -901,10 +917,12 @@ tbody tr:hover .row-chevron {
   height: 15px;
 }
 
+/* Zemin zaten accent-bg olduğu için hover'da renk değişimi yetmiyor;
+   dolu mora geçip metni beyaza çeviriyoruz. */
 .back-link:hover {
-  color: var(--color-accent);
+  color: #FFFFFF;
   border-color: var(--color-accent);
-  background: var(--color-accent-bg);
+  background: var(--color-accent);
 }
 
 .detail-grid {
@@ -943,10 +961,24 @@ tbody tr:hover .row-chevron {
   margin-top: 0;
 }
 
+/* Etiket üstte, rakam altta ve altçizgi her kartta aynı hizada: eskiden
+   kartlar yalnızca içeriklerine göre diziliyordu, etiket iki satıra taşan
+   kartın rakamı komşularından aşağıda kalıyordu. margin-top:auto altçizgiyi
+   kartın dibine sabitliyor. */
 .kpi-tile {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.kpi-tile .kpi-underline {
+  margin-top: auto;
+}
+
+/* Kritik ve SLA riski sıfırdan büyükken kendi rengini alıyor; sıfırken
+   diğer kartlardan ayrışmıyor (bkz. dashboard.js kpiCard). */
+.kpi-tile.is-alerting .kpi-value {
+  color: var(--kpi-color);
 }
 
 .kpi-label {
@@ -970,6 +1002,7 @@ tbody tr:hover .row-chevron {
   height: 3px;
   border-radius: 999px;
   margin-top: var(--space-1);
+  background: var(--kpi-color, var(--color-accent));
 }
 
 .dashboard-chart-grid {
@@ -1003,7 +1036,7 @@ tbody tr:hover .row-chevron {
 
 .bar-row {
   display: grid;
-  grid-template-columns: 100px 1fr 32px;
+  grid-template-columns: 100px 1fr 32px 40px;
   align-items: center;
   gap: var(--space-3);
 }
@@ -1033,6 +1066,15 @@ tbody tr:hover .row-chevron {
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   text-align: right;
+}
+
+/* Sayının yanındaki pay oranı. Sayıdan daha soluk: asıl bilgi adet, oran
+   onu bağlama oturtan ikincil bilgi. */
+.bar-percent {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .dashboard-recent-card {
@@ -1107,10 +1149,19 @@ tbody tr:hover .row-chevron {
   margin-bottom: var(--space-4);
 }
 
+/* Talep listesindeki .ticket-id rozetiyle aynı görsel dil: kaydın kısa
+   teknik kimliği düz metin yerine gri kutucukta durunca başlıktan ayrıştığı
+   hemen anlaşılıyor (proje kodu rozeti de aynı desende). */
 .ticket-id-large {
+  display: inline-block;
   color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .ticket-title-large {
@@ -1167,7 +1218,21 @@ tbody tr:hover .row-chevron {
 
 .action-form {
   display: flex;
+  align-items: stretch;
   gap: var(--space-2);
+}
+
+/* enhanceSelect native select'i gizleyip yanına kendi tetikleyicisini
+   koyuyor; aşağıdaki ".action-form select" kuralları o katmana geçmediği
+   için açılır liste ile Kaydet butonu farklı yüksekliklerde kalıyordu.
+   Sarmalayıcı satırı doldurup tetikleyici de yüksekliği devralıyor. */
+.action-form .custom-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-form .custom-select-trigger {
+  height: 100%;
 }
 
 .action-form select {
@@ -1715,9 +1780,28 @@ tbody tr:hover .row-chevron {
   color: var(--color-text-muted);
 }
 
+/* Alt band kartın iki kenarına kadar uzanıyor: kartın kendi yatay padding'i
+   negatif margin ile geri alınıp bandın kendi padding'i veriliyor. Gri zemin
+   bandı gövdeden ayırdığı için ayrıca üst çizgi yok - üstündeki sayaç
+   bloğunun border-top'u zaten orada. Alt köşeler kartın yuvarlaklığını
+   izliyor, yoksa zemin köşelerden taşardı. */
 .project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+.project-card-footer-date {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Proje detay sayfası ---------- */

@@ -63,7 +63,8 @@ export function render(container) {
 
     try {
       await register(fullName, email, password);
-      window.location.hash = '#/tickets';
+      // Bkz. login.js: hedefi router belirliyor, yetkiye bağlı.
+      await routeToDefault();
     } catch (error) {
       errorMessage.textContent = error.message === AUTH_ERROR_EMAIL_TAKEN
         ? t('register.errorEmailTaken')

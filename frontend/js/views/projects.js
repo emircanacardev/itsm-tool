@@ -195,9 +195,20 @@ export function render(container, currentUser) {
         statCell(project.memberCount, 'projects.statMembers')
       ].join('');
 
+      // Tarih tek başına ve etiketsiz duruyordu; neyin tarihi olduğu hiçbir
+      // yerde yazmıyordu. Etiket solda, tarih sağda: aradaki boşluk ikisini
+      // ayırıyor ve band dengeli duruyor.
       const footer = document.createElement('div');
       footer.className = 'project-card-footer';
-      footer.textContent = formatDate(project.createdAt);
+
+      const footerLabel = document.createElement('span');
+      footerLabel.textContent = t('projects.createdLabel');
+
+      const footerDate = document.createElement('span');
+      footerDate.className = 'project-card-footer-date';
+      footerDate.textContent = formatDate(project.createdAt);
+
+      footer.append(footerLabel, footerDate);
 
       card.append(head, description, stats, footer);
       grid.appendChild(card);

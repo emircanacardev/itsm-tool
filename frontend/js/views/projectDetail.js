@@ -299,9 +299,6 @@ export function render(container, projectId, currentUser) {
       </button>
     `).join('');
 
-    // .project-detail-view sarmalayıcısı: içerideki tablolar sayfa başına
-    // sabit sayıda satır gösterip kendi pagination'ını kullandığı için
-    // ayrı bir iç scroll istemiyoruz (bkz. app.css'teki override).
     container.innerHTML = `
       <div class="project-detail-view">
       <a class="project-back-link" href="#/projects">

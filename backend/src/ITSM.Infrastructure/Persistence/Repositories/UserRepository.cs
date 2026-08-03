@@ -58,9 +58,14 @@ public class UserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
+            // Grup adı da aranıyor: tablo grubu bir kolon olarak gösterdiği
+            // için "Ağ Ekibi" yazıp o gruptaki kullanıcıları listelemek
+            // beklenen davranış. Sıralama zaten u.Group.Name üzerinden
+            // çalışıyor, navigation da Include edilmiş durumda.
             query = query.Where(u =>
                 EF.Functions.ILike(u.FullName, $"%{search}%") ||
-                EF.Functions.ILike(u.Email, $"%{search}%"));
+                EF.Functions.ILike(u.Email, $"%{search}%") ||
+                EF.Functions.ILike(u.Group.Name, $"%{search}%"));
         }
 
         // Kullanıcılar tablosundaki sütun başlıklarına tıklayarak sıralama -

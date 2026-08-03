@@ -111,6 +111,19 @@ function syncTrigger(wrapper, nativeSelect) {
 // kullanıcı sayısı/proje sayısı kadar büyüyebilen listelerde (yüzlerce kayıt)
 // tek tek aramak yerine yazarak süzmek gerekiyor. options.searchPlaceholder
 // ve options.emptyText çağıran taraftan çevrilmiş metin olarak gelir.
+// Aranabilir açılır listelerin ortak ayarı. Metinler her çağrıda t() ile
+// okunuyor çünkü dil değişince view yeniden render ediliyor. Üç ekranda
+// (bilgi bankası, talep filtresi, SLA tanımları) aynı iki anahtar
+// kullanıldığı için tek yerde duruyor - kopyalanınca metinler zamanla
+// birbirinden ayrışıyordu.
+export function searchableSelectOptions() {
+  return {
+    searchable: true,
+    searchPlaceholder: t('common.selectSearchPlaceholder'),
+    emptyText: t('common.selectSearchEmpty')
+  };
+}
+
 export function enhanceSelect(nativeSelect, options = {}) {
   const { searchable = false, searchPlaceholder = '', emptyText = '' } = options;
   let wrapper = nativeSelect.nextElementSibling;
