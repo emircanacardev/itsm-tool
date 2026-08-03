@@ -2,7 +2,7 @@ import { enhanceSelect } from '../customSelect.js';
 import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
 import { showConfirmDialog } from '../confirmDialog.js';
-import { PRIORITY_BADGE_MAP, NEUTRAL_BADGE } from '../constants.js';
+import { PRIORITY_BADGE_MAP, NEUTRAL_BADGE, PERMISSIONS, hasPermissionInAnyProject } from '../constants.js';
 
 const ACTION_BADGE_MAP = {
   Added: { i18nKey: 'admin.actionAdded', bg: 'var(--status-resolved-bg)', fg: 'var(--status-resolved-fg)' },
@@ -166,28 +166,43 @@ function statusBadge(isActive) {
 
 // Yeni bir sekme eklemek için buraya bir kayıt eklemek yeterli - buton ve
 // panel DOM'u, aktifleştirme/lazy-load mantığı hepsi bu listeden üretiliyor.
+// permission: sekmenin gerektirdiği yetki. Kullanıcıda yoksa sekme hiç
+// üretilmiyor - backend zaten 403 döndüğü için sekme açılsa boş kalırdı.
 const TABS = [
-  { key: 'users', i18nKey: 'admin.tabUsers', render: renderUsersSection },
-  { key: 'groups', i18nKey: 'admin.tabGroups', render: renderGroupsSection },
-  { key: 'projects', i18nKey: 'admin.tabProjects', render: renderProjectsSection },
+  { key: 'users', i18nKey: 'admin.tabUsers', render: renderUsersSection, permission: PERMISSIONS.USER_MANAGE },
+  { key: 'groups', i18nKey: 'admin.tabGroups', render: renderGroupsSection, permission: PERMISSIONS.USER_MANAGE },
+  { key: 'projects', i18nKey: 'admin.tabProjects', render: renderProjectsSection, permission: PERMISSIONS.PROJECT_MANAGE },
   // Kendi başına bir sekmesi yok - Projeler tab'ındaki Düzenle butonundan
   // activateAdminTab('projectSettings') ile ulaşılıyor (bkz. renderProjectsSection),
   // burada ayrıca bir giriş noktası olması aynı ekrana çift yoldan gitmeyi
   // gerektirirdi. Panel yine de burada kayıtlı, çünkü lazy-render/activateTab
   // mantığı tüm sekmeler için ortak. parentKey sayesinde bu panel açıkken
   // sekme çubuğunda "Projects" seçili görünmeye devam ediyor.
-  { key: 'projectSettings', i18nKey: 'admin.tabProjectSettings', render: renderProjectSettingsSection, hidden: true, parentKey: 'projects' },
-  { key: 'sla', i18nKey: 'admin.tabSla', render: renderSlaSection },
-  { key: 'permissions', i18nKey: 'admin.tabPermissions', render: renderPermissionsSection },
-  { key: 'auditLog', i18nKey: 'admin.tabAuditLog', render: renderAuditLogSection }
+  { key: 'projectSettings', i18nKey: 'admin.tabProjectSettings', render: renderProjectSettingsSection, hidden: true, parentKey: 'projects', permission: PERMISSIONS.PROJECT_MANAGE },
+  { key: 'sla', i18nKey: 'admin.tabSla', render: renderSlaSection, permission: PERMISSIONS.PROJECT_MANAGE },
+  { key: 'permissions', i18nKey: 'admin.tabPermissions', render: renderPermissionsSection, permission: PERMISSIONS.USER_MANAGE },
+  { key: 'auditLog', i18nKey: 'admin.tabAuditLog', render: renderAuditLogSection, permission: PERMISSIONS.AUDIT_VIEW }
 ];
 
-export function render(container) {
-  const visibleTabs = TABS.filter((tab) => !tab.hidden);
+export function render(container, currentUser) {
+  // Yetkisi olmayan sekmeler hiç üretilmiyor: bir sistem yöneticisi
+  // (USER_MANAGE) yalnızca Kullanıcılar/Gruplar/Yetkilendirme'yi, bir
+  // denetçi (AUDIT_VIEW) yalnızca Aktivite Kaydı'nı görüyor.
+  const allowedTabs = TABS.filter((tab) => hasPermissionInAnyProject(currentUser, tab.permission));
+  const visibleTabs = allowedTabs.filter((tab) => !tab.hidden);
+
+  // Yetki dağılımı sekme bırakmıyorsa (ör. yalnızca KB_MANAGE) boş bir
+  // sekme çubuğu yerine açıklayıcı bir mesaj gösteriyoruz.
+  if (visibleTabs.length === 0) {
+    container.innerHTML = `<div class="state-box"><span data-i18n="admin.noAccessibleTabs"></span></div>`;
+    applyTranslations();
+    return;
+  }
+
   const tabButtonsHtml = visibleTabs.map((tab, index) => `
     <button type="button" class="admin-tab ${index === 0 ? 'is-active' : ''}" data-tab-key="${tab.key}" data-i18n="${tab.i18nKey}"></button>
   `).join('');
-  const panelsHtml = TABS.map((tab) => `
+  const panelsHtml = allowedTabs.map((tab) => `
     <div id="panel-${tab.key}" style="${!tab.hidden && tab.key === visibleTabs[0].key ? '' : 'display: none;'}"></div>
   `).join('');
 
@@ -211,10 +226,15 @@ export function render(container) {
     // ile işaretlendiği sekmenin butonu seçili görünmeye devam ediyor,
     // yani Projeler'den Düzenle'ye basınca sekme çubuğunda hâlâ "Projects"
     // altı çizili kalıyor, sadece panel Proje Ayarları'na değişiyor.
-    const activatingTab = TABS.find((tab) => tab.key === activeKey);
-    const activeButtonKey = (activatingTab && activatingTab.parentKey) || activeKey;
+    const activatingTab = allowedTabs.find((tab) => tab.key === activeKey);
+    if (!activatingTab) {
+      return;
+    }
+    const activeButtonKey = activatingTab.parentKey || activeKey;
 
-    TABS.forEach((tab) => {
+    // allowedTabs üzerinden dönüyoruz: yetkisiz sekmelerin paneli hiç
+    // üretilmediği için TABS üzerinden dönmek null referansa yol açardı.
+    allowedTabs.forEach((tab) => {
       const isActive = tab.key === activeKey;
       const button = container.querySelector(`[data-tab-key="${tab.key}"]`);
       if (button) button.classList.toggle('is-active', tab.key === activeButtonKey);

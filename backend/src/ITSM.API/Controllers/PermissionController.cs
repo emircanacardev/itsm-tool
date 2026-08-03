@@ -8,7 +8,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/users/{userId}/permissions")]
-[Authorize(Policy = Permissions.AdminManage)]
+[Authorize(Policy = Permissions.UserManage)]
 public class PermissionController : ControllerBase
 {
     private readonly PermissionService _permissionService;

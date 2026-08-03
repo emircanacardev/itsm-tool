@@ -60,15 +60,22 @@ RESTART IDENTITY CASCADE;
 -- Kodlar ITSM.Domain/Constants/Permissions.cs ile birebir eşleşmeli;
 -- Program.cs her kod için bir authorization policy kaydediyor.
 INSERT INTO "Permissions" ("Id", "Code", "Name", "Description") VALUES
-    (1, 'TICKET_CREATE',        'Talep Oluşturma',   'Yeni talep/incident açabilir'),
-    (2, 'TICKET_ASSIGN',        'Talep Atama',       'Talebi bir kullanıcıya atayabilir'),
-    (3, 'TICKET_STATUS_UPDATE', 'Durum Güncelleme',  'Talebin durumunu değiştirebilir'),
-    (4, 'ADMIN_MANAGE',         'Admin İşlemleri',   'Grup, kullanıcı, yetki, proje yönetimi yapabilir'),
+    (1, 'TICKET_CREATE',        'Talep Oluşturma',       'Yeni talep/incident açabilir'),
+    (2, 'TICKET_ASSIGN',        'Talep Atama',           'Talebi bir kullanıcıya atayabilir'),
+    (3, 'TICKET_STATUS_UPDATE', 'Durum Güncelleme',      'Talebin durumunu değiştirebilir'),
+    -- Kapatma ayrı: "çözdüm" ile "kapatıyorum" farklı kararlar.
+    (4, 'TICKET_CLOSE',         'Talep Kapatma',         'Talebi kapatabilir'),
+    (5, 'REPORT_VIEW',          'Rapor Görüntüleme',     'Panel ve raporları görebilir'),
+    (6, 'KB_MANAGE',            'Bilgi Bankası Yönetimi','Bilgi bankası makalesi ekleyip düzenleyebilir'),
     -- Proje kapsamlı verilebiliyor: UserPermissions.ProjectId dolu olduğunda
-    -- kullanıcı yalnızca o projenin kategori/ekip yönetimini yapabiliyor.
-    (5, 'PROJECT_MANAGE',       'Proje Yönetimi',    'Bir projenin kategori ve ekip üyelerini yönetebilir');
+    -- kullanıcı yalnızca o projenin kategori/ekip/SLA yönetimini yapabiliyor.
+    (7, 'PROJECT_MANAGE',       'Proje Yönetimi',        'Bir projenin kategori, ekip ve SLA ayarlarını yönetebilir'),
+    (8, 'USER_MANAGE',          'Kullanıcı Yönetimi',    'Kullanıcı, grup ve yetki yönetimi yapabilir'),
+    (9, 'AUDIT_VIEW',           'Denetim Kaydı',         'Denetim (audit) kayıtlarını görüntüleyebilir'),
+    -- Süper yetki: diğer tüm kontrolleri kapsar (bkz. PermissionAuthorizationHandler).
+    (10, 'ADMIN_MANAGE',        'Admin İşlemleri',       'Tüm yönetim işlemlerini yapabilir');
 
-SELECT setval(pg_get_serial_sequence('"Permissions"', 'Id'), 5);
+SELECT setval(pg_get_serial_sequence('"Permissions"', 'Id'), 10);
 
 -- ----------------------------------------------------------
 -- 2. Gruplar (iş birimleri)
@@ -141,9 +148,15 @@ INSERT INTO "Users" ("Id", "GroupId", "FullName", "Email", "PasswordHash", "IsAc
     (28, 8, 'Nazlı Ergin',      'nazli@itsm.local',    '$2a$11$GvCPg63qa0ObgS6gDHMDKuPNWyQWMBf.1TPBJXurIerWCVNYODxui', true,  'tr', now() - interval '23 days',  now()),
     -- SMS ekibi
     (29, 9, 'Okan Çetin',       'okan@itsm.local',     '$2a$11$GvCPg63qa0ObgS6gDHMDKuPNWyQWMBf.1TPBJXurIerWCVNYODxui', true,  'tr', now() - interval '22 days',  now()),
-    (30, 9, 'Dilara Koç',       'dilara@itsm.local',   '$2a$11$GvCPg63qa0ObgS6gDHMDKuPNWyQWMBf.1TPBJXurIerWCVNYODxui', true,  'tr', now() - interval '21 days',  now());
+    (30, 9, 'Dilara Koç',       'dilara@itsm.local',   '$2a$11$GvCPg63qa0ObgS6gDHMDKuPNWyQWMBf.1TPBJXurIerWCVNYODxui', true,  'tr', now() - interval '21 days',  now()),
 
-SELECT setval(pg_get_serial_sequence('"Users"', 'Id'), 30);
+    -- Yetki modelinin ayrıştığını tek başına gösteren üç kullanıcı.
+    -- Üçü de ADMIN_MANAGE'siz; her biri tek bir yönetim sorumluluğu taşıyor.
+    (31, 2, 'Sistem Yöneticisi','sysadmin@itsm.local', '$2a$11$GvCPg63qa0ObgS6gDHMDKuPNWyQWMBf.1TPBJXurIerWCVNYODxui', true,  'tr', now() - interval '20 days',  now()),
+    (32, 3, 'Denetçi',          'denetci@itsm.local',  '$2a$11$GvCPg63qa0ObgS6gDHMDKuPNWyQWMBf.1TPBJXurIerWCVNYODxui', true,  'tr', now() - interval '18 days',  now()),
+    (33, 1, 'Teknik Yazar',     'yazar@itsm.local',    '$2a$11$GvCPg63qa0ObgS6gDHMDKuPNWyQWMBf.1TPBJXurIerWCVNYODxui', true,  'tr', now() - interval '15 days',  now());
+
+SELECT setval(pg_get_serial_sequence('"Users"', 'Id'), 33);
 
 -- ----------------------------------------------------------
 -- 4. Projeler
@@ -247,82 +260,143 @@ INSERT INTO "ProjectMembers" ("ProjectId", "UserId") VALUES
     (10, 29), (10, 30), (10, 25), (10, 26),
     -- Ice Age ve Jetgiller kendi ürün projelerinde de üye
     (1, 23), (1, 24),
-    (2, 25), (2, 26);
+    (2, 25), (2, 26),
+    -- Teknik Yazar birkaç projeye üye: makalelerini o projelere bağlayabilsin.
+    -- Sistem Yöneticisi ve Denetçi bilinçli olarak hiçbir projeye üye değil;
+    -- yetkileri proje üyeliğinden bağımsız çalışıyor.
+    (1, 33), (3, 33), (10, 33);
 
 -- ----------------------------------------------------------
 -- 7. Yetkiler (kullanıcı bazlı, proje kapsamı destekli)
 -- ----------------------------------------------------------
+-- PermissionId karşılıkları (bkz. bölüm 1):
+--   1 TICKET_CREATE   2 TICKET_ASSIGN  3 TICKET_STATUS_UPDATE  4 TICKET_CLOSE
+--   5 REPORT_VIEW     6 KB_MANAGE      7 PROJECT_MANAGE
+--   8 USER_MANAGE     9 AUDIT_VIEW    10 ADMIN_MANAGE
+--
 -- ProjectId NULL = global yetki, dolu = yalnızca o projede geçerli.
--- Aynı gruptaki iki kullanıcının farklı yetkilere sahip olabildiğini
--- göstermek için Elif (4) ve Mert (5) bilinçli olarak ayrıştırıldı.
+-- ADMIN_MANAGE diğer tüm kontrolleri kapsar, o yüzden onu alan kullanıcıya
+-- ayrıca başka yetki verilmiyor.
+--
+-- Dağılım, yetki modelinin her yönünü canlı gösterecek şekilde kurgulandı:
+-- aynı gruptaki iki kişinin farklı yetkileri, global yetkiye karşı proje
+-- kapsamlı yetki, ve birbirinden bağımsız yönetim sorumlulukları.
 INSERT INTO "UserPermissions" ("UserId", "PermissionId", "ProjectId", "GrantedAt") VALUES
-    -- Süper admin: her şey
-    (1, 4, NULL, now()), (1, 1, NULL, now()), (1, 2, NULL, now()), (1, 3, NULL, now()),
+    -- Emircan (1): süper admin. Tek yetkiyle her kapıyı açıyor.
+    (1, 10, NULL, now()),
 
-    -- Deniz: Portal ve Mobil projelerinde yönetici yetkileri (proje kapsamlı).
-    -- PROJECT_MANAGE yalnızca Portal'da: admin olmadan da o projenin kategori
-    -- ve ekip yönetimini yapabiliyor, ama Mobil'de yapamıyor - proje kapsamlı
-    -- yetkinin gerçekten kapsandığını canlı göstermek için bilerek tek proje.
-    (2, 1, NULL, now()), (2, 2, 1, now()), (2, 3, 1, now()), (2, 2, 2, now()), (2, 3, 2, now()),
-    (2, 5, 1, now()),
+    -- Deniz (2): Portal + Mobil'de operasyon, PROJECT_MANAGE yalnızca Portal'da.
+    -- Proje kapsamının gerçekten kapsadığını göstermek için bilerek tek proje:
+    -- Mobil'in ayarlarına dokunamıyor. Ayrıca rapor görebiliyor.
+    (2, 1, NULL, now()), (2, 2, 1, now()), (2, 3, 1, now()), (2, 4, 1, now()),
+    (2, 2, 2, now()), (2, 3, 2, now()),
+    (2, 7, 1, now()), (2, 5, NULL, now()),
 
-    -- Burak: BT Altyapı yöneticisi
-    (3, 1, NULL, now()), (3, 2, 3, now()), (3, 3, 3, now()),
+    -- Burak (3): BT Altyapı yöneticisi + arşiv projenin sorumlusu.
+    (3, 1, NULL, now()), (3, 2, 3, now()), (3, 3, 3, now()), (3, 4, 3, now()),
+    (3, 7, 3, now()), (3, 5, NULL, now()),
 
-    -- Elif: destek uzmanı, atama + durum güncelleme (global)
+    -- Elif (4): destek uzmanı. Atama ve durum global, ama KAPATAMAZ.
+    -- Mert (5) ile birlikte "aynı grup, farklı yetki" örneği.
     (4, 1, NULL, now()), (4, 2, NULL, now()), (4, 3, NULL, now()),
 
-    -- Mert: aynı grupta ama yalnızca durum güncelleyebilir, atama yapamaz
+    -- Mert (5): aynı grupta, yalnızca durum güncelleyebiliyor; atama yok.
     (5, 1, NULL, now()), (5, 3, NULL, now()),
 
-    -- Ayşe ve Can: kendi projelerinde durum güncelleme
-    (6, 1, NULL, now()), (6, 3, 3, now()),
+    -- Ayşe (6): saha teknisyeni; çözer ve kapatabilir.
+    (6, 1, NULL, now()), (6, 3, 3, now()), (6, 4, 3, now()),
+
+    -- Can (7): Veri Ambarı'nda durum güncelleme.
     (7, 1, NULL, now()), (7, 3, 4, now()),
 
-    -- Son kullanıcılar: yalnızca talep açabilir
-    (8, 1, NULL, now()),
+    -- Zeynep (8): son kullanıcı ama bilgi bankası yazarı.
+    -- KB_MANAGE'in yönetici yetkisinden bağımsız olabildiğini gösteriyor.
+    (8, 1, NULL, now()), (8, 6, NULL, now()),
+
+    -- Kaan (9): saf son kullanıcı, yalnızca talep açar.
     (9, 1, NULL, now()),
-    (10, 1, NULL, now()), (10, 3, 1, now()),
+
+    -- Selin (10): Portal'da durum güncelleme + rapor görüntüleme.
+    (10, 1, NULL, now()), (10, 3, 1, now()), (10, 5, NULL, now()),
+
+    -- Onur (11): son kullanıcı.
     (11, 1, NULL, now()),
+
+    -- Yeni Kullanıcı (12) ve Pasif Personel (13): hiç yetkisi yok.
+    -- 12 kayıt olmuş ama henüz yetkilendirilmemiş; 13 zaten pasif.
+
+    -- John (14, en): Mobil'de atama yapabiliyor.
     (14, 1, NULL, now()), (14, 2, 2, now()),
 
-    -- Merve: İK Portali yöneticisi (atama + durum, yalnızca kendi projesinde)
-    (15, 1, NULL, now()), (15, 2, 5, now()), (15, 3, 5, now()),
+    -- Merve (15): İK Portali'nin tam sahibi (operasyon + proje yönetimi).
+    (15, 1, NULL, now()), (15, 2, 5, now()), (15, 3, 5, now()), (15, 4, 5, now()),
+    (15, 7, 5, now()), (15, 5, NULL, now()),
 
-    -- Emre: iki projede birden yetkili (E-Ticaret + Çağrı Merkezi)
+    -- Emre (16): iki projede birden durum güncelleyebiliyor (çapraz ekip).
     (16, 1, NULL, now()), (16, 3, 6, now()), (16, 3, 7, now()),
 
-    -- Gizem: E-Ticaret yöneticisi
-    (17, 1, NULL, now()), (17, 2, 6, now()), (17, 3, 6, now()),
+    -- Gizem (17): E-Ticaret'in tam sahibi.
+    (17, 1, NULL, now()), (17, 2, 6, now()), (17, 3, 6, now()), (17, 4, 6, now()),
+    (17, 7, 6, now()), (17, 5, NULL, now()),
 
-    -- Tolga: İK'da yalnızca durum güncelleyebilir
+    -- Tolga (18): İK'da yalnızca durum güncelleyebilir (Merve ile kontrast).
     (18, 1, NULL, now()), (18, 3, 5, now()),
 
-    -- Sibel: Çağrı Merkezi'nde atama yetkisi
-    (19, 1, NULL, now()), (19, 2, 7, now()), (19, 3, 7, now()),
+    -- Sibel (19): Çağrı Merkezi yöneticisi.
+    (19, 1, NULL, now()), (19, 2, 7, now()), (19, 3, 7, now()), (19, 4, 7, now()),
+    (19, 7, 7, now()),
 
-    -- Kerem ve Furkan: son kullanıcı
+    -- Kerem (20) ve Furkan (22): son kullanıcı.
     (20, 1, NULL, now()),
     (22, 1, NULL, now()),
 
-    -- Anna (en): iki projede üye, E-Ticaret'te durum güncelleyebilir
-    (21, 1, NULL, now()), (21, 3, 6, now()),
+    -- Anna (21, en): E-Ticaret'te durum güncelleme + KB yazarlığı.
+    (21, 1, NULL, now()), (21, 3, 6, now()), (21, 6, NULL, now()),
 
-    -- Ice Age ekibi
-    (23, 1, NULL, now()), (23, 2, 9, now()), (23, 3, 9, now()),
+    -- Serkan (23, Ice Age): Monitoring projesinde operasyon + proje yönetimi.
+    (23, 1, NULL, now()), (23, 2, 9, now()), (23, 3, 9, now()), (23, 4, 9, now()),
+    (23, 7, 9, now()),
+
+    -- Pelin (24, Ice Age): Portal'da durum güncelleme.
     (24, 1, NULL, now()), (24, 3, 1, now()),
 
-    -- Jetgiller ekibi
-    (25, 1, NULL, now()), (25, 2, 10, now()), (25, 3, 10, now()),
+    -- Barış (25, Jetgiller): SMS Gateway'de operasyon + proje yönetimi.
+    (25, 1, NULL, now()), (25, 2, 10, now()), (25, 3, 10, now()), (25, 4, 10, now()),
+    (25, 7, 10, now()),
+
+    -- Ceren (26, Jetgiller): Mobil'de durum güncelleme.
     (26, 1, NULL, now()), (26, 3, 2, now()),
 
-    -- Monitoring ekibi: 7/24 nöbet tuttukları için atama yetkisi global
-    (27, 1, NULL, now()), (27, 2, NULL, now()), (27, 3, NULL, now()),
+    -- Hakan (27, Monitoring): 7/24 nöbetçi lider. Atama, durum ve kapatma
+    -- GLOBAL - her projeye müdahale edebilmeli. Ayrıca denetim kaydını
+    -- görebiliyor: AUDIT_VIEW'ın yönetici yetkisi olmadan da verilebildiğini
+    -- gösteriyor.
+    (27, 1, NULL, now()), (27, 2, NULL, now()), (27, 3, NULL, now()), (27, 4, NULL, now()),
+    (27, 7, 9, now()), (27, 5, NULL, now()), (27, 9, NULL, now()),
+
+    -- Nazlı (28, Monitoring): nöbet ekibi, kendi projesinde durum güncelleme.
     (28, 1, NULL, now()), (28, 3, 9, now()),
 
-    -- SMS ekibi
-    (29, 1, NULL, now()), (29, 2, 10, now()), (29, 3, 10, now()),
-    (30, 1, NULL, now()), (30, 3, 10, now());
+    -- Okan (29, SMS): SMS Gateway sorumlusu.
+    (29, 1, NULL, now()), (29, 2, 10, now()), (29, 3, 10, now()), (29, 4, 10, now()),
+    (29, 5, NULL, now()),
+
+    -- Dilara (30, SMS): durum güncelleme + KB yazarlığı.
+    (30, 1, NULL, now()), (30, 3, 10, now()), (30, 6, NULL, now()),
+
+    -- Sistem Yöneticisi (31): USER_MANAGE + AUDIT_VIEW, ama ADMIN_MANAGE YOK.
+    -- Kullanıcı/grup/yetki yönetebiliyor ve denetim kaydı okuyabiliyor;
+    -- buna karşılık hiçbir projenin ayarına dokunamıyor ve talep listesinde
+    -- yalnızca kendi görebildiklerini görüyor.
+    (31, 8, NULL, now()), (31, 9, NULL, now()),
+
+    -- Denetçi (32): salt okuma. Yalnızca AUDIT_VIEW ve REPORT_VIEW.
+    -- Hiçbir şeyi değiştiremiyor, talep bile açamıyor.
+    (32, 9, NULL, now()), (32, 5, NULL, now()),
+
+    -- Teknik Yazar (33): yalnızca bilgi bankası. Talep açabiliyor ve
+    -- makale yönetebiliyor, başka hiçbir yetkisi yok.
+    (33, 1, NULL, now()), (33, 6, NULL, now());
 
 -- ----------------------------------------------------------
 -- 8. SLA tanımları
@@ -1039,9 +1113,19 @@ COMMIT;
 -- ==========================================================
 -- ÖZET
 -- ==========================================================
--- 30 kullanıcı (1 pasif, 2 İngilizce tercihli), 9 grup, 10 proje
+-- 33 kullanıcı (1 pasif, 2 İngilizce tercihli), 9 grup, 10 proje
 -- (1'i arşivlenmiş), 35 kategori, 83 talep, 23 SLA tanımı (4 katmanın
 -- tamamı), 17 otomatik atama kuralı, 47 yorum, 18 bilgi bankası makalesi.
+--
+-- Yetki kataloğu 10 koda çıkarıldı ve dağılım her kombinasyonu kapsıyor:
+--   - Süper admin (1): tek ADMIN_MANAGE ile her şey
+--   - Proje sahipleri: kendi projesinde tam yetki, diğerlerinde yok
+--   - Aynı grupta farklı yetkili çiftler (Elif/Mert, Merve/Tolga)
+--   - Global yetkili nöbetçi (Hakan): her projeye müdahale edebiliyor
+--   - sysadmin@ : USER_MANAGE + AUDIT_VIEW, hiçbir projeye erişimi yok
+--   - denetci@  : yalnızca AUDIT_VIEW + REPORT_VIEW (salt okuma)
+--   - yazar@    : yalnızca KB_MANAGE (+ talep açma)
+--   - Yetkisiz kullanıcılar (12: yeni kayıt, 13: pasif)
 --
 -- Gruplar arasında staj yapılan birimin gerçek ekipleri de yer alıyor:
 -- Ice Age, Jetgiller, Monitoring ve SMS. Monitoring ve SMS ekiplerinin

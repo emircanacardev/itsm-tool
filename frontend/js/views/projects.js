@@ -36,10 +36,13 @@ function statCell(value, labelKey, accentColor) {
 }
 
 export function render(container, currentUser) {
-  const isAdmin = !!currentUser?.isAdmin;
+  // Yeni proje açmak ADMIN_MANAGE gerektiriyor (bkz. ProjectController):
+  // PROJECT_MANAGE proje kapsamlı bir yetki, henüz var olmayan bir projeye
+  // kapsanamaz. Bu yüzden burada bilinçli olarak isAdmin kontrolü var.
+  const canCreateProject = !!currentUser?.isAdmin;
 
   const topbarPageActions = document.getElementById('topbarPageActions');
-  topbarPageActions.innerHTML = isAdmin
+  topbarPageActions.innerHTML = canCreateProject
     ? `
     <button type="button" class="btn-primary" id="openCreateProjectButton">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;">
@@ -91,7 +94,7 @@ export function render(container, currentUser) {
       </div>
     </div>
 
-    ${isAdmin ? createModalHtml() : ''}
+    ${canCreateProject ? createModalHtml() : ""}
     <div class="toast" id="projectToast" style="display: none;"></div>
   `;
 
@@ -284,7 +287,7 @@ export function render(container, currentUser) {
     }
   });
 
-  if (isAdmin) {
+  if (canCreateProject) {
     wireCreateModal(container, showToast, resetPageAndLoad);
   }
 

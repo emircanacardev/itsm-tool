@@ -43,11 +43,19 @@ public class UserController : ControllerBase
         // Bu action iki ayrı ihtiyaca hizmet ediyor, yetkileri de ayrı:
         // arama terimi verilen typeahead çağrısı (en fazla 20 sonuç) proje
         // yöneticisine de açık; filtresiz tam liste ve sayfalanmış tablo
-        // yalnızca admin'e. Aksi halde PROJECT_MANAGE'i olan biri tüm
-        // kullanıcı dizinini çekebilirdi.
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(
-            User.GetUserId(), Permissions.AdminManage, null);
-        if (!isAdmin && string.IsNullOrWhiteSpace(search))
+        // yalnızca kullanıcı yönetimi yetkisi olana. Aksi halde
+        // PROJECT_MANAGE'i olan biri tüm kullanıcı dizinini çekebilirdi.
+        //
+        // Yetki burada elle kontrol ediliyor (policy attribute'u yerine),
+        // bu yüzden ADMIN_MANAGE muafiyetini de elle uygulamak gerekiyor:
+        // PermissionAuthorizationHandler'daki bypass yalnızca policy
+        // üzerinden geçen isteklerde devreye giriyor.
+        var userId = User.GetUserId();
+        var canManageUsers =
+            await _userPermissionRepository.HasPermissionAsync(userId, Permissions.UserManage, null)
+            || await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
+
+        if (!canManageUsers && string.IsNullOrWhiteSpace(search))
         {
             return Forbid();
         }
@@ -58,7 +66,7 @@ public class UserController : ControllerBase
         // sayfalanmış + toplam sayılı sonuç dönülüyor.
         if (page.HasValue)
         {
-            if (!isAdmin)
+            if (!canManageUsers)
             {
                 return Forbid();
             }
@@ -77,7 +85,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.UserManage)]
     public async Task<IActionResult> GetUserById(long id)
     {
         var result = await _userService.GetUserByIdAsync(id);
@@ -90,7 +98,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.UserManage)]
     public async Task<IActionResult> UpdateUserStatus(long id, UpdateUserStatusRequest request)
     {
         var success = await _userService.UpdateUserStatusAsync(id, request.IsActive);
@@ -103,7 +111,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/group")]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.UserManage)]
     public async Task<IActionResult> UpdateUserGroup(long id, UpdateUserGroupRequest request)
     {
         var success = await _userService.UpdateUserGroupAsync(id, request.GroupId);

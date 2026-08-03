@@ -23,6 +23,9 @@ public class ProjectController : ControllerBase
         _paginationOptions = paginationOptions.Value;
     }
 
+    // Yeni proje açmak ADMIN_MANAGE gerektiriyor: PROJECT_MANAGE proje
+    // kapsamlı verilebilen bir yetki, henüz var olmayan bir projeye
+    // kapsanamayacağı için oluşturma adımı sistem yöneticisinde kalmalı.
     [HttpPost]
     [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> CreateProject(CreateProjectRequest request)
@@ -77,11 +80,15 @@ public class ProjectController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPut("{id}")]
-    [Authorize(Policy = Permissions.AdminManage)]
-    public async Task<IActionResult> UpdateProject(long id, UpdateProjectRequest request)
+    // Route parametresi bilinçli olarak "projectId": PermissionAuthorizationHandler
+    // proje kapsamlı yetkiyi route'taki bu isimden okuyor. "{id}" kalsaydı
+    // yalnızca bu projeye verilmiş bir PROJECT_MANAGE eşleşmez, kullanıcı
+    // kendi projesini düzenleyemezdi.
+    [HttpPut("{projectId}")]
+    [Authorize(Policy = Permissions.ProjectManage)]
+    public async Task<IActionResult> UpdateProject(long projectId, UpdateProjectRequest request)
     {
-        var success = await _projectService.UpdateProjectAsync(id, request);
+        var success = await _projectService.UpdateProjectAsync(projectId, request);
         if (!success)
         {
             return NotFound();

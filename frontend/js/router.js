@@ -8,14 +8,17 @@ import { render as renderNotifications } from './views/notifications.js';
 import { render as renderProjects } from './views/projects.js';
 import { render as renderProjectDetail } from './views/projectDetail.js';
 import { render as renderAdmin } from './views/admin.js';
+import { PERMISSIONS, ADMIN_AREA_PERMISSIONS, hasPermission, hasAnyPermissionInAnyProject } from './constants.js';
 
 // Her route: path deseni, hangi view modülünün render edeceği, sayfa başlığı için i18n anahtarı.
 // public: true olan route'lar giriş yapmadan da görülebilir (login/register); diğerleri auth ister.
-// requiresAdmin: true olan route'lara sadece ADMIN_MANAGE yetkisi olan kullanıcılar girebilir.
+// requiredPermissions: verilen yetkilerden en az birine sahip olmayan kullanıcı
+// talep listesine yönlendirilir. Backend zaten 403 dönüyor; bu kontrol
+// kullanıcının boş/hatalı bir sayfayla karşılaşmasını önlüyor.
 const routes = [
   { pattern: /^login$/, view: renderLogin, public: true, titleKey: 'login.title' },
   { pattern: /^register$/, view: renderRegister, public: true, titleKey: 'register.title' },
-  { pattern: /^dashboard$/, view: renderDashboard, titleKey: 'dashboard.pageTitle', subtitleKey: 'dashboard.pageSubtitle' },
+  { pattern: /^dashboard$/, view: renderDashboard, titleKey: 'dashboard.pageTitle', subtitleKey: 'dashboard.pageSubtitle', requiredPermissions: [PERMISSIONS.REPORT_VIEW] },
   { pattern: /^tickets$/, view: renderTickets, titleKey: 'tickets.pageTitle', subtitleKey: 'tickets.pageSubtitle' },
   { pattern: /^tickets\/(\d+)$/, view: renderTicketDetail, titleKey: 'tickets.pageTitle' },
   { pattern: /^new-ticket$/, view: renderNewTicket, titleKey: 'newTicket.pageTitle' },
@@ -24,7 +27,7 @@ const routes = [
   // buradaki titleKey sadece yükleme anındaki geçici başlık.
   { pattern: /^projects\/(\d+)$/, view: renderProjectDetail, titleKey: 'projects.pageTitle' },
   { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle' },
-  { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiresAdmin: true }
+  { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS }
 ];
 
 const viewEl = document.getElementById('view');
@@ -91,7 +94,18 @@ function applyCurrentUserToSidebar(user) {
   document.getElementById('sidebarUserEmail').textContent = user.groupName;
   document.getElementById('sidebarUserEmail').title = user.email;
   document.getElementById('sidebarAvatar').textContent = getInitials(user.fullName);
-  document.getElementById('adminNavItem').style.display = user.isAdmin ? '' : 'none';
+  // Yönetim bağlantısı yalnızca ADMIN_MANAGE'e değil, yönetim alanındaki
+  // herhangi bir yetkiye bakıyor: USER_MANAGE'i olan bir sistem yöneticisi
+  // de kendi sekmesine ulaşabilmeli.
+  const canSeeAdminArea = hasAnyPermissionInAnyProject(user, ADMIN_AREA_PERMISSIONS);
+  document.getElementById('adminNavItem').style.display = canSeeAdminArea ? '' : 'none';
+
+  // Panel REPORT_VIEW istiyor; yetkisi olmayan kullanıcı için bağlantıyı
+  // gizliyoruz, aksi halde tıkladığında boş bir sayfa görürdü.
+  const dashboardNavItem = document.getElementById('dashboardNavItem');
+  if (dashboardNavItem) {
+    dashboardNavItem.style.display = hasPermission(user, PERMISSIONS.REPORT_VIEW) ? '' : 'none';
+  }
 }
 
 async function loadCurrentUser() {
@@ -169,7 +183,7 @@ async function navigate() {
   if (!route.public) {
     await loadCurrentUser();
 
-    if (route.requiresAdmin && !currentUser?.isAdmin) {
+    if (route.requiredPermissions && !hasAnyPermissionInAnyProject(currentUser, route.requiredPermissions)) {
       window.location.hash = '#/tickets';
       return;
     }

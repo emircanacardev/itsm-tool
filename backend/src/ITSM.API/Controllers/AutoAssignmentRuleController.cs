@@ -10,7 +10,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/project/{projectId}/auto-assignment-rules")]
-[Authorize(Policy = Permissions.AdminManage)]
+[Authorize(Policy = Permissions.ProjectManage)]
 public class AutoAssignmentRuleController : ControllerBase
 {
     private readonly AutoAssignmentService _autoAssignmentService;
