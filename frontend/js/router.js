@@ -7,6 +7,8 @@ import { render as renderNewTicket } from './views/newTicket.js';
 import { render as renderNotifications } from './views/notifications.js';
 import { render as renderProjects } from './views/projects.js';
 import { render as renderProjectDetail } from './views/projectDetail.js';
+import { render as renderKnowledgeBase } from './views/knowledgeBase.js';
+import { render as renderKnowledgeBaseDetail } from './views/knowledgeBaseDetail.js';
 import { render as renderAdmin } from './views/admin.js';
 import { PERMISSIONS, ADMIN_AREA_PERMISSIONS, hasPermission, hasAnyPermissionInAnyProject } from './constants.js';
 
@@ -26,6 +28,10 @@ const routes = [
   // Başlık projenin kendi adıyla değiştirileceği için (bkz. projectDetail.js)
   // buradaki titleKey sadece yükleme anındaki geçici başlık.
   { pattern: /^projects\/(\d+)$/, view: renderProjectDetail, titleKey: 'projects.pageTitle' },
+  { pattern: /^knowledge-base$/, view: renderKnowledgeBase, titleKey: 'knowledgeBase.pageTitle', subtitleKey: 'knowledgeBase.pageSubtitle' },
+  // Başlık makalenin kendi adıyla değiştiriliyor (bkz. knowledgeBaseDetail.js);
+  // buradaki titleKey sadece yükleme anındaki geçici başlık.
+  { pattern: /^knowledge-base\/(\d+)$/, view: renderKnowledgeBaseDetail, titleKey: 'knowledgeBase.pageTitle' },
   { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle' },
   { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS }
 ];
