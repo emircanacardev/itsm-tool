@@ -82,6 +82,7 @@ public class UserService
             GroupId = user.GroupId,
             GroupName = user.Group.Name,
             IsActive = user.IsActive,
+            PreferredLanguage = user.PreferredLanguage,
             CreatedAt = user.CreatedAt
         };
     }

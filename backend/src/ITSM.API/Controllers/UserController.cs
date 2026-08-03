@@ -1,20 +1,25 @@
+using ITSM.Domain.Constants;
+using ITSM.Application.Configuration;
 using ITSM.Application.DTOs;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "ADMIN_MANAGE")]
+[Authorize(Policy = Permissions.AdminManage)]
 public class UserController : ControllerBase
 {
     private readonly UserService _userService;
+    private readonly PaginationOptions _paginationOptions;
 
-    public UserController(UserService userService)
+    public UserController(UserService userService, IOptions<PaginationOptions> paginationOptions)
     {
         _userService = userService;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpGet]
@@ -31,7 +36,12 @@ public class UserController : ControllerBase
         // sayfalanmış + toplam sayılı sonuç dönülüyor.
         if (page.HasValue)
         {
-            var pagedResult = await _userService.GetAllUsersPagedAsync(search, sortBy, sortDescending, page.Value, pageSize ?? 20);
+            var pagedResult = await _userService.GetAllUsersPagedAsync(
+                search,
+                sortBy,
+                sortDescending,
+                _paginationOptions.NormalizePage(page),
+                _paginationOptions.NormalizePageSize(pageSize));
             return Ok(pagedResult);
         }
 

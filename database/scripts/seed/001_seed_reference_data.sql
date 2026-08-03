@@ -37,12 +37,14 @@ INSERT INTO permissions (code, name, description) VALUES
 -- ==========================================================
 -- İş birimleri (groups) - dokümandaki örnek gruplar
 -- ==========================================================
-INSERT INTO groups (name, description) VALUES
-    ('Yazılım Geliştirme',    'Uygulama geliştirme ekibi'),
-    ('Sistem & Network',      'Sistem yönetimi ve network operasyonları'),
-    ('Destek Birimi',         'Birinci seviye destek / help desk'),
-    ('Veritabanı Yönetimi',   'DB yönetimi ve bakım ekibi'),
-    ('Atanmamış',             'Kayıt olan yeni kullanıcıların varsayılan grubu. Admin panelden gerçek departmana taşınmalı.');
+INSERT INTO groups (name, system_key, description) VALUES
+    ('Yazılım Geliştirme',    NULL,         'Uygulama geliştirme ekibi'),
+    ('Sistem & Network',      NULL,         'Sistem yönetimi ve network operasyonları'),
+    ('Destek Birimi',         NULL,         'Birinci seviye destek / help desk'),
+    ('Veritabanı Yönetimi',   NULL,         'DB yönetimi ve bakım ekibi'),
+    -- system_key dolu: kayıt akışı bu grubu adına göre değil anahtarına göre
+    -- buluyor, böylece görünen ad değiştirilse de akış bozulmuyor.
+    ('Atanmamış',             'UNASSIGNED', 'Kayıt olan yeni kullanıcıların varsayılan grubu. Admin panelden gerçek departmana taşınmalı.');
 
 -- Not: örnek projeler, kategoriler ve kullanıcılar bilinçli olarak eklenmedi.
 -- Bunlar admin panel üzerinden veya ayrı bir "demo data" scriptiyle eklenmeli,

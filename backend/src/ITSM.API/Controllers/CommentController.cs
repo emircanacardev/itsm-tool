@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.API.Extensions;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,8 +21,7 @@ public class CommentController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddComment(long ticketId, CreateCommentRequest request)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _commentService.AddCommentAsync(ticketId, userId, request);
         if (result is null)
@@ -34,8 +34,7 @@ public class CommentController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetComments(long ticketId)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _commentService.GetCommentsAsync(ticketId, userId);
         if (result is null)

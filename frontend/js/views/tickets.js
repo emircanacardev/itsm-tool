@@ -1,23 +1,13 @@
 import { enhanceSelect } from '../customSelect.js';
 import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
-
-const STATUS_DOT_COLORS = {
-  'Açık': 'var(--status-open-fg)',
-  'Devam Ediyor': 'var(--status-inprogress-fg)',
-  'Beklemede': 'var(--status-pending-fg)',
-  'Çözüldü': 'var(--status-resolved-fg)',
-  'Kapatıldı': 'var(--status-closed-fg)'
-};
-
-const PRIORITY_BADGE_MAP = {
-  'Kritik': { bg: 'var(--priority-critical-bg)', fg: 'var(--priority-critical-fg)' },
-  'Yüksek': { bg: 'var(--priority-high-bg)', fg: 'var(--priority-high-fg)' },
-  'Orta': { bg: 'var(--priority-medium-bg)', fg: 'var(--priority-medium-fg)' },
-  'Düşük': { bg: 'var(--priority-low-bg)', fg: 'var(--priority-low-fg)' }
-};
-
-const CLOSED_STATUS_NAMES = ['Çözüldü', 'Kapatıldı'];
+import {
+  STATUS_DOT_COLORS,
+  PRIORITY_BADGE_MAP,
+  NEUTRAL_BADGE,
+  NEUTRAL_DOT_COLOR,
+  isClosedStatus
+} from '../constants.js';
 
 // Sıralanabilir kolonlar - backend'in beklediği sortBy anahtarları burada
 // tanımlı, başlık satırı bu listeden üretiliyor (tek kaynak).
@@ -33,16 +23,17 @@ const SORTABLE_COLUMNS = [
 
 const PAGE_SIZE = 20;
 
-function statusDot(name) {
+// Renk Id'den, metin çevrilmiş addan geliyor: dil değişince renk sabit kalır.
+function statusDot(statusId, name) {
   const span = document.createElement('span');
   span.className = 'status-dot';
-  span.style.setProperty('--dot-color', STATUS_DOT_COLORS[name] || 'var(--color-text-muted)');
+  span.style.setProperty('--dot-color', STATUS_DOT_COLORS[statusId] || NEUTRAL_DOT_COLOR);
   span.textContent = name;
   return span;
 }
 
-function priorityBadge(name) {
-  const colors = PRIORITY_BADGE_MAP[name] || { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };
+function priorityBadge(priorityId, name) {
+  const colors = PRIORITY_BADGE_MAP[priorityId] || NEUTRAL_BADGE;
   const span = document.createElement('span');
   span.className = 'badge';
   span.style.background = colors.bg;
@@ -69,7 +60,7 @@ function formatDate(isoString) {
 }
 
 function renderDueCell(ticket) {
-  if (CLOSED_STATUS_NAMES.includes(ticket.statusName)) {
+  if (isClosedStatus(ticket.statusId)) {
     return { text: t('tickets.dueDone'), className: 'due-done' };
   }
   if (!ticket.dueAt) {
@@ -244,10 +235,10 @@ export function render(container, currentUser) {
       projectCell.textContent = ticket.projectName;
 
       const statusCell = document.createElement('td');
-      statusCell.appendChild(statusDot(ticket.statusName));
+      statusCell.appendChild(statusDot(ticket.statusId, ticket.statusName));
 
       const priorityCell = document.createElement('td');
-      priorityCell.appendChild(priorityBadge(ticket.priorityName));
+      priorityCell.appendChild(priorityBadge(ticket.priorityId, ticket.priorityName));
 
       const assigneeCell = document.createElement('td');
       if (ticket.assignedToName) {

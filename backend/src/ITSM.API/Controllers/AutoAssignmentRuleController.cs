@@ -1,3 +1,6 @@
+using ITSM.Application;
+using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 using ITSM.Application.DTOs;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -7,14 +10,18 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/project/{projectId}/auto-assignment-rules")]
-[Authorize(Policy = "ADMIN_MANAGE")]
+[Authorize(Policy = Permissions.AdminManage)]
 public class AutoAssignmentRuleController : ControllerBase
 {
     private readonly AutoAssignmentService _autoAssignmentService;
+    private readonly ILocalizedMessageProvider _messageProvider;
 
-    public AutoAssignmentRuleController(AutoAssignmentService autoAssignmentService)
+    public AutoAssignmentRuleController(
+        AutoAssignmentService autoAssignmentService,
+        ILocalizedMessageProvider messageProvider)
     {
         _autoAssignmentService = autoAssignmentService;
+        _messageProvider = messageProvider;
     }
 
     [HttpPost]
@@ -23,7 +30,7 @@ public class AutoAssignmentRuleController : ControllerBase
         var result = await _autoAssignmentService.CreateRuleAsync(projectId, request);
         if (result is null)
         {
-            return BadRequest("assignToUserId veya assignToGroupId alanlarından tam olarak biri dolu olmalı.");
+            return BadRequest(_messageProvider.Get(MessageKeys.ErrorRuleAssignTargetInvalid));
         }
 
         return Ok(result);

@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.Services;
+using ITSM.API.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +20,7 @@ public class NotificationController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetMyNotifications()
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _notificationService.GetMyNotificationsAsync(userId);
         return Ok(result);
@@ -29,8 +29,7 @@ public class NotificationController : ControllerBase
     [HttpPut("{id}/read")]
     public async Task<IActionResult> MarkAsRead(long id)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var success = await _notificationService.MarkAsReadAsync(id, userId);
         if (!success)

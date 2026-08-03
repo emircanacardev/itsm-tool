@@ -1,3 +1,4 @@
+using ITSM.Domain.Constants;
 using ITSM.Application.DTOs;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "ADMIN_MANAGE")]
+[Authorize(Policy = Permissions.AdminManage)]
 public class AuditLogController : ControllerBase
 {
     private readonly AuditLogService _auditLogService;

@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.Domain.Constants;
 using ITSM.Application.Interfaces;
 using ITSM.Domain.Entities;
 
@@ -42,7 +43,7 @@ public class ProjectService
 
     public async Task<List<ProjectResponse>> GetAllProjectsAsync(long userId)
     {
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
 
         var projects = isAdmin
             ? await _projectRepository.GetAllAsync()
@@ -57,7 +58,7 @@ public class ProjectService
     // değiştirmeden, sadece sayfa istenince kullanılıyor.
     public async Task<PagedResult<ProjectResponse>> GetAllProjectsPagedAsync(long userId, string? search, string? sortBy, bool sortDescending, int page, int pageSize)
     {
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
 
         if (isAdmin)
         {
@@ -113,7 +114,7 @@ public class ProjectService
             return null;
         }
 
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
         if (isAdmin)
         {
             return MapToResponse(project);

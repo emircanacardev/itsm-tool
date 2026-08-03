@@ -1,6 +1,7 @@
 using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
 using ITSM.Application.Services;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using Moq;
 
@@ -8,7 +9,7 @@ namespace ITSM.UnitTests;
 
 public class AuthServiceTests
 {
-    private const string DefaultGroupName = "Atanmamış";
+    private const string DefaultGroupSystemKey = SystemGroupKeys.Unassigned;
 
     private readonly Mock<IUserRepository> _userRepository = new();
     private readonly Mock<IGroupRepository> _groupRepository = new();
@@ -114,7 +115,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_WhenDefaultGroupMissing_ReturnsNull()
     {
         _userRepository.Setup(r => r.GetByEmailAsync("yeni@turkcell.com.tr")).ReturnsAsync((User?)null);
-        _groupRepository.Setup(g => g.GetByNameAsync(DefaultGroupName)).ReturnsAsync((Group?)null);
+        _groupRepository.Setup(g => g.GetBySystemKeyAsync(DefaultGroupSystemKey)).ReturnsAsync((Group?)null);
 
         var request = new RegisterRequest
         {
@@ -132,9 +133,16 @@ public class AuthServiceTests
     [Fact]
     public async Task RegisterAsync_WhenEmailIsNew_CreatesUserAndReturnsToken()
     {
-        var defaultGroup = new Group { Id = 1, Name = DefaultGroupName };
+        // Grubun görünen adı kasıtlı olarak "Atanmamış" değil: kod gruba
+        // SystemKey ile ulaşıyor, ad değişse de kayıt akışı bozulmamalı.
+        var defaultGroup = new Group
+        {
+            Id = 1,
+            Name = "Herhangi Bir Ad",
+            SystemKey = DefaultGroupSystemKey
+        };
         _userRepository.Setup(r => r.GetByEmailAsync("yeni@turkcell.com.tr")).ReturnsAsync((User?)null);
-        _groupRepository.Setup(g => g.GetByNameAsync(DefaultGroupName)).ReturnsAsync(defaultGroup);
+        _groupRepository.Setup(g => g.GetBySystemKeyAsync(DefaultGroupSystemKey)).ReturnsAsync(defaultGroup);
         _passwordHasher.Setup(h => h.Hash("1234")).Returns("hashed-1234");
         _jwtTokenGenerator.Setup(j => j.GenerateToken(It.IsAny<User>())).Returns("fake-jwt-token");
 
@@ -207,5 +215,69 @@ public class AuthServiceTests
 
         Assert.NotNull(result);
         Assert.False(result!.IsAdmin);
+    }
+
+    [Theory]
+    [InlineData(SupportedLanguages.Turkish)]
+    [InlineData(SupportedLanguages.English)]
+    public async Task UpdateLanguageAsync_SupportedLanguage_PersistsPreference(string language)
+    {
+        var user = CreateUser();
+        user.PreferredLanguage = SupportedLanguages.Turkish;
+        _userRepository.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
+
+        var result = await _service.UpdateLanguageAsync(user.Id, language);
+
+        Assert.True(result);
+        Assert.Equal(language, user.PreferredLanguage);
+        _userRepository.Verify(r => r.UpdateAsync(user), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("de")]
+    [InlineData("en-US")]
+    [InlineData("")]
+    public async Task UpdateLanguageAsync_UnsupportedLanguage_IsRejected(string language)
+    {
+        var user = CreateUser();
+        user.PreferredLanguage = SupportedLanguages.Turkish;
+        _userRepository.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
+
+        var result = await _service.UpdateLanguageAsync(user.Id, language);
+
+        // Desteklenmeyen kod sessizce varsayılana düşmemeli; istemci hatalı
+        // bir değer gönderdiğini fark edebilmeli. "en-US" de reddediliyor
+        // çünkü saklanan değer tam olarak desteklenen kodlardan biri olmalı.
+        Assert.False(result);
+        Assert.Equal(SupportedLanguages.Turkish, user.PreferredLanguage);
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateLanguageAsync_UnknownUser_ReturnsFalse()
+    {
+        _userRepository.Setup(r => r.GetByIdAsync(It.IsAny<long>())).ReturnsAsync((User?)null);
+
+        var result = await _service.UpdateLanguageAsync(999, SupportedLanguages.English);
+
+        Assert.False(result);
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetCurrentUserAsync_ReturnsPreferredLanguage()
+    {
+        var user = CreateUser();
+        user.PreferredLanguage = SupportedLanguages.English;
+        _userRepository.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
+        _userPermissionRepository
+            .Setup(r => r.GetByUserIdAsync(user.Id))
+            .ReturnsAsync([]);
+
+        var result = await _service.GetCurrentUserAsync(user.Id);
+
+        // Frontend giriş sonrası arayüz dilini bu alandan eşitliyor.
+        Assert.NotNull(result);
+        Assert.Equal(SupportedLanguages.English, result!.PreferredLanguage);
     }
 }

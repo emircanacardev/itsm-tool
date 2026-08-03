@@ -6,8 +6,10 @@ public interface IDashboardRepository
     // kullanıcının oluşturduğu/atandığı/üyesi olduğu proje ticket'ları
     // (bkz. TicketRepository.GetAllAsync'teki aynı görünürlük filtresi).
     Task<int> GetTotalTicketCountAsync(long userId, bool includeAll);
-    Task<List<(long StatusId, string StatusName, int Count)>> GetTicketCountsByStatusAsync(long userId, bool includeAll);
-    Task<List<(long PriorityId, string PriorityName, int Count)>> GetTicketCountsByPriorityAsync(long userId, bool includeAll);
+    // Durum/öncelik adları languageCode'a göre çevrilmiş olarak döner;
+    // çevirisi olmayan diller entity'nin kendi Name alanına düşer.
+    Task<List<(long StatusId, string StatusName, int Count)>> GetTicketCountsByStatusAsync(long userId, bool includeAll, string languageCode);
+    Task<List<(long PriorityId, string PriorityName, int Count)>> GetTicketCountsByPriorityAsync(long userId, bool includeAll, string languageCode);
     Task<(int TotalWithSla, int BreachedCount)> GetSlaComplianceDataAsync(long userId, bool includeAll);
 
     // Açık (çözülmemiş/kapatılmamış) ve teslim tarihi 2 saat içinde olan ya da
@@ -17,5 +19,5 @@ public interface IDashboardRepository
     // Bugün (UTC gün sınırı) çözülmüş ticket sayısı.
     Task<int> GetResolvedTodayCountAsync(long userId, bool includeAll);
 
-    Task<List<(long Id, string Title, string StatusName, string PriorityName, DateTimeOffset? DueAt, DateTimeOffset CreatedAt)>> GetRecentTicketsAsync(long userId, bool includeAll, int count);
+    Task<List<(long Id, string Title, long StatusId, string StatusName, long PriorityId, string PriorityName, DateTimeOffset? DueAt, DateTimeOffset CreatedAt)>> GetRecentTicketsAsync(long userId, bool includeAll, int count, string languageCode);
 }

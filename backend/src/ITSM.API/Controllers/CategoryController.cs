@@ -1,4 +1,7 @@
-﻿using ITSM.Application.DTOs;
+﻿using ITSM.Application;
+using ITSM.Application.DTOs;
+using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,14 +14,16 @@ namespace ITSM.API.Controllers;
 public class CategoryController : ControllerBase
 {
     private readonly CategoryService _categoryService;
+    private readonly ILocalizedMessageProvider _messageProvider;
 
-    public CategoryController(CategoryService categoryService)
+    public CategoryController(CategoryService categoryService, ILocalizedMessageProvider messageProvider)
     {
         _categoryService = categoryService;
+        _messageProvider = messageProvider;
     }
 
     [HttpPost]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> CreateCategory(long projectId, CreateCategoryRequest request)
     {
         var result = await _categoryService.CreateCategoryAsync(projectId, request);
@@ -48,7 +53,7 @@ public class CategoryController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> UpdateCategory(long projectId, long id, UpdateCategoryRequest request)
     {
         var success = await _categoryService.UpdateCategoryAsync(projectId, id, request);
@@ -60,14 +65,14 @@ public class CategoryController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> DeleteCategory(long projectId, long id)
     {
         var result = await _categoryService.DeleteCategoryAsync(projectId, id);
         return result switch
         {
             DeleteCategoryResult.NotFound => NotFound(),
-            DeleteCategoryResult.InUse => Conflict("Bu kategoriye bağlı talepler var, önce onları taşıyın veya silin."),
+            DeleteCategoryResult.InUse => Conflict(_messageProvider.Get(MessageKeys.ErrorCategoryInUse)),
             _ => NoContent()
         };
     }

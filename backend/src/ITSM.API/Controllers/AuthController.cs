@@ -1,3 +1,4 @@
+using ITSM.API.Extensions;
 using ITSM.Application.DTOs;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -46,8 +47,7 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _authService.GetCurrentUserAsync(userId);
         if (result is null)
@@ -56,5 +56,25 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Kullanıcının kendi dil tercihini günceller. Bu tercih, HTTP isteği
+    /// bulunmayan bağlamlarda (SLA ihlal taraması gibi arka plan servisleri
+    /// ve e-postalar) hangi dilin kullanılacağını belirler.
+    /// </summary>
+    [HttpPut("me/language")]
+    [Authorize]
+    public async Task<IActionResult> UpdateLanguage(UpdateLanguageRequest request)
+    {
+        var userId = User.GetUserId();
+
+        var updated = await _authService.UpdateLanguageAsync(userId, request.Language);
+        if (!updated)
+        {
+            return BadRequest();
+        }
+
+        return NoContent();
     }
 }

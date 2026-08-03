@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 
 namespace ITSM.Infrastructure.Authorization;
@@ -16,7 +17,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
-        var userIdClaim = context.User.FindFirst("sub")?.Value;
+        var userIdClaim = context.User.FindFirst(ClaimNames.UserId)?.Value;
         if (userIdClaim is null)
         {
             return;

@@ -1,26 +1,17 @@
 import { enhanceSelect } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
+import {
+  STATUS_BADGE_MAP,
+  PRIORITY_BADGE_MAP,
+  NEUTRAL_BADGE,
+  isClosedStatus
+} from '../constants.js';
 
-const STATUS_BADGE_MAP = {
-  'Açık': { bg: 'var(--status-open-bg)', fg: 'var(--status-open-fg)' },
-  'Devam Ediyor': { bg: 'var(--status-inprogress-bg)', fg: 'var(--status-inprogress-fg)' },
-  'Beklemede': { bg: 'var(--status-pending-bg)', fg: 'var(--status-pending-fg)' },
-  'Çözüldü': { bg: 'var(--status-resolved-bg)', fg: 'var(--status-resolved-fg)' },
-  'Kapatıldı': { bg: 'var(--status-closed-bg)', fg: 'var(--status-closed-fg)' }
-};
-
-const PRIORITY_BADGE_MAP = {
-  'Kritik': { bg: 'var(--priority-critical-bg)', fg: 'var(--priority-critical-fg)' },
-  'Yüksek': { bg: 'var(--priority-high-bg)', fg: 'var(--priority-high-fg)' },
-  'Orta': { bg: 'var(--priority-medium-bg)', fg: 'var(--priority-medium-fg)' },
-  'Düşük': { bg: 'var(--priority-low-bg)', fg: 'var(--priority-low-fg)' }
-};
-
-const CLOSED_STATUS_NAMES = ['Çözüldü', 'Kapatıldı'];
 const TYPE_LABEL_KEYS = { Incident: 'detail.typeIncident', ServiceRequest: 'detail.typeServiceRequest' };
 
-function applyBadge(el, name, colorMap) {
-  const colors = colorMap[name] || { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };
+// Renk Id ile seçiliyor, gösterilen metin çevrilmiş ad.
+function applyBadge(el, id, name, colorMap) {
+  const colors = colorMap[id] || NEUTRAL_BADGE;
   el.style.background = colors.bg;
   el.style.color = colors.fg;
   el.textContent = name;
@@ -35,7 +26,7 @@ function formatDateTime(isoString) {
 }
 
 function renderDue(ticket) {
-  if (CLOSED_STATUS_NAMES.includes(ticket.statusName)) {
+  if (isClosedStatus(ticket.statusId)) {
     return { text: formatDateTime(ticket.dueAt), className: 'due-done' };
   }
   if (!ticket.dueAt) {
@@ -160,8 +151,8 @@ export function render(container, ticketId) {
     container.querySelector('#ticketIdLabel').textContent = `#${ticket.id}`;
     container.querySelector('#ticketTitle').textContent = ticket.title;
     container.querySelector('#ticketDescription').textContent = ticket.description || t('detail.noDescription');
-    applyBadge(container.querySelector('#statusBadge'), ticket.statusName, STATUS_BADGE_MAP);
-    applyBadge(container.querySelector('#priorityBadge'), ticket.priorityName, PRIORITY_BADGE_MAP);
+    applyBadge(container.querySelector('#statusBadge'), ticket.statusId, ticket.statusName, STATUS_BADGE_MAP);
+    applyBadge(container.querySelector('#priorityBadge'), ticket.priorityId, ticket.priorityName, PRIORITY_BADGE_MAP);
 
     container.querySelector('#metaProject').textContent = ticket.projectName;
     container.querySelector('#metaCategory').textContent = ticket.categoryName;

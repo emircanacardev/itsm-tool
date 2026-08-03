@@ -2,6 +2,7 @@ import { enhanceSelect } from '../customSelect.js';
 import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
 import { showConfirmDialog } from '../confirmDialog.js';
+import { PRIORITY_BADGE_MAP, NEUTRAL_BADGE } from '../constants.js';
 
 const ACTION_BADGE_MAP = {
   Added: { i18nKey: 'admin.actionAdded', bg: 'var(--status-resolved-bg)', fg: 'var(--status-resolved-fg)' },
@@ -133,17 +134,10 @@ function actionBadge(action) {
   return span;
 }
 
-// Ticket listesindeki öncelik rozetleriyle aynı renk/desen - kullanıcı aynı
-// önceliği hem talep listesinde hem admin panelinde aynı renkte tanısın.
-const PRIORITY_BADGE_MAP = {
-  'Kritik': { bg: 'var(--priority-critical-bg)', fg: 'var(--priority-critical-fg)' },
-  'Yüksek': { bg: 'var(--priority-high-bg)', fg: 'var(--priority-high-fg)' },
-  'Orta': { bg: 'var(--priority-medium-bg)', fg: 'var(--priority-medium-fg)' },
-  'Düşük': { bg: 'var(--priority-low-bg)', fg: 'var(--priority-low-fg)' }
-};
-
-function priorityBadge(name) {
-  const colors = PRIORITY_BADGE_MAP[name] || { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };
+// Renkler constants.js'ten geliyor (ticket listesiyle aynı kaynak), böylece
+// kullanıcı aynı önceliği her ekranda aynı renkte tanıyor.
+function priorityBadge(priorityId, name) {
+  const colors = PRIORITY_BADGE_MAP[priorityId] || NEUTRAL_BADGE;
   const span = document.createElement('span');
   span.className = 'badge';
   span.style.background = colors.bg;
@@ -2084,7 +2078,7 @@ function renderSlaSection(section) {
       categoryCell.textContent = sla.categoryId ? (category ? category.name : `#${sla.categoryId}`) : t('admin.allCategories');
 
       const priorityCell = document.createElement('td');
-      priorityCell.appendChild(priorityBadge(sla.priorityName));
+      priorityCell.appendChild(priorityBadge(sla.priorityId, sla.priorityName));
 
       const responseCell = document.createElement('td');
       responseCell.className = 'col-center';

@@ -1,3 +1,4 @@
+using ITSM.Domain.Constants;
 using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
 using ITSM.Domain.Entities;
@@ -6,10 +7,6 @@ namespace ITSM.Application.Services;
 
 public class AuthService
 {
-    // Kayıt olan kullanıcılar, admin panelden gerçek departmana taşınana kadar bu gruba düşer.
-    // Bkz: database/scripts/seed/001_seed_reference_data.sql
-    private const string DefaultGroupName = "Atanmamış";
-
     private readonly IUserRepository _userRepository;
     private readonly IGroupRepository _groupRepository;
     private readonly IPasswordHasher _passwordHasher;
@@ -61,10 +58,10 @@ public class AuthService
             return null;
         }
 
-        var defaultGroup = await _groupRepository.GetByNameAsync(DefaultGroupName);
+        var defaultGroup = await _groupRepository.GetBySystemKeyAsync(SystemGroupKeys.Unassigned);
         if (defaultGroup is null)
         {
-            // "Atanmamış" grubu DB'de yoksa kayıt yapılamaz.
+            // Varsayılan grup DB'de yoksa kayıt yapılamaz.
             // Bkz: database/scripts/seed/001_seed_reference_data.sql
             return null;
         }
@@ -93,7 +90,7 @@ public class AuthService
         }
 
         var permissions = await _permissionService.GetUserPermissionsAsync(userId);
-        var isAdmin = permissions.Any(p => p.PermissionCode == "ADMIN_MANAGE");
+        var isAdmin = permissions.Any(p => p.PermissionCode == Permissions.AdminManage);
 
         return new CurrentUserResponse
         {
@@ -103,7 +100,33 @@ public class AuthService
             GroupId = user.GroupId,
             GroupName = user.Group.Name,
             IsAdmin = isAdmin,
+            PreferredLanguage = user.PreferredLanguage,
             Permissions = permissions
         };
+    }
+
+    /// <summary>
+    /// Kullanıcının dil tercihini günceller. Desteklenmeyen bir dil kodu
+    /// gelirse false döner; sessizce varsayılana düşmüyoruz ki istemci
+    /// hatalı bir kod gönderdiğini fark edebilsin.
+    /// </summary>
+    public async Task<bool> UpdateLanguageAsync(long userId, string languageCode)
+    {
+        if (!SupportedLanguages.All.Contains(languageCode))
+        {
+            return false;
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.PreferredLanguage = languageCode;
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+        return true;
     }
 }

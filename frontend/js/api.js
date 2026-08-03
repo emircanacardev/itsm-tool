@@ -8,6 +8,9 @@ async function apiRequest(path, options = {}) {
     // FormData ile dosya yüklerken Content-Type'ı biz set etmemeliyiz;
     // tarayıcı, multipart boundary'sini kendisi ekliyor.
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    // Backend yanıtı bu başlığa göre çeviriyor: durum/öncelik adları,
+    // bildirim metinleri ve hata mesajları seçili dilde dönüyor.
+    'Accept-Language': getLanguage(),
     ...options.headers
   };
 
@@ -25,7 +28,7 @@ async function apiRequest(path, options = {}) {
       localStorage.removeItem('token');
       window.location.hash = '#/login';
     }
-    throw new Error(`API isteği başarısız: ${response.status}`);
+    throw new Error(`API request failed: ${response.status}`);
   }
 
   if (response.status === 204) {
