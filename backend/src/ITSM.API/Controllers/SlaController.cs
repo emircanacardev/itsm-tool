@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,7 @@ public class SlaController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> CreateSla(CreateSlaRequest request)
     {
         var result = await _slaService.CreateSlaAsync(request);
@@ -48,7 +49,7 @@ public class SlaController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> UpdateSla(long id, UpdateSlaRequest request)
     {
         var success = await _slaService.UpdateSlaAsync(id, request);
@@ -60,7 +61,7 @@ public class SlaController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> DeleteSla(long id)
     {
         var success = await _slaService.DeleteSlaAsync(id);

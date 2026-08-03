@@ -17,14 +17,14 @@ public class SlaRepository : ISlaRepository
     public async Task<Sla?> GetByIdAsync(long id)
     {
         return await _context.Slas
-            .Include(s => s.Priority)
+            .Include(s => s.Priority).ThenInclude(p => p.Translations)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task<List<Sla>> GetAllAsync()
     {
         return await _context.Slas
-            .Include(s => s.Priority)
+            .Include(s => s.Priority).ThenInclude(p => p.Translations)
             .ToListAsync();
     }
 

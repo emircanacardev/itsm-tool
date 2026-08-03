@@ -65,7 +65,7 @@ export function render(container) {
       await register(fullName, email, password);
       window.location.hash = '#/tickets';
     } catch (error) {
-      errorMessage.textContent = error.message === 'E-posta zaten kayıtlı'
+      errorMessage.textContent = error.message === AUTH_ERROR_EMAIL_TAKEN
         ? t('register.errorEmailTaken')
         : t('register.error');
       errorMessage.style.display = 'block';

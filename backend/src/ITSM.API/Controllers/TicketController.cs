@@ -1,4 +1,6 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.API.Extensions;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +22,7 @@ public class TicketController : ControllerBase
     }
 
     [HttpGet("assignable-users")]
-    [Authorize(Policy = "TICKET_ASSIGN")]
+    [Authorize(Policy = Permissions.TicketAssign)]
     public async Task<IActionResult> GetAssignableUsers()
     {
         var result = await _userService.GetAssignableUsersAsync();
@@ -28,11 +30,10 @@ public class TicketController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "TICKET_CREATE")]
+    [Authorize(Policy = Permissions.TicketCreate)]
     public async Task<IActionResult> CreateTicket(CreateTicketRequest request)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _ticketService.CreateTicketAsync(request, userId);
         
@@ -42,8 +43,7 @@ public class TicketController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllTickets([FromQuery] TicketFilterRequest filter)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _ticketService.GetAllTicketsAsync(userId, filter);
 
@@ -53,8 +53,7 @@ public class TicketController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTicketById(long id)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _ticketService.GetTicketByIdAsync(id, userId);
 
@@ -67,11 +66,10 @@ public class TicketController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize(Policy = "TICKET_STATUS_UPDATE")]
+    [Authorize(Policy = Permissions.TicketStatusUpdate)]
     public async Task<IActionResult> UpdateStatus(long id, UpdateTicketStatusRequest request)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var success = await _ticketService.UpdateTicketStatusAsync(id, request.NewStatusId, userId);
 
@@ -85,11 +83,10 @@ public class TicketController : ControllerBase
     }
 
     [HttpPut("{id}/assign")]
-    [Authorize(Policy = "TICKET_ASSIGN")]
+    [Authorize(Policy = Permissions.TicketAssign)]
     public async Task<IActionResult> AssignTicket(long id, AssignTicketRequest request)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var success = await _ticketService.AssignTicketAsync(id, request.AssignedTo, userId, request.Note);
         if (!success)

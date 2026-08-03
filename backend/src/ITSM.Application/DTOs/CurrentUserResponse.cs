@@ -8,5 +8,12 @@ public class CurrentUserResponse
     public long GroupId { get; set; }
     public required string GroupName { get; set; }
     public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Kullanıcının kayıtlı dil tercihi. Frontend, giriş sonrası arayüz
+    /// dilini bununla eşitler.
+    /// </summary>
+    public required string PreferredLanguage { get; set; }
+
     public List<UserPermissionResponse> Permissions { get; set; } = new();
 }

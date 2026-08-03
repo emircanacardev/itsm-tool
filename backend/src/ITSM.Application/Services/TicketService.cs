@@ -1,6 +1,10 @@
-﻿using ITSM.Application.DTOs;
+﻿using ITSM.Application.Configuration;
+using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
+using ITSM.Application.Notifications;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
+using Microsoft.Extensions.Options;
 
 namespace ITSM.Application.Services;
 
@@ -12,6 +16,9 @@ public class TicketService
     private readonly NotificationService _notificationService;
     private readonly ISlaRepository _slaRepository;
     private readonly AutoAssignmentService _autoAssignmentService;
+    private readonly ICurrentLanguageProvider _languageProvider;
+    private readonly ILocalizedMessageProvider _messageProvider;
+    private readonly PaginationOptions _paginationOptions;
 
     public TicketService(
         ITicketRepository ticketRepository,
@@ -19,14 +26,20 @@ public class TicketService
         IProjectMemberRepository projectMemberRepository,
         NotificationService notificationService,
         ISlaRepository slaRepository,
-        AutoAssignmentService autoAssignmentService)
+        AutoAssignmentService autoAssignmentService,
+        ICurrentLanguageProvider languageProvider,
+        ILocalizedMessageProvider messageProvider,
+        IOptions<PaginationOptions> paginationOptions)
     {
+        _messageProvider = messageProvider;
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
         _projectMemberRepository = projectMemberRepository;
         _notificationService = notificationService;
         _slaRepository = slaRepository;
         _autoAssignmentService = autoAssignmentService;
+        _languageProvider = languageProvider;
+        _paginationOptions = paginationOptions.Value;
     }
 
     public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, long createdByUserId)
@@ -38,7 +51,7 @@ public class TicketService
             TicketType = request.TicketType,
             Title = request.Title,
             Description = request.Description,
-            StatusId = 10, // "Açık"
+            StatusId = TicketStatuses.Default,
             PriorityId = request.PriorityId,
             CreatedBy = createdByUserId
         };
@@ -70,7 +83,9 @@ public class TicketService
                 AssignedFrom = null,
                 AssignedTo = autoAssignedUserId.Value,
                 AssignedBy = createdByUserId,
-                Note = "Otomatik atama kuralına göre atandı."
+                // Sistem üretimli not; kullanıcının yazdığı notlarla aynı alanı
+                // paylaştığı için burada da çevrilmiş metin saklanıyor.
+                Note = _messageProvider.Get(MessageKeys.AssignmentNoteAutoAssigned)
             };
 
             await _ticketRepository.AssignAsync(ticket, assignment);
@@ -78,12 +93,12 @@ public class TicketService
             await _notificationService.CreateNotificationAsync(
                 autoAssignedUserId.Value,
                 ticket.Id,
-                "TicketAssigned",
-                $"\"{ticket.Title}\" başlıklı talep otomatik olarak size atandı.");
+                NotificationTypes.TicketAutoAssigned,
+                new NotificationPayload { TicketTitle = ticket.Title });
         }
 
         var createdTicket = await _ticketRepository.GetByIdAsync(ticket.Id);
-        return MapToResponse(createdTicket!);
+        return MapToResponse(createdTicket!, _languageProvider.GetCurrentLanguage());
     }
 
     public async Task<TicketResponse?> GetTicketByIdAsync(long id, long userId)
@@ -94,10 +109,10 @@ public class TicketService
             return null;
         }
 
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
         if (isAdmin)
         {
-            return MapToResponse(ticket);
+            return MapToResponse(ticket, _languageProvider.GetCurrentLanguage());
         }
 
         var isCreator = ticket.CreatedBy == userId;
@@ -109,16 +124,16 @@ public class TicketService
             return null;
         }
 
-        return MapToResponse(ticket);
+        return MapToResponse(ticket, _languageProvider.GetCurrentLanguage());
     }
 
     public async Task<PagedResult<TicketResponse>> GetAllTicketsAsync(long userId, TicketFilterRequest filter)
     {
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
 
         // Sayfa/sayfa boyutu için mantıksız/kötü niyetli değerlere karşı sınır koyuyoruz.
-        var page = filter.Page < 1 ? 1 : filter.Page;
-        var pageSize = filter.PageSize is < 1 or > 100 ? 20 : filter.PageSize;
+        var page = _paginationOptions.NormalizePage(filter.Page);
+        var pageSize = _paginationOptions.NormalizePageSize(filter.PageSize);
 
         var (items, totalCount) = await _ticketRepository.GetAllAsync(
             userId,
@@ -134,16 +149,18 @@ public class TicketService
             page: page,
             pageSize: pageSize);
 
+        var language = _languageProvider.GetCurrentLanguage();
+
         return new PagedResult<TicketResponse>
         {
-            Items = items.Select(MapToResponse).ToList(),
+            Items = items.Select(t => MapToResponse(t, language)).ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
         };
     }
 
-    private static TicketResponse MapToResponse(Ticket ticket)
+    private static TicketResponse MapToResponse(Ticket ticket, string language)
     {
         return new TicketResponse
         {
@@ -151,9 +168,9 @@ public class TicketService
             Title = ticket.Title,
             Description = ticket.Description,
             StatusId = ticket.StatusId,
-            StatusName = ticket.Status.Name,
+            StatusName = ticket.Status.GetLocalizedName(language),
             PriorityId = ticket.PriorityId,
-            PriorityName = ticket.Priority.Name,
+            PriorityName = ticket.Priority.GetLocalizedName(language),
             ProjectId = ticket.ProjectId,
             ProjectName = ticket.Project.Name,
             CategoryId = ticket.CategoryId,
@@ -186,6 +203,19 @@ public class TicketService
 
         ticket.StatusId = newStatusId;
 
+        // Talep "Çözüldü"ye geçtiğinde çözülme anını damgalıyoruz; dashboard'daki
+        // "Bugün Çözülen" sayacı bu alanı okuyor. Tekrar açılırsa (Çözüldü'den
+        // başka bir duruma dönerse) damga temizlenmeli, yoksa kapanmamış bir
+        // talep çözülmüş gibi sayılır.
+        if (newStatusId == TicketStatuses.Cozuldu)
+        {
+            ticket.ResolvedAt ??= DateTimeOffset.UtcNow;
+        }
+        else if (newStatusId != TicketStatuses.Kapatildi)
+        {
+            ticket.ResolvedAt = null;
+        }
+
         await _ticketRepository.UpdateStatusAsync(ticket, history);
 
         if (ticket.CreatedBy != changedByUserId)
@@ -193,8 +223,8 @@ public class TicketService
             await _notificationService.CreateNotificationAsync(
                 ticket.CreatedBy,
                 ticket.Id,
-                "TicketStatusChanged",
-                $"\"{ticket.Title}\" başlıklı talebinizin durumu güncellendi.");
+                NotificationTypes.TicketStatusChanged,
+                new NotificationPayload { TicketTitle = ticket.Title });
         }
 
         return true;
@@ -226,8 +256,8 @@ public class TicketService
             await _notificationService.CreateNotificationAsync(
                 assignedToUserId,
                 ticket.Id,
-                "TicketAssigned",
-                $"\"{ticket.Title}\" başlıklı talep size atandı.");
+                NotificationTypes.TicketAssigned,
+                new NotificationPayload { TicketTitle = ticket.Title });
         }
 
         return true;

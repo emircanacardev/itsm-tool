@@ -1,6 +1,7 @@
 using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
 using ITSM.Application.Services;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using Moq;
 
@@ -9,11 +10,16 @@ namespace ITSM.UnitTests;
 public class SlaServiceTests
 {
     private readonly Mock<ISlaRepository> _slaRepository = new();
+    private readonly Mock<ICurrentLanguageProvider> _languageProvider = new();
     private readonly SlaService _service;
 
     public SlaServiceTests()
     {
-        _service = new SlaService(_slaRepository.Object);
+        _languageProvider
+            .Setup(p => p.GetCurrentLanguage())
+            .Returns(SupportedLanguages.Turkish);
+
+        _service = new SlaService(_slaRepository.Object, _languageProvider.Object);
     }
 
     [Fact]

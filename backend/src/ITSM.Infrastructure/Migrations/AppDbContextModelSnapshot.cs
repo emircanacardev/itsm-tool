@@ -222,7 +222,15 @@ namespace ITSM.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("SystemKey")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("SystemKey")
+                        .IsUnique()
+                        .HasFilter("\"SystemKey\" IS NOT NULL");
 
                     b.ToTable("Groups");
                 });
@@ -287,9 +295,8 @@ namespace ITSM.Infrastructure.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<string>("PayloadJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<long?>("TicketId")
                         .HasColumnType("bigint");
@@ -387,6 +394,75 @@ namespace ITSM.Infrastructure.Migrations
                             Id = 40L,
                             Name = "Düşük",
                             SortOrder = 40
+                        });
+                });
+
+            modelBuilder.Entity("ITSM.Domain.Entities.PriorityTranslation", b =>
+                {
+                    b.Property<long>("PriorityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("PriorityId", "LanguageCode");
+
+                    b.ToTable("PriorityTranslations");
+
+                    b.HasData(
+                        new
+                        {
+                            PriorityId = 10L,
+                            LanguageCode = "tr",
+                            Name = "Kritik"
+                        },
+                        new
+                        {
+                            PriorityId = 20L,
+                            LanguageCode = "tr",
+                            Name = "Yüksek"
+                        },
+                        new
+                        {
+                            PriorityId = 30L,
+                            LanguageCode = "tr",
+                            Name = "Orta"
+                        },
+                        new
+                        {
+                            PriorityId = 40L,
+                            LanguageCode = "tr",
+                            Name = "Düşük"
+                        },
+                        new
+                        {
+                            PriorityId = 10L,
+                            LanguageCode = "en",
+                            Name = "Critical"
+                        },
+                        new
+                        {
+                            PriorityId = 20L,
+                            LanguageCode = "en",
+                            Name = "High"
+                        },
+                        new
+                        {
+                            PriorityId = 30L,
+                            LanguageCode = "en",
+                            Name = "Medium"
+                        },
+                        new
+                        {
+                            PriorityId = 40L,
+                            LanguageCode = "en",
+                            Name = "Low"
                         });
                 });
 
@@ -566,6 +642,87 @@ namespace ITSM.Infrastructure.Migrations
                             Id = 50L,
                             Name = "Kapatıldı",
                             SortOrder = 50
+                        });
+                });
+
+            modelBuilder.Entity("ITSM.Domain.Entities.StatusTranslation", b =>
+                {
+                    b.Property<long>("StatusId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("StatusId", "LanguageCode");
+
+                    b.ToTable("StatusTranslations");
+
+                    b.HasData(
+                        new
+                        {
+                            StatusId = 10L,
+                            LanguageCode = "tr",
+                            Name = "Açık"
+                        },
+                        new
+                        {
+                            StatusId = 20L,
+                            LanguageCode = "tr",
+                            Name = "Devam Ediyor"
+                        },
+                        new
+                        {
+                            StatusId = 30L,
+                            LanguageCode = "tr",
+                            Name = "Beklemede"
+                        },
+                        new
+                        {
+                            StatusId = 40L,
+                            LanguageCode = "tr",
+                            Name = "Çözüldü"
+                        },
+                        new
+                        {
+                            StatusId = 50L,
+                            LanguageCode = "tr",
+                            Name = "Kapatıldı"
+                        },
+                        new
+                        {
+                            StatusId = 10L,
+                            LanguageCode = "en",
+                            Name = "Open"
+                        },
+                        new
+                        {
+                            StatusId = 20L,
+                            LanguageCode = "en",
+                            Name = "In Progress"
+                        },
+                        new
+                        {
+                            StatusId = 30L,
+                            LanguageCode = "en",
+                            Name = "On Hold"
+                        },
+                        new
+                        {
+                            StatusId = 40L,
+                            LanguageCode = "en",
+                            Name = "Resolved"
+                        },
+                        new
+                        {
+                            StatusId = 50L,
+                            LanguageCode = "en",
+                            Name = "Closed"
                         });
                 });
 
@@ -752,6 +909,13 @@ namespace ITSM.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("PreferredLanguage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasDefaultValue("tr");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -932,6 +1096,17 @@ namespace ITSM.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ITSM.Domain.Entities.PriorityTranslation", b =>
+                {
+                    b.HasOne("ITSM.Domain.Entities.Priority", "Priority")
+                        .WithMany("Translations")
+                        .HasForeignKey("PriorityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Priority");
+                });
+
             modelBuilder.Entity("ITSM.Domain.Entities.ProjectMember", b =>
                 {
                     b.HasOne("ITSM.Domain.Entities.Project", "Project")
@@ -985,6 +1160,17 @@ namespace ITSM.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("ITSM.Domain.Entities.StatusTranslation", b =>
+                {
+                    b.HasOne("ITSM.Domain.Entities.Status", "Status")
+                        .WithMany("Translations")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Status");
                 });
 
             modelBuilder.Entity("ITSM.Domain.Entities.Ticket", b =>
@@ -1148,6 +1334,16 @@ namespace ITSM.Infrastructure.Migrations
             modelBuilder.Entity("ITSM.Domain.Entities.Group", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("ITSM.Domain.Entities.Priority", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("ITSM.Domain.Entities.Status", b =>
+                {
+                    b.Navigation("Translations");
                 });
 #pragma warning restore 612, 618
         }

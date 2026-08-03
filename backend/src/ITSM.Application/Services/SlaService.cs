@@ -7,10 +7,12 @@ namespace ITSM.Application.Services;
 public class SlaService
 {
     private readonly ISlaRepository _slaRepository;
+    private readonly ICurrentLanguageProvider _languageProvider;
 
-    public SlaService(ISlaRepository slaRepository)
+    public SlaService(ISlaRepository slaRepository, ICurrentLanguageProvider languageProvider)
     {
         _slaRepository = slaRepository;
+        _languageProvider = languageProvider;
     }
 
     public async Task<SlaResponse?> CreateSlaAsync(CreateSlaRequest request)
@@ -35,13 +37,14 @@ public class SlaService
         await _slaRepository.AddAsync(sla);
 
         var created = await _slaRepository.GetByIdAsync(sla.Id);
-        return MapToResponse(created!);
+        return MapToResponse(created!, _languageProvider.GetCurrentLanguage());
     }
 
     public async Task<List<SlaResponse>> GetAllSlasAsync()
     {
         var slas = await _slaRepository.GetAllAsync();
-        return slas.Select(MapToResponse).ToList();
+        var language = _languageProvider.GetCurrentLanguage();
+        return slas.Select(s => MapToResponse(s, language)).ToList();
     }
 
     public async Task<SlaResponse?> GetSlaByIdAsync(long id)
@@ -51,7 +54,7 @@ public class SlaService
         {
             return null;
         }
-        return MapToResponse(sla);
+        return MapToResponse(sla, _languageProvider.GetCurrentLanguage());
     }
 
     public async Task<bool> UpdateSlaAsync(long id, UpdateSlaRequest request)
@@ -81,7 +84,7 @@ public class SlaService
         return true;
     }
 
-    private static SlaResponse MapToResponse(Sla sla)
+    private static SlaResponse MapToResponse(Sla sla, string language)
     {
         return new SlaResponse
         {
@@ -89,7 +92,7 @@ public class SlaService
             ProjectId = sla.ProjectId,
             CategoryId = sla.CategoryId,
             PriorityId = sla.PriorityId,
-            PriorityName = sla.Priority.Name,
+            PriorityName = sla.Priority.GetLocalizedName(language),
             ResponseTimeMinutes = sla.ResponseTimeMinutes,
             ResolutionTimeMinutes = sla.ResolutionTimeMinutes
         };

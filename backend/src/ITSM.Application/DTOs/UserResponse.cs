@@ -8,5 +8,6 @@ public class UserResponse
     public long GroupId { get; set; }
     public required string GroupName { get; set; }
     public bool IsActive { get; set; }
+    public required string PreferredLanguage { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

@@ -1,10 +1,14 @@
-﻿using ITSM.Application.Interfaces;
+﻿using ITSM.Application.Configuration;
+using ITSM.Application.Interfaces;
+using ITSM.Application.Notifications;
 using ITSM.Application.Services;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using ITSM.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 
 namespace ITSM.Infrastructure.BackgroundServices;
@@ -13,14 +17,16 @@ public class SlaBreachDetectionService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SlaBreachDetectionService> _logger;
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(1);
+    private readonly TimeSpan _checkInterval;
 
     public SlaBreachDetectionService(
         IServiceScopeFactory scopeFactory,
-        ILogger<SlaBreachDetectionService> logger)
+        ILogger<SlaBreachDetectionService> logger,
+        IOptions<SlaMonitoringOptions> options)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _checkInterval = TimeSpan.FromMinutes(options.Value.CheckIntervalMinutes);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -36,7 +42,7 @@ public class SlaBreachDetectionService : BackgroundService
                 _logger.LogError(ex, "SLA breach kontrolü sırasında hata oluştu.");
             }
 
-            await Task.Delay(CheckInterval, stoppingToken);
+            await Task.Delay(_checkInterval, stoppingToken);
         }
     }
 
@@ -90,21 +96,31 @@ public class SlaBreachDetectionService : BackgroundService
 
         await slaBreachRepository.AddAsync(breach);
 
-        var breachLabel = breachType == BreachType.Response ? "yanıt" : "çözüm";
-
+        // Metin burada kurulmuyor: bildirim tür + payload olarak saklanıyor,
+        // cümle okuma anında alıcının diline göre üretiliyor. Bu servis bir
+        // HTTP isteği bağlamında çalışmadığı için Accept-Language da yok.
         await notificationService.CreateNotificationAsync(
             ticket.CreatedBy,
             ticket.Id,
-            "SlaBreach",
-            $"\"{ticket.Title}\" başlıklı talepte SLA {breachLabel} süresi aşıldı.");
+            NotificationTypes.SlaBreach,
+            new NotificationPayload
+            {
+                TicketTitle = ticket.Title,
+                BreachType = breachType.ToString()
+            });
 
         if (breachType == BreachType.Resolution && ticket.AssignedTo.HasValue)
         {
             await notificationService.CreateNotificationAsync(
                 ticket.AssignedTo.Value,
                 ticket.Id,
-                "SlaBreach",
-                $"\"{ticket.Title}\" başlıklı size atanmış talepte SLA çözüm süresi aşıldı.");
+                NotificationTypes.SlaBreach,
+                new NotificationPayload
+                {
+                    TicketTitle = ticket.Title,
+                    BreachType = breachType.ToString(),
+                    IsAssigneeNotification = true
+                });
         }
     }
 }

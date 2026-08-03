@@ -1,34 +1,22 @@
 import { pulseLoader } from '../loading.js';
+import {
+  PRIORITY,
+  STATUS_DOT_COLORS,
+  PRIORITY_DOT_COLORS,
+  NEUTRAL_DOT_COLOR,
+  isClosedStatus
+} from '../constants.js';
 
-// Durum/öncelik renkleri tickets.js'teki aynı CSS değişkenlerinden -
-// admin panelinde ve ticket listesinde kullanılan renklerle tutarlı olsun diye.
-const STATUS_COLORS = {
-  'Açık': 'var(--status-open-fg)',
-  'Devam Ediyor': 'var(--status-inprogress-fg)',
-  'Beklemede': 'var(--status-pending-fg)',
-  'Çözüldü': 'var(--status-resolved-fg)',
-  'Kapatıldı': 'var(--status-closed-fg)'
-};
-
-const PRIORITY_COLORS = {
-  'Kritik': 'var(--priority-critical-fg)',
-  'Yüksek': 'var(--priority-high-fg)',
-  'Orta': 'var(--priority-medium-fg)',
-  'Düşük': 'var(--priority-low-fg)'
-};
-
-const CLOSED_STATUS_NAMES = ['Çözüldü', 'Kapatıldı'];
-
-function statusDot(name) {
+function statusDot(statusId, name) {
   const span = document.createElement('span');
   span.className = 'status-dot';
-  span.style.setProperty('--dot-color', STATUS_COLORS[name] || 'var(--color-text-muted)');
+  span.style.setProperty('--dot-color', STATUS_DOT_COLORS[statusId] || NEUTRAL_DOT_COLOR);
   span.textContent = name;
   return span;
 }
 
-function priorityBadge(name) {
-  const color = PRIORITY_COLORS[name] || 'var(--color-text-muted)';
+function priorityBadge(priorityId, name) {
+  const color = PRIORITY_DOT_COLORS[priorityId] || NEUTRAL_DOT_COLOR;
   const span = document.createElement('span');
   span.className = 'badge';
   span.style.color = color;
@@ -47,7 +35,7 @@ function formatDate(isoString) {
 // tickets.js'teki renderDueCell ile aynı eşikler (2 saat içinde/geçmiş =
 // risk altında) - backend'deki SlaAtRiskCount hesabıyla da tutarlı.
 function renderDueCell(ticket) {
-  if (CLOSED_STATUS_NAMES.includes(ticket.statusName)) {
+  if (isClosedStatus(ticket.statusId)) {
     return { text: t('tickets.dueDone'), className: 'due-done' };
   }
   if (!ticket.dueAt) {
@@ -120,8 +108,8 @@ function renderRecentTickets(listEl, tickets) {
 
     const meta = document.createElement('div');
     meta.className = 'recent-ticket-meta';
-    meta.appendChild(priorityBadge(ticket.priorityName));
-    meta.appendChild(statusDot(ticket.statusName));
+    meta.appendChild(priorityBadge(ticket.priorityId, ticket.priorityName));
+    meta.appendChild(statusDot(ticket.statusId, ticket.statusName));
 
     const due = renderDueCell(ticket);
     const dueSpan = document.createElement('span');
@@ -150,17 +138,17 @@ function renderRecentTickets(listEl, tickets) {
 function renderSummary(container, summary) {
   const statusMax = Math.max(1, ...summary.ticketsByStatus.map((s) => s.count));
   const priorityMax = Math.max(1, ...summary.ticketsByPriority.map((p) => p.count));
-  const criticalCount = summary.ticketsByPriority.find((p) => p.priorityName === 'Kritik')?.count || 0;
+  const criticalCount = summary.ticketsByPriority.find((p) => p.priorityId === PRIORITY.CRITICAL)?.count || 0;
 
   const statusRowsHtml = summary.ticketsByStatus.length > 0
     ? `<div class="bar-list">${summary.ticketsByStatus
-        .map((s) => barRow(s.statusName, s.count, statusMax, STATUS_COLORS[s.statusName] || 'var(--color-text-muted)'))
+        .map((s) => barRow(s.statusName, s.count, statusMax, STATUS_DOT_COLORS[s.statusId] || NEUTRAL_DOT_COLOR))
         .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
   const priorityRowsHtml = summary.ticketsByPriority.length > 0
     ? `<div class="bar-list">${summary.ticketsByPriority
-        .map((p) => barRow(p.priorityName, p.count, priorityMax, PRIORITY_COLORS[p.priorityName] || 'var(--color-text-muted)'))
+        .map((p) => barRow(p.priorityName, p.count, priorityMax, PRIORITY_DOT_COLORS[p.priorityId] || NEUTRAL_DOT_COLOR))
         .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 

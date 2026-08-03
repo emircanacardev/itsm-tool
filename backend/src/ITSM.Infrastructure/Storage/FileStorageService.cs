@@ -1,5 +1,7 @@
-﻿using ITSM.Application.Interfaces;
+﻿using ITSM.Application.Configuration;
+using ITSM.Application.Interfaces;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace ITSM.Infrastructure.Storage;
 
@@ -7,9 +9,9 @@ public class FileStorageService : IFileStorageService
 {
     private readonly string _basePath;
 
-    public FileStorageService(IWebHostEnvironment environment)
+    public FileStorageService(IWebHostEnvironment environment, IOptions<StorageOptions> options)
     {
-        _basePath = Path.Combine(environment.ContentRootPath, "Uploads");
+        _basePath = Path.Combine(environment.ContentRootPath, options.Value.UploadsFolder);
         Directory.CreateDirectory(_basePath);
     }
 

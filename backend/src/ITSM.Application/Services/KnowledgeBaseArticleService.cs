@@ -1,4 +1,5 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.Domain.Constants;
 using ITSM.Application.Interfaces;
 using ITSM.Domain.Entities;
 
@@ -37,7 +38,7 @@ public class KnowledgeBaseArticleService
 
     public async Task<List<ArticleResponse>> SearchArticlesAsync(string? searchTerm, long userId)
     {
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
         var articles = await _articleRepository.SearchAsync(searchTerm, userId, isAdmin);
         return articles.Select(MapToResponse).ToList();
     }
@@ -50,7 +51,7 @@ public class KnowledgeBaseArticleService
             return null;
         }
 
-        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, "ADMIN_MANAGE", null);
+        var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
         var isOwner = article.CreatedBy == userId;
 
         if (!article.IsPublished && !isAdmin && !isOwner)

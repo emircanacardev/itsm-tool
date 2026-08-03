@@ -1,3 +1,4 @@
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,9 @@ public class AppDbContext : DbContext
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Status> Statuses => Set<Status>();
+    public DbSet<StatusTranslation> StatusTranslations => Set<StatusTranslation>();
     public DbSet<Priority> Priorities => Set<Priority>();
+    public DbSet<PriorityTranslation> PriorityTranslations => Set<PriorityTranslation>();
     public DbSet<Sla> Slas => Set<Sla>();
     public DbSet<SlaBreach> SlaBreaches => Set<SlaBreach>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
@@ -79,7 +82,7 @@ public class AppDbContext : DbContext
 
     private long? GetCurrentUserId()
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
-        return userIdClaim is not null ? long.Parse(userIdClaim) : null;
+        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimNames.UserId)?.Value;
+        return long.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }

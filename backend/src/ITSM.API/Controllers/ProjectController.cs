@@ -1,7 +1,11 @@
 ﻿using ITSM.Application.DTOs;
+using ITSM.API.Extensions;
+using ITSM.Domain.Constants;
 using ITSM.Application.Services;
+using ITSM.Application.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace ITSM.API.Controllers;
 
@@ -11,14 +15,16 @@ namespace ITSM.API.Controllers;
 public class ProjectController : ControllerBase
 {
     private readonly ProjectService _projectService;
+    private readonly PaginationOptions _paginationOptions;
 
-    public ProjectController(ProjectService projectService)
+    public ProjectController(ProjectService projectService, IOptions<PaginationOptions> paginationOptions)
     {
         _projectService = projectService;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpPost]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> CreateProject(CreateProjectRequest request)
     {
         var result = await _projectService.CreateProjectAsync(request);
@@ -37,15 +43,20 @@ public class ProjectController : ControllerBase
         [FromQuery] string? sortBy,
         [FromQuery] bool sortDescending = false)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         // page verilmezse eski davranış (tam liste) korunuyor - dropdown'lar
         // (yeni talep formu, ticket filtresi, yetki verme ekranı) bunu bekliyor.
         // page verilince admin panelindeki Projeler tablosu için sayfalanmış sonuç dönülüyor.
         if (page.HasValue)
         {
-            var pagedResult = await _projectService.GetAllProjectsPagedAsync(userId, search, sortBy, sortDescending, page.Value, pageSize ?? 20);
+            var pagedResult = await _projectService.GetAllProjectsPagedAsync(
+                userId,
+                search,
+                sortBy,
+                sortDescending,
+                _paginationOptions.NormalizePage(page),
+                _paginationOptions.NormalizePageSize(pageSize));
             return Ok(pagedResult);
         }
 
@@ -56,8 +67,7 @@ public class ProjectController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProjectById(long id)
     {
-        var userIdClaim = User.FindFirst("sub")?.Value;
-        var userId = long.Parse(userIdClaim!);
+        var userId = User.GetUserId();
 
         var result = await _projectService.GetProjectByIdAsync(id, userId);
         if (result is null)
@@ -68,7 +78,7 @@ public class ProjectController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "ADMIN_MANAGE")]
+    [Authorize(Policy = Permissions.AdminManage)]
     public async Task<IActionResult> UpdateProject(long id, UpdateProjectRequest request)
     {
         var success = await _projectService.UpdateProjectAsync(id, request);

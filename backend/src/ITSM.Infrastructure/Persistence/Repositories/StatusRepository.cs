@@ -15,6 +15,11 @@ public class StatusRepository : IStatusRepository
 
     public async Task<List<Status>> GetAllAsync()
     {
-        return await _context.Statuses.OrderBy(s => s.SortOrder).ToListAsync();
+        // Çeviriler de yükleniyor; adın hangi dilde gösterileceğine
+        // servis katmanı karar veriyor.
+        return await _context.Statuses
+            .Include(s => s.Translations)
+            .OrderBy(s => s.SortOrder)
+            .ToListAsync();
     }
 }
