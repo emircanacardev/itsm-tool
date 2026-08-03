@@ -1108,6 +1108,21 @@ INSERT INTO "KnowledgeBaseArticles" ("ProjectId", "CategoryId", "Title", "Conten
      E'GSM 03.38 alfabesi Türkçe karakterlerin tamamını içermez; ş, ğ, İ, ı gibi karakterler bozulur.\n\nTürkçe karakter içeren mesajlarda UCS-2 kodlaması kullanılmalıdır. UCS-2''de tek parça mesaj 70 karakterdir (GSM 03.38''de 160), bu da mesajın birden fazla parçaya bölünmesine ve maliyetin artmasına yol açar.',
      true, 29, now() - interval '21 days', now() - interval '21 days');
 
+-- Görüntülenme sayıları. Uygulama bunları okundukça kendisi artırıyor, ama
+-- sıfırdan kurulan bir veritabanında "en çok okunanlar" listesi boş kalıyor.
+-- Dağılım rastgele değil: en çok okunan makaleler günlük hayatta en sık
+-- karşılaşılan sorunlar (şifre, VPN, yazıcı), böylece liste anlamlı bir şey
+-- söylüyor. Taslak makaleler sıfırda bırakıldı - henüz kimseye görünmüyorlar.
+UPDATE "KnowledgeBaseArticles" SET "ViewCount" = CASE
+    WHEN "Title" LIKE 'Şifremi unuttum%'        THEN 342
+    WHEN "Title" LIKE 'VPN bağlantısı%'         THEN 268
+    WHEN "Title" LIKE 'Yazıcı kağıt%'           THEN 197
+    WHEN "Title" LIKE 'Türkçe karakter%'        THEN 154
+    WHEN "Title" LIKE 'Kuyruk birikmesinde%'    THEN 121
+    ELSE floor(random() * 60 + 5)::int
+END
+WHERE "IsPublished" = true;
+
 -- ==========================================================
 -- BİLDİRİMLER
 -- ==========================================================
