@@ -1,3 +1,5 @@
+using ITSM.Application;
+using ITSM.Application.Interfaces;
 using ITSM.Domain.Constants;
 using ITSM.Application.DTOs;
 using ITSM.Application.Services;
@@ -12,10 +14,14 @@ namespace ITSM.API.Controllers;
 public class AutoAssignmentRuleController : ControllerBase
 {
     private readonly AutoAssignmentService _autoAssignmentService;
+    private readonly ILocalizedMessageProvider _messageProvider;
 
-    public AutoAssignmentRuleController(AutoAssignmentService autoAssignmentService)
+    public AutoAssignmentRuleController(
+        AutoAssignmentService autoAssignmentService,
+        ILocalizedMessageProvider messageProvider)
     {
         _autoAssignmentService = autoAssignmentService;
+        _messageProvider = messageProvider;
     }
 
     [HttpPost]
@@ -24,7 +30,7 @@ public class AutoAssignmentRuleController : ControllerBase
         var result = await _autoAssignmentService.CreateRuleAsync(projectId, request);
         if (result is null)
         {
-            return BadRequest("assignToUserId veya assignToGroupId alanlarından tam olarak biri dolu olmalı.");
+            return BadRequest(_messageProvider.Get(MessageKeys.ErrorRuleAssignTargetInvalid));
         }
 
         return Ok(result);

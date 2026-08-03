@@ -8,9 +8,16 @@
 CREATE TABLE groups (
     id          BIGSERIAL PRIMARY KEY,
     name        VARCHAR(150) NOT NULL,
+    -- Uygulamanın kod içinden ulaşması gereken gruplar için değişmez anahtar
+    -- (ör. 'UNASSIGNED'). Kullanıcının oluşturduğu gruplarda NULL kalır;
+    -- ada göre arama yapılmıyor çünkü grup adları düzenlenebiliyor.
+    system_key  VARCHAR(50),
     description TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Anahtar taşıyan gruplar tekil olmalı, anahtarsız grup sayısı sınırsız.
+CREATE UNIQUE INDEX ix_groups_system_key ON groups(system_key) WHERE system_key IS NOT NULL;
 
 CREATE TABLE users (
     id            BIGSERIAL PRIMARY KEY,

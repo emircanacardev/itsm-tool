@@ -9,7 +9,7 @@ namespace ITSM.UnitTests;
 
 public class AuthServiceTests
 {
-    private const string DefaultGroupName = "Atanmamış";
+    private const string DefaultGroupSystemKey = SystemGroupKeys.Unassigned;
 
     private readonly Mock<IUserRepository> _userRepository = new();
     private readonly Mock<IGroupRepository> _groupRepository = new();
@@ -115,7 +115,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_WhenDefaultGroupMissing_ReturnsNull()
     {
         _userRepository.Setup(r => r.GetByEmailAsync("yeni@turkcell.com.tr")).ReturnsAsync((User?)null);
-        _groupRepository.Setup(g => g.GetByNameAsync(DefaultGroupName)).ReturnsAsync((Group?)null);
+        _groupRepository.Setup(g => g.GetBySystemKeyAsync(DefaultGroupSystemKey)).ReturnsAsync((Group?)null);
 
         var request = new RegisterRequest
         {
@@ -133,9 +133,16 @@ public class AuthServiceTests
     [Fact]
     public async Task RegisterAsync_WhenEmailIsNew_CreatesUserAndReturnsToken()
     {
-        var defaultGroup = new Group { Id = 1, Name = DefaultGroupName };
+        // Grubun görünen adı kasıtlı olarak "Atanmamış" değil: kod gruba
+        // SystemKey ile ulaşıyor, ad değişse de kayıt akışı bozulmamalı.
+        var defaultGroup = new Group
+        {
+            Id = 1,
+            Name = "Herhangi Bir Ad",
+            SystemKey = DefaultGroupSystemKey
+        };
         _userRepository.Setup(r => r.GetByEmailAsync("yeni@turkcell.com.tr")).ReturnsAsync((User?)null);
-        _groupRepository.Setup(g => g.GetByNameAsync(DefaultGroupName)).ReturnsAsync(defaultGroup);
+        _groupRepository.Setup(g => g.GetBySystemKeyAsync(DefaultGroupSystemKey)).ReturnsAsync(defaultGroup);
         _passwordHasher.Setup(h => h.Hash("1234")).Returns("hashed-1234");
         _jwtTokenGenerator.Setup(j => j.GenerateToken(It.IsAny<User>())).Returns("fake-jwt-token");
 

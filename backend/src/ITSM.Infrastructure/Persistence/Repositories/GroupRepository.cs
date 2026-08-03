@@ -19,9 +19,9 @@ public class GroupRepository : IGroupRepository
         return await _context.Groups.FirstOrDefaultAsync(g => g.Id == id);
     }
 
-    public async Task<Group?> GetByNameAsync(string name)
+    public async Task<Group?> GetBySystemKeyAsync(string systemKey)
     {
-        return await _context.Groups.FirstOrDefaultAsync(g => g.Name == name);
+        return await _context.Groups.FirstOrDefaultAsync(g => g.SystemKey == systemKey);
     }
 
     public async Task<List<Group>> GetAllAsync(string? search = null)

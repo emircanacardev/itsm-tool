@@ -1,4 +1,6 @@
-﻿using ITSM.Application.DTOs;
+﻿using ITSM.Application;
+using ITSM.Application.DTOs;
+using ITSM.Application.Interfaces;
 using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,10 +14,14 @@ namespace ITSM.API.Controllers;
 public class ProjectMemberController : ControllerBase
 {
     private readonly ProjectMemberService _projectMemberService;
+    private readonly ILocalizedMessageProvider _messageProvider;
 
-    public ProjectMemberController(ProjectMemberService projectMemberService)
+    public ProjectMemberController(
+        ProjectMemberService projectMemberService,
+        ILocalizedMessageProvider messageProvider)
     {
         _projectMemberService = projectMemberService;
+        _messageProvider = messageProvider;
     }
 
     [HttpPost]
@@ -25,8 +31,8 @@ public class ProjectMemberController : ControllerBase
 
         return result switch
         {
-            AddMemberResult.ProjectNotFound => NotFound("Project not found"),
-            AddMemberResult.UserNotFound => NotFound("User not found"),
+            AddMemberResult.ProjectNotFound => NotFound(_messageProvider.Get(MessageKeys.ErrorProjectNotFound)),
+            AddMemberResult.UserNotFound => NotFound(_messageProvider.Get(MessageKeys.ErrorUserNotFound)),
             AddMemberResult.AlreadyMember => Conflict(),
             _ => Ok(member)
         };

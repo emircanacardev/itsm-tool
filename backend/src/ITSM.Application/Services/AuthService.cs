@@ -7,10 +7,6 @@ namespace ITSM.Application.Services;
 
 public class AuthService
 {
-    // Kayıt olan kullanıcılar, admin panelden gerçek departmana taşınana kadar bu gruba düşer.
-    // Bkz: database/scripts/seed/001_seed_reference_data.sql
-    private const string DefaultGroupName = "Atanmamış";
-
     private readonly IUserRepository _userRepository;
     private readonly IGroupRepository _groupRepository;
     private readonly IPasswordHasher _passwordHasher;
@@ -62,10 +58,10 @@ public class AuthService
             return null;
         }
 
-        var defaultGroup = await _groupRepository.GetByNameAsync(DefaultGroupName);
+        var defaultGroup = await _groupRepository.GetBySystemKeyAsync(SystemGroupKeys.Unassigned);
         if (defaultGroup is null)
         {
-            // "Atanmamış" grubu DB'de yoksa kayıt yapılamaz.
+            // Varsayılan grup DB'de yoksa kayıt yapılamaz.
             // Bkz: database/scripts/seed/001_seed_reference_data.sql
             return null;
         }

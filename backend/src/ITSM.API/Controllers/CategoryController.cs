@@ -1,4 +1,6 @@
-﻿using ITSM.Application.DTOs;
+﻿using ITSM.Application;
+using ITSM.Application.DTOs;
+using ITSM.Application.Interfaces;
 using ITSM.Domain.Constants;
 using ITSM.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,10 +14,12 @@ namespace ITSM.API.Controllers;
 public class CategoryController : ControllerBase
 {
     private readonly CategoryService _categoryService;
+    private readonly ILocalizedMessageProvider _messageProvider;
 
-    public CategoryController(CategoryService categoryService)
+    public CategoryController(CategoryService categoryService, ILocalizedMessageProvider messageProvider)
     {
         _categoryService = categoryService;
+        _messageProvider = messageProvider;
     }
 
     [HttpPost]
@@ -68,7 +72,7 @@ public class CategoryController : ControllerBase
         return result switch
         {
             DeleteCategoryResult.NotFound => NotFound(),
-            DeleteCategoryResult.InUse => Conflict("Bu kategoriye bağlı talepler var, önce onları taşıyın veya silin."),
+            DeleteCategoryResult.InUse => Conflict(_messageProvider.Get(MessageKeys.ErrorCategoryInUse)),
             _ => NoContent()
         };
     }
