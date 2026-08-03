@@ -337,7 +337,9 @@ function renderTicketsTab(panel, projectId) {
         const row = document.createElement('tr');
         row.className = 'clickable-row';
         row.addEventListener('click', () => {
-          window.location.hash = `#/tickets/${ticket.id}`;
+          // from: talep detayındaki geri linki bu projeye dönsün diye
+          // (bkz. ticketDetail.js parseBackTarget).
+          window.location.hash = `#/tickets/${ticket.id}?from=project:${projectId}`;
         });
 
         const titleCell = document.createElement('td');

@@ -38,9 +38,29 @@ function renderDue(ticket) {
   return { text: formatDateTime(ticket.dueAt), className: 'due-ok' };
 }
 
-export function render(container, ticketId) {
+// from parametresini geri dönüş hedefine çevirir. Şimdilik tek biçim
+// destekleniyor: "project:<id>". Tanınmayan/eksik değerde talep listesine
+// dönülüyor - yani parametre bozuksa sayfa yine de çalışıyor.
+function parseBackTarget(query) {
+  const from = query?.get('from') ?? '';
+  const [kind, id] = from.split(':');
+
+  if (kind === 'project' && /^\d+$/.test(id ?? '')) {
+    return { href: `#/projects/${id}`, i18nKey: 'detail.backToProject' };
+  }
+
+  return { href: '#/tickets', i18nKey: 'detail.back' };
+}
+
+export function render(container, ticketId, currentUser, query) {
+  // Nereden gelindiyse oraya dönüyoruz: proje detayından açılan bir talep
+  // "Taleplere dön" deyip tüm talep listesine düşerse kullanıcı bağlamı
+  // kaybediyor. from=project:2 gibi bir parametreyle geldiğinde geri linki
+  // o projeye işaret ediyor (bkz. projectDetail.js'teki satır bağlantıları).
+  const backTarget = parseBackTarget(query);
+
   container.innerHTML = `
-    <a class="back-link" href="#/tickets" data-i18n="detail.back"></a>
+    <a class="back-link" href="${backTarget.href}" data-i18n="${backTarget.i18nKey}"></a>
     <div id="stateMessage">${pulseLoader(t('tickets.loading'))}</div>
     <div id="ticketDetail" style="display: none;">
       <div class="detail-grid">
