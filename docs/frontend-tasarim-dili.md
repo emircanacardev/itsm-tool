@@ -10,6 +10,23 @@ Referans uygulamalar: `frontend/js/views/tickets.js` (kanonik liste ekranı),
 
 ---
 
+## 0. Önce mevcut çözümü ara (en önemli kural)
+
+Yeni bir görsel bileşen (satır ok'u, rozet, avatar, boş durum kutusu, modal…)
+yazmadan **önce** `tickets.js` / `admin.js` / `app.css` içinde aynı işi yapan bir
+şey var mı diye bak:
+
+```bash
+grep -rn "aradığın-sınıf-adı" frontend/css/app.css frontend/js/views/
+```
+
+Paralel bir çözüm yazmak iki kere zarar veriyor: hem fazladan CSS/JS birikiyor,
+hem de iki uygulama zamanla birbirinden ayrışıp aynı şey iki farklı yerde farklı
+görünüyor. **Var olanı yeniden kullan; yetmiyorsa ortak kuralı iyileştir**, sadece
+kendi sayfan için ezme.
+
+Bu dosyadaki birçok kural, tam da bu hatanın sonradan düzeltilmesinden doğdu.
+
 ## 1. Tablolar
 
 **Sayfa başına 15 satır.** Sabit: `const PAGE_SIZE = 15;` (dosyanın en üstünde).
@@ -48,6 +65,45 @@ bu override listesine eklenir.
 - `page-indicator`: `"1 / 3"` biçiminde
 - İlk sayfada `prev`, son sayfada `next` **disabled** olur
 - Sonuç boşsa pagination gizlenir ya da boşaltılır
+
+### Tıklanabilir satırlar ve satır sonu ok'u
+
+Satıra tıklayınca detaya giden tablolarda, tıklanabilirliği belli eden ok
+**son veri hücresinin içine** konur — **ok için ayrı bir kolon açılmaz**
+(ayrı kolon, son veri sütunuyla ok arasında her satırda ölü bir boşluk bırakır).
+
+`.row-end` sarmalayıcısı ve `.row-chevron` `app.css`'te zaten tanımlı, hover'da
+belirme davranışı da (`tbody tr:hover .row-chevron`) hazır — **yeni CSS yazma**:
+
+```js
+const dueCell = document.createElement('td');
+dueCell.className = `due-cell ${due.className}`;
+
+const wrap = document.createElement('div');
+wrap.className = 'row-end';
+
+const text = document.createElement('span');
+text.textContent = due.text;
+
+wrap.innerHTML = `
+  <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+       style="width: 16px; height: 16px;" aria-hidden="true">
+    <path d="M9 6l6 6-6 6"/>
+  </svg>
+`;
+wrap.prepend(text);
+dueCell.appendChild(wrap);
+```
+
+Ok **sağa** bakar (`M9 6l6 6-6 6`) çünkü başka bir sayfaya götürür; aşağı ok
+satır içinde açılma (accordion) anlamına gelir, öyle bir davranış yoksa kullanılmaz.
+
+Salt okunur tablolar (satır tıklanamaz) `table-static` sınıfını alır ve ok içermez;
+tıklanabilir tablolar `table-static` **almaz**.
+
+Tablonun üstüne "hepsini gör" gibi bir buton konmaz — sidebar zaten o sayfaya
+gidiyor, tekrar olur.
 
 ## 2. Sıralanabilir başlıklar
 
@@ -148,6 +204,29 @@ Tablonun üstünde `.filter-bar` içinde `.filter-group`'lar:
   (`STATUS_DOT_COLORS[statusId]`, `isClosedStatus(statusId)`).
   İsimle karşılaştırma dil değişince sessizce bozulur.
 - Bilinmeyen id gelirse `NEUTRAL_BADGE` / `NEUTRAL_DOT_COLOR`'a düşülür
+
+### Terminoloji
+
+Aynı kavram her ekranda **aynı kelimeyle** anılır. Yeni bir etiket yazmadan önce
+o kavramın başka sayfada nasıl adlandırıldığına bak:
+
+```bash
+grep -n "'tickets.colDue'\|'detail.dueAt'" frontend/js/i18n.js
+```
+
+Türkçe metinlerde **gündelik dilde oturmamış terimler kullanılmaz**
+(ör. "Termin" değil **"Son Tarih"**). Karar verirken ölçüt: kullanıcı bu kelimeyi
+günlük hayatta duyar mı?
+
+Yerleşmiş karşılıklar:
+
+| Kavram | Türkçe | İngilizce |
+|---|---|---|
+| `dueAt` (kolon başlığı) | Son Tarih | Due |
+| `dueAt` (alan etiketi) | Son Tarih | Due date |
+| `assignedTo` | Atanan | Assignee |
+| atanmamış talep | Atanmamış | Unassigned |
+| `isActive` | Aktif / Pasif | Active / Inactive |
 
 ## 8. Güvenlik
 
