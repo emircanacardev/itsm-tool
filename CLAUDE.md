@@ -152,11 +152,15 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   yapılır (`feature/<isim>`, ör. `feature/project-category-management`). Feature bitip test
   edilince PR ile `develop`'a merge edilir, branch silinir. `master`'a sadece belirli kilometre
   taşlarında `develop`'tan merge yapılır.
-- **Commit ve push SADECE kullanıcı (Emircan) tarafından atılır. Claude hiçbir zaman `git commit`
-  ya da `git push` çalıştırmaz — bu kesin bir kural, istisnası yok.**
-- Claude; `git add`, `git status`, `git diff`, `git log`, branch açma (`git checkout -b ...`) gibi
-  komutları kullanıcı adına önerebilir/çalıştırabilir. Ama commit/push işlemini asla kendisi
-  yapmaz, bunu her zaman kullanıcı kendi eliyle yapar.
+- **Commit'i Claude atabilir; push'u atmaz.** Kullanıcı (Emircan) 2026-08-03'te bu izni açıkça
+  verdi: uzun bir iş sırasında commit atılmayınca birden fazla batch'in değişikliği tek yığında
+  karışıyordu. Claude, bir feature/batch bitip test edilince `git add` + `git commit` çalıştırır.
+  **`git push` hâlâ yalnızca kullanıcıya ait** — uzak depoya ne zaman çıkılacağına o karar verir.
+- **Commit mesajlarında `Co-Authored-By` satırı KESİNLİKLE yer almaz** ve mesajda Claude/AI'a
+  dair hiçbir iz bulunmaz. Commit geçmişi kullanıcının kendi işi olarak görünür (brief §4.4:
+  "her satırı anlatabilmelisin"; kullanıcı kodun tamamını kendisi gözden geçiriyor).
+- Claude; `git add`, `git status`, `git diff`, `git log`, branch açma (`git checkout -b ...`)
+  komutlarını da kullanıcı adına çalıştırabilir.
 - **Her feature ayrı bir commit ile kapatılır** (brief §4.1 — küçük ve sık commit kuralı, bkz.
   `docs/proje-gereksinimleri.md`). Bir feature'ı ikiye bölüp de commit atmak (yarım/tutarsız state)
   doğru değildir; feature tamamlanıp test edilince commit atılır.
