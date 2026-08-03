@@ -143,6 +143,15 @@ async function loadArticle(container, articleId, currentUser) {
     updated.textContent = `${t('knowledgeBase.updatedAt')}: ${formatDate(article.updatedAt)}`;
     metaEl.appendChild(updated);
 
+    // Yayındaki makalelerde okunma sayısı: taslakta anlamsız (henüz
+    // kimseye görünmüyor), o yüzden yalnızca yayındayken gösteriliyor.
+    if (article.isPublished) {
+      const views = document.createElement('span');
+      views.className = 'article-view-count';
+      views.textContent = t('dashboard.viewCount').replace('{count}', article.viewCount);
+      metaEl.appendChild(views);
+    }
+
     // İçerik düz metin: satır sonları CSS'teki white-space: pre-wrap ile
     // korunuyor, metin textContent ile basıldığı için HTML yorumlanmıyor.
     contentEl.textContent = article.content;

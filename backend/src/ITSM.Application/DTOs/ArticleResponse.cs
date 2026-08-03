@@ -27,6 +27,9 @@ public class ArticleResponse
 
     public required string CreatedByFullName { get; set; }
     public bool IsPublished { get; set; }
+
+    /// <summary>Makalenin kaç kez görüntülendiği.</summary>
+    public int ViewCount { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

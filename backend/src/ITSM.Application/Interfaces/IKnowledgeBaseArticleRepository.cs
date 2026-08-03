@@ -25,6 +25,24 @@ public interface IKnowledgeBaseArticleRepository
         int page,
         int pageSize);
 
+    /// <summary>
+    /// En çok görüntülenen yayındaki makaleler. Panelde "en çok okunanlar"
+    /// listesi için; taslaklar dışarıda kalıyor çünkü henüz yayında değiller.
+    /// </summary>
+    Task<List<KnowledgeBaseArticle>> GetMostViewedAsync(int count);
+
+    /// <summary>
+    /// Görüntülenme sayacını bir artırır.
+    ///
+    /// Entity'yi yükleyip SaveChanges çağırmak yerine doğrudan UPDATE
+    /// atılıyor. İki nedenle: (1) SaveChangesAsync her değişiklik için bir
+    /// AuditLog satırı yazıyor, sayaç böyle artırılsaydı her makale okuması
+    /// bir denetim kaydı üretir ve kayıt gerçek değişiklikler arasında
+    /// kaybolurdu; (2) "oku, artır, yaz" iki eşzamanlı okumada birbirini
+    /// eziyor, veritabanı tarafında artırmak bunu engelliyor.
+    /// </summary>
+    Task IncrementViewCountAsync(long id);
+
     Task AddAsync(KnowledgeBaseArticle article);
     Task UpdateAsync(KnowledgeBaseArticle article);
     Task DeleteAsync(KnowledgeBaseArticle article);
