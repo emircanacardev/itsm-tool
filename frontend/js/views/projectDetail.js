@@ -238,15 +238,12 @@ function renderTicketsTab(panel, projectId) {
   `).join('');
 
   panel.innerHTML = `
-    <div class="project-tab-toolbar">
-      <a class="btn-secondary" href="#/tickets" data-i18n="projectDetail.viewAllTickets"></a>
-    </div>
     <div class="ticket-table-wrap">
       <table>
         <thead>
-          <tr>${columnsHtml}</tr>
+          <tr>${columnsHtml}<th class="col-chevron" aria-hidden="true"></th></tr>
         </thead>
-        <tbody id="projectTicketsBody">${loadingRow(5, 'projectDetail.ticketsLoading')}</tbody>
+        <tbody id="projectTicketsBody">${loadingRow(6, 'projectDetail.ticketsLoading')}</tbody>
       </table>
     </div>
     <div class="pagination-bar">
@@ -298,7 +295,7 @@ function renderTicketsTab(panel, projectId) {
   }
 
   async function loadTickets() {
-    body.innerHTML = loadingRow(5, 'projectDetail.ticketsLoading');
+    body.innerHTML = loadingRow(6, 'projectDetail.ticketsLoading');
     try {
       const params = new URLSearchParams({
         projectId: String(projectId),
@@ -311,7 +308,7 @@ function renderTicketsTab(panel, projectId) {
 
       body.innerHTML = '';
       if (result.items.length === 0) {
-        body.innerHTML = messageRow(5, 'projectDetail.ticketsEmpty', false);
+        body.innerHTML = messageRow(6, 'projectDetail.ticketsEmpty', false);
         updatePagination(result);
         return;
       }
@@ -341,13 +338,23 @@ function renderTicketsTab(panel, projectId) {
         dueCell.textContent = due.text;
         if (due.className) dueCell.className = due.className;
 
-        row.append(titleCell, statusCell, priorityCell, assigneeCell, dueCell);
+        // Satırın tıklanabilir olduğunu görsel olarak belli eden ok;
+        // sadece hover/focus'ta beliriyor ki tablo kalabalıklaşmasın.
+        const chevronCell = document.createElement('td');
+        chevronCell.className = 'col-chevron';
+        chevronCell.innerHTML = `
+          <svg class="row-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        `;
+
+        row.append(titleCell, statusCell, priorityCell, assigneeCell, dueCell, chevronCell);
         body.appendChild(row);
       });
 
       updatePagination(result);
     } catch (error) {
-      body.innerHTML = messageRow(5, 'projectDetail.ticketsError', true);
+      body.innerHTML = messageRow(6, 'projectDetail.ticketsError', true);
       updatePagination(null);
     }
   }
