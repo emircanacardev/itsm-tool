@@ -74,7 +74,7 @@
   --status-open-bg: #E7ECFE;
   --status-open-fg: #3557D6;
   --status-inprogress-bg: #FFF3DC;
-  --status-inprogress-fg: #B7791F;
+  --status-inprogress-fg: #96620F;
   /* Beklemede bir zamanlar griydi ve Kapalı'nın grisinden ayırt edilemiyordu.
      Oysa ikisi zıt: beklemede = hâlâ açık, takılmış, müdahale bekliyor;
      kapalı = bitti. Mor, hem Kapalı'dan ayrışıyor hem de markanın ana
@@ -82,12 +82,12 @@
   --status-pending-bg: #EDE7FB;
   --status-pending-fg: #7C3AED;
   --status-resolved-bg: #E9F7EC;
-  --status-resolved-fg: #2F8F46;
+  --status-resolved-fg: #237537;
   --status-closed-bg: #EFEFEF;
-  --status-closed-fg: #6B7280;
+  --status-closed-fg: #5A606B;
 
   --priority-critical-bg: #FDECEC;
-  --priority-critical-fg: #D64545;
+  --priority-critical-fg: #B93030;
   --priority-high-bg: #FFF6E0;
   --priority-high-fg: #B45309;
   /* Orta öncelik ile Açık durumu ikisi de maviydi; talep listesinde durum
@@ -99,10 +99,13 @@
   --priority-low-bg: #E6F7F5;
   --priority-low-fg: #0F766E;
 
-  --sla-overdue: #D64545;
-  --sla-urgent: #B7791F;
-  --sla-ok: #2F8F46;
-  --sla-done: #6B7280;
+  /* Son tarih hücresindeki düz metin renkleri (bkz. .due-overdue vd.).
+     Rozetlerle aynı tonlara çekildi: beyaz zeminde okunabilir olmaları
+     rozetlerden daha da önemli, çünkü gecikme uyarısının kendisi bunlar. */
+  --sla-overdue: #B93030;
+  --sla-urgent: #96620F;
+  --sla-ok: #237537;
+  --sla-done: #5A606B;
 
   --color-danger: #D64545;
   --color-danger-hover: #C13636;
