@@ -12,6 +12,11 @@ import {
 
 const TICKET_PAGE_SIZE = 15;
 
+// Satır içi düzenle/sil ikonları - admin panelindeki tablolarla aynı görünüm
+// (bkz. admin.js'teki aynı sabitler): metin yerine ikon + title tooltip'i.
+const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
 // Sıralanabilir kolonlar - backend'in beklediği sortBy anahtarları burada
 // tanımlı, başlık satırı bu listeden üretiliyor (tickets.js ile aynı pattern).
 //
@@ -129,6 +134,72 @@ function stateBox(messageKey, isError) {
   `;
 }
 
+// Sayfalanmayan sekmeler (kategori, ekip, SLA) için istemci tarafı sıralama.
+// Talepler sekmesi bunu kullanmıyor: orada sayfalama var, sadece görünen
+// sayfayı sıralamak yanlış sonuç verirdi - o yüzden sunucuya sortBy gidiyor.
+// getValue: satırdan karşılaştırılacak değeri üretir (metin ya da sayı).
+function createClientSorter(columns, onSorted) {
+  let sortKey = columns[0].key;
+  let sortDescending = false;
+
+  function sortRows(rows) {
+    const column = columns.find((c) => c.key === sortKey) ?? columns[0];
+    const direction = sortDescending ? -1 : 1;
+
+    return [...rows].sort((a, b) => {
+      const left = column.getValue(a);
+      const right = column.getValue(b);
+
+      if (typeof left === 'number' && typeof right === 'number') {
+        return (left - right) * direction;
+      }
+      // Türkçe karakterler doğru sıralansın diye localeCompare (İ, Ş, Ğ...).
+      return String(left).localeCompare(String(right), getLanguage(), { sensitivity: 'base' }) * direction;
+    });
+  }
+
+  function updateHeaderUI(panel) {
+    panel.querySelectorAll('.col-sortable').forEach((th) => {
+      const isActive = th.dataset.sortKey === sortKey;
+      th.classList.toggle('is-active', isActive);
+      th.classList.toggle('is-asc', isActive && !sortDescending);
+    });
+  }
+
+  function wire(panel) {
+    panel.querySelectorAll('.col-sortable').forEach((th) => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sortKey;
+        if (sortKey === key) {
+          sortDescending = !sortDescending;
+        } else {
+          sortKey = key;
+          sortDescending = false;
+        }
+        updateHeaderUI(panel);
+        onSorted();
+      });
+    });
+    updateHeaderUI(panel);
+  }
+
+  return { sortRows, wire };
+}
+
+// Sıralanabilir başlık hücrelerini üretir (tickets.js'teki th yapısının aynısı).
+function sortableHeaders(columns) {
+  return columns.map((col) => `
+    <th class="col-sortable ${col.className || ''}" data-sort-key="${col.key}">
+      <div class="th-inner">
+        <span data-i18n="${col.i18nKey}"></span>
+        <svg class="sort-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+    </th>
+  `).join('');
+}
+
 function loadingRow(colspan, labelKey) {
   return `<tr><td colspan="${colspan}" style="padding: 0; border-bottom: none;">${pulseLoader(t(labelKey))}</td></tr>`;
 }
@@ -224,7 +295,7 @@ export function render(container, projectId, currentUser) {
     // gelmede tekrar çekmemek için sonuçlar burada tutuluyor.
     const renderers = {
       tickets: () => renderTicketsTab(panelEl, projectId),
-      categories: () => renderCategoriesTab(panelEl, projectId),
+      categories: () => renderCategoriesTab(panelEl, projectId, canManageProject),
       team: () => renderTeamTab(panelEl, projectId, canManageProject),
       sla: () => renderSlaTab(panelEl, projectId)
     };
@@ -418,37 +489,144 @@ function renderTicketsTab(panel, projectId) {
   loadTickets();
 }
 
-// --- Kategoriler sekmesi (salt okunur; düzenleme admin panelinde) ---
+// --- Kategoriler sekmesi ---
 
-function renderCategoriesTab(panel, projectId) {
+const CATEGORY_COLUMNS = [
+  { key: 'name', i18nKey: 'projectDetail.colCategoryName', getValue: (c) => c.name },
+  { key: 'description', i18nKey: 'projectDetail.colDescription', getValue: (c) => c.description || '' }
+];
+
+function renderCategoriesTab(panel, projectId, canManage) {
+  const columnCount = canManage ? 3 : 2;
+  let categories = [];
+  const sorter = createClientSorter(CATEGORY_COLUMNS, () => renderRows());
+
   panel.innerHTML = `
+    ${canManage ? `
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label for="categoryNameInput" data-i18n="projectDetail.categoryName"></label>
+        <input type="text" id="categoryNameInput" data-i18n-placeholder="projectDetail.categoryNamePlaceholder">
+      </div>
+      <div class="filter-group" style="flex: 1;">
+        <label for="categoryDescriptionInput" data-i18n="projectDetail.colDescription"></label>
+        <input type="text" id="categoryDescriptionInput" data-i18n-placeholder="projectDetail.categoryDescriptionPlaceholder">
+      </div>
+      <button type="button" class="btn-primary" id="addCategoryButton">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span data-i18n="projectDetail.addCategory"></span>
+      </button>
+    </div>
+    ` : ''}
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
           <tr>
-            <th><span data-i18n="projectDetail.colCategoryName"></span></th>
-            <th><span data-i18n="projectDetail.colDescription"></span></th>
+            ${sortableHeaders(CATEGORY_COLUMNS)}
+            ${canManage ? '<th class="col-center"><span data-i18n="projectDetail.colAction"></span></th>' : ''}
           </tr>
         </thead>
-        <tbody id="projectCategoriesBody">${loadingRow(2, 'projectDetail.categoriesLoading')}</tbody>
+        <tbody id="projectCategoriesBody">${loadingRow(columnCount, 'projectDetail.categoriesLoading')}</tbody>
       </table>
     </div>
+    <div class="toast" id="categoryToast" style="display: none;"></div>
   `;
   applyTranslations();
 
   const body = panel.querySelector('#projectCategoriesBody');
+  const toast = panel.querySelector('#categoryToast');
 
-  (async () => {
+  function showToast(key, isError) {
+    toast.textContent = t(key);
+    toast.className = `toast ${isError ? 'error' : 'success'}`;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  // Satır içi düzenleme: hücreler input'a dönüşüyor, İşlem kolonu
+  // Kaydet/Vazgeç'e geçiyor (admin panelindeki kategori tablosuyla aynı akış).
+  function enterEditMode(row, category) {
+    const [nameCell, descriptionCell, actionCell] = row.children;
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'table-edit-input';
+    nameInput.value = category.name;
+    nameCell.innerHTML = '';
+    nameCell.appendChild(nameInput);
+
+    const descriptionInput = document.createElement('input');
+    descriptionInput.type = 'text';
+    descriptionInput.className = 'table-edit-input';
+    descriptionInput.value = category.description || '';
+    descriptionCell.innerHTML = '';
+    descriptionCell.appendChild(descriptionInput);
+
+    actionCell.innerHTML = '';
+
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.className = 'btn-secondary';
+    saveButton.style.marginRight = '6px';
+    saveButton.textContent = t('projectDetail.save');
+    saveButton.addEventListener('click', async () => {
+      const newName = nameInput.value.trim();
+      if (!newName) return;
+      saveButton.disabled = true;
+      try {
+        await apiRequest(`/project/${projectId}/categories/${category.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ name: newName, description: descriptionInput.value.trim() || null })
+        });
+        showToast('projectDetail.categoryUpdated', false);
+        loadCategories();
+      } catch (error) {
+        showToast('projectDetail.categoryUpdateError', true);
+        saveButton.disabled = false;
+      }
+    });
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'btn-secondary';
+    cancelButton.textContent = t('projectDetail.cancel');
+    cancelButton.addEventListener('click', () => loadCategories());
+
+    actionCell.append(saveButton, cancelButton);
+  }
+
+  async function deleteCategory(category, button) {
+    const confirmed = await showConfirmDialog(
+      t('projectDetail.confirmDeleteCategory').replace('{name}', category.name),
+      { danger: true }
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    button.disabled = true;
     try {
-      const categories = await apiRequest(`/project/${projectId}/categories`);
+      await apiRequest(`/project/${projectId}/categories/${category.id}`, { method: 'DELETE' });
+      showToast('projectDetail.categoryDeleted', false);
+      loadCategories();
+    } catch (error) {
+      // Kategoriye bağlı talep varsa backend 409 dönüyor (silme engelleniyor).
+      const inUse = String(error.message).includes('409');
+      showToast(inUse ? 'projectDetail.categoryInUseError' : 'projectDetail.categoryDeleteError', true);
+      button.disabled = false;
+    }
+  }
 
+  function renderRows() {
       body.innerHTML = '';
       if (categories.length === 0) {
-        body.innerHTML = messageRow(2, 'projectDetail.categoriesEmpty', false);
+        body.innerHTML = messageRow(columnCount, 'projectDetail.categoriesEmpty', false);
         return;
       }
 
-      categories.forEach((category) => {
+      sorter.sortRows(categories).forEach((category) => {
         const row = document.createElement('tr');
 
         const nameCell = document.createElement('td');
@@ -458,20 +636,92 @@ function renderCategoriesTab(panel, projectId) {
         descriptionCell.textContent = category.description || '-';
 
         row.append(nameCell, descriptionCell);
+
+        if (canManage) {
+          const actionCell = document.createElement('td');
+          actionCell.className = 'col-center';
+
+          const editButton = document.createElement('button');
+          editButton.type = 'button';
+          editButton.className = 'btn-secondary btn-icon-only';
+          editButton.style.marginRight = '6px';
+          editButton.title = t('projectDetail.edit');
+          editButton.innerHTML = EDIT_ICON;
+          editButton.addEventListener('click', () => enterEditMode(row, category));
+
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'btn-secondary btn-icon-only btn-danger';
+          deleteButton.title = t('projectDetail.delete');
+          deleteButton.innerHTML = DELETE_ICON;
+          deleteButton.addEventListener('click', () => deleteCategory(category, deleteButton));
+
+          actionCell.append(editButton, deleteButton);
+          row.appendChild(actionCell);
+        }
+
         body.appendChild(row);
       });
+  }
+
+  async function loadCategories() {
+    body.innerHTML = loadingRow(columnCount, 'projectDetail.categoriesLoading');
+    try {
+      categories = await apiRequest(`/project/${projectId}/categories`);
+      renderRows();
     } catch (error) {
-      body.innerHTML = messageRow(2, 'projectDetail.categoriesError', true);
+      body.innerHTML = messageRow(columnCount, 'projectDetail.categoriesError', true);
     }
-  })();
+  }
+
+  sorter.wire(panel);
+
+  if (canManage) {
+    const nameInput = panel.querySelector('#categoryNameInput');
+    const descriptionInput = panel.querySelector('#categoryDescriptionInput');
+    const addButton = panel.querySelector('#addCategoryButton');
+
+    addButton.addEventListener('click', async () => {
+      const name = nameInput.value.trim();
+      if (!name) {
+        showToast('projectDetail.categoryNameRequired', true);
+        return;
+      }
+
+      addButton.disabled = true;
+      try {
+        await apiRequest(`/project/${projectId}/categories`, {
+          method: 'POST',
+          body: JSON.stringify({ name, description: descriptionInput.value.trim() || null })
+        });
+        nameInput.value = '';
+        descriptionInput.value = '';
+        showToast('projectDetail.categoryCreated', false);
+        loadCategories();
+      } catch (error) {
+        showToast('projectDetail.categoryCreateError', true);
+      } finally {
+        addButton.disabled = false;
+      }
+    });
+  }
+
+  loadCategories();
 }
 
 // --- Ekip sekmesi ---
+
+const TEAM_COLUMNS = [
+  { key: 'name', i18nKey: 'projectDetail.colMember', getValue: (m) => m.userFullName },
+  { key: 'email', i18nKey: 'projectDetail.colEmail', getValue: (m) => m.userEmail }
+];
 
 function renderTeamTab(panel, projectId, canManage) {
   // Üye ekleme/çıkarma backend'de ADMIN_MANAGE; admin olmayan için
   // arama kutusu ve İşlem kolonu hiç basılmıyor (disabled değil, yok).
   const columnCount = canManage ? 3 : 2;
+  let members = [];
+  const sorter = createClientSorter(TEAM_COLUMNS, () => renderRows());
 
   panel.innerHTML = `
     ${canManage ? `
@@ -495,8 +745,7 @@ function renderTeamTab(panel, projectId, canManage) {
       <table>
         <thead>
           <tr>
-            <th><span data-i18n="projectDetail.colMember"></span></th>
-            <th><span data-i18n="projectDetail.colEmail"></span></th>
+            ${sortableHeaders(TEAM_COLUMNS)}
             ${canManage ? '<th class="col-center"><span data-i18n="projectDetail.colAction"></span></th>' : ''}
           </tr>
         </thead>
@@ -615,19 +864,14 @@ function renderTeamTab(panel, projectId, canManage) {
     });
   }
 
-  async function loadMembers() {
-    body.innerHTML = loadingRow(columnCount, 'projectDetail.teamLoading');
-    try {
-      const members = await apiRequest(`/project/${projectId}/members`);
-      memberUserIds = new Set(members.map((m) => m.userId));
-
+  function renderRows() {
       body.innerHTML = '';
       if (members.length === 0) {
         body.innerHTML = messageRow(columnCount, 'projectDetail.teamEmpty', false);
         return;
       }
 
-      members.forEach((member) => {
+      sorter.sortRows(members).forEach((member) => {
         const row = document.createElement('tr');
 
         const nameCell = document.createElement('td');
@@ -654,8 +898,9 @@ function renderTeamTab(panel, projectId, canManage) {
           actionCell.className = 'col-center';
           const removeButton = document.createElement('button');
           removeButton.type = 'button';
-          removeButton.className = 'btn-secondary btn-danger';
-          removeButton.textContent = t('projectDetail.removeMember');
+          removeButton.className = 'btn-secondary btn-icon-only btn-danger';
+          removeButton.title = t('projectDetail.removeMember');
+          removeButton.innerHTML = DELETE_ICON;
           removeButton.addEventListener('click', () => removeMember(member, removeButton));
           actionCell.appendChild(removeButton);
           row.appendChild(actionCell);
@@ -663,10 +908,20 @@ function renderTeamTab(panel, projectId, canManage) {
 
         body.appendChild(row);
       });
+  }
+
+  async function loadMembers() {
+    body.innerHTML = loadingRow(columnCount, 'projectDetail.teamLoading');
+    try {
+      members = await apiRequest(`/project/${projectId}/members`);
+      memberUserIds = new Set(members.map((m) => m.userId));
+      renderRows();
     } catch (error) {
       body.innerHTML = messageRow(columnCount, 'projectDetail.teamError', true);
     }
   }
+
+  sorter.wire(panel);
 
   if (canManage) {
     wireUserSearch();
@@ -677,17 +932,25 @@ function renderTeamTab(panel, projectId, canManage) {
 
 // --- SLA sekmesi ---
 
+// categoryName satırlara yüklenirken ekleniyor (SLA yanıtı sadece CategoryId
+// taşıyor), böylece sıralama da gösterimle aynı metni kullanıyor.
+// Süreler sayısal sıralanmalı: "90 dk" ile "2 sa" metin olarak yanlış sıralanır.
+const SLA_COLUMNS = [
+  { key: 'category', i18nKey: 'projectDetail.colSlaCategory', getValue: (s) => s.categoryName },
+  { key: 'priority', i18nKey: 'projectDetail.colSlaPriority', getValue: (s) => s.priorityId },
+  { key: 'response', i18nKey: 'projectDetail.colSlaResponse', getValue: (s) => s.responseTimeMinutes },
+  { key: 'resolution', i18nKey: 'projectDetail.colSlaResolution', getValue: (s) => s.resolutionTimeMinutes }
+];
+
 function renderSlaTab(panel, projectId) {
+  let slaRows = [];
+  const sorter = createClientSorter(SLA_COLUMNS, () => renderRows());
+
   panel.innerHTML = `
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
-          <tr>
-            <th><span data-i18n="projectDetail.colSlaCategory"></span></th>
-            <th><span data-i18n="projectDetail.colSlaPriority"></span></th>
-            <th><span data-i18n="projectDetail.colSlaResponse"></span></th>
-            <th><span data-i18n="projectDetail.colSlaResolution"></span></th>
-          </tr>
+          <tr>${sortableHeaders(SLA_COLUMNS)}</tr>
         </thead>
         <tbody id="projectSlaBody">${loadingRow(4, 'projectDetail.slaLoading')}</tbody>
       </table>
@@ -696,6 +959,33 @@ function renderSlaTab(panel, projectId) {
   applyTranslations();
 
   const body = panel.querySelector('#projectSlaBody');
+
+  function renderRows() {
+    body.innerHTML = '';
+    if (slaRows.length === 0) {
+      body.innerHTML = messageRow(4, 'projectDetail.slaEmpty', false);
+      return;
+    }
+
+    sorter.sortRows(slaRows).forEach((sla) => {
+      const row = document.createElement('tr');
+
+      const categoryCell = document.createElement('td');
+      categoryCell.textContent = sla.categoryName;
+
+      const priorityCell = document.createElement('td');
+      priorityCell.appendChild(priorityBadge(sla.priorityId, sla.priorityName));
+
+      const responseCell = document.createElement('td');
+      responseCell.textContent = formatDuration(sla.responseTimeMinutes);
+
+      const resolutionCell = document.createElement('td');
+      resolutionCell.textContent = formatDuration(sla.resolutionTimeMinutes);
+
+      row.append(categoryCell, priorityCell, responseCell, resolutionCell);
+      body.appendChild(row);
+    });
+  }
 
   (async () => {
     try {
@@ -707,37 +997,22 @@ function renderSlaTab(panel, projectId) {
       ]);
 
       const categoryNameById = new Map(categories.map((c) => [c.id, c.name]));
-      const projectSlas = slas.filter((s) => s.projectId === Number(projectId));
 
-      body.innerHTML = '';
-      if (projectSlas.length === 0) {
-        body.innerHTML = messageRow(4, 'projectDetail.slaEmpty', false);
-        return;
-      }
+      slaRows = slas
+        .filter((s) => s.projectId === Number(projectId))
+        .map((s) => ({
+          ...s,
+          // CategoryId null ise kural projedeki tüm kategoriler için geçerli.
+          categoryName: s.categoryId
+            ? (categoryNameById.get(s.categoryId) || `#${s.categoryId}`)
+            : t('projectDetail.slaAllCategories')
+        }));
 
-      projectSlas.forEach((sla) => {
-        const row = document.createElement('tr');
-
-        const categoryCell = document.createElement('td');
-        // CategoryId null ise kural projedeki tüm kategoriler için geçerli.
-        categoryCell.textContent = sla.categoryId
-          ? (categoryNameById.get(sla.categoryId) || `#${sla.categoryId}`)
-          : t('projectDetail.slaAllCategories');
-
-        const priorityCell = document.createElement('td');
-        priorityCell.appendChild(priorityBadge(sla.priorityId, sla.priorityName));
-
-        const responseCell = document.createElement('td');
-        responseCell.textContent = formatDuration(sla.responseTimeMinutes);
-
-        const resolutionCell = document.createElement('td');
-        resolutionCell.textContent = formatDuration(sla.resolutionTimeMinutes);
-
-        row.append(categoryCell, priorityCell, responseCell, resolutionCell);
-        body.appendChild(row);
-      });
+      renderRows();
     } catch (error) {
       body.innerHTML = messageRow(4, 'projectDetail.slaError', true);
     }
   })();
+
+  sorter.wire(panel);
 }

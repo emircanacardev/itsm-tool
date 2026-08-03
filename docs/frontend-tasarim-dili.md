@@ -138,9 +138,24 @@ Davranış:
 - Her sıralama değişiminde `currentPage = 1`
 - Aktif kolon `.is-active`, artan yön `.is-asc` sınıfı alır (`updateSortHeaderUI()`)
 
-**Sıralama ve sayfalama sunucu tarafında yapılır** — `sortBy`, `sortDescending`,
-`page`, `pageSize` query parametreleriyle. İstemcide diziyi `.sort()`'lamak yok
-(sadece o sayfayı sıralar, yanlış sonuç verir).
+**Sayfalanmış tablolarda sıralama sunucu tarafında yapılır** — `sortBy`,
+`sortDescending`, `page`, `pageSize` query parametreleriyle. Burada istemcide
+diziyi `.sort()`'lamak yanlış: yalnızca o anki sayfa sıralanır, kayıtlar
+sayfalar arasında yanlış yerde kalır.
+
+**Sayfalanmayan tablolarda** (tüm kayıtlar tek istekte geliyorsa — proje
+detayındaki kategori/ekip/SLA sekmeleri gibi) sıralama istemcide yapılır;
+başlıklar yine tıklanabilir olmalı. `projectDetail.js`'teki
+`createClientSorter(columns, onSorted)` + `sortableHeaders(columns)` ikilisi
+bunu sağlıyor: her kolon `getValue(row)` ile karşılaştırma değerini verir.
+
+- Sayısal alanlar **sayı** olarak döndürülür (`responseTimeMinutes`), metin
+  olarak değil — "1440" ile "30" metin karşılaştırmasında yanlış sıralanır
+- Metinler `localeCompare(..., getLanguage())` ile karşılaştırılır ki Türkçe
+  harfler (İ, Ş, Ğ, Ç) doğru sırada gelsin
+- Gösterilen değer türetilmişse (ör. SLA'nın kategori adı ayrı bir istekten
+  çözülüyorsa) satıra yüklenirken eklenir; sıralama ile ekranda görünen metin
+  aynı kaynaktan gelmeli
 
 ## 3. Açılır listeler (select)
 
@@ -194,6 +209,34 @@ Tablonun üstünde `.filter-bar` içinde `.filter-group`'lar:
   (`js/confirmDialog.js`). Geri alınamaz işlemlerde `{ danger: true }`.
 - **Modal:** `.modal-overlay` + `.modal-card`. Esc ve zemine tıklama ile kapanır,
   kartın içine tıklama kapatmaz.
+
+### Satır aksiyonları (Düzenle / Sil)
+
+Tablo satırındaki düzenle ve sil **metin buton değil, ikon butondur** — kolonu
+dar tutuyor ve tablo dili tüm ekranlarda aynı kalıyor:
+
+```js
+const editButton = document.createElement('button');
+editButton.type = 'button';
+editButton.className = 'btn-secondary btn-icon-only';
+editButton.style.marginRight = '6px';
+editButton.title = t('x.edit');        // metin tooltip'te
+editButton.innerHTML = EDIT_ICON;      // kalem ikonu
+
+const deleteButton = document.createElement('button');
+deleteButton.type = 'button';
+deleteButton.className = 'btn-secondary btn-icon-only btn-danger';
+deleteButton.title = t('x.delete');
+deleteButton.innerHTML = DELETE_ICON;  // çöp kutusu ikonu
+```
+
+- `EDIT_ICON` / `DELETE_ICON` sabitleri `admin.js` ve `projectDetail.js`'in
+  başında duruyor — yeni bir view'da aynılarını kopyala, yeni ikon çizme
+- Aksiyon hücresi `col-center`, kolon başlığı `x.colAction` ("İşlem")
+- Silme her zaman `showConfirmDialog(..., { danger: true })` ile onaylanır
+- **Satır içi düzenleme:** hücreler `.table-edit-input`'a dönüşür, işlem hücresi
+  Kaydet/Vazgeç'e geçer. Bu ikisi **metin buton** kalır (ikon değil), çünkü
+  geçici bir moddan çıkışı anlatıyorlar
 
 ## 7. i18n (mutlak kural)
 
