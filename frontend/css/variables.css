@@ -568,8 +568,61 @@ body {
   height: 18px;
 }
 
+/* Dil düğmesi bir zamanlar .theme-toggle sınıfını ödünç alıyordu: ikon için
+   yapılmış 34px'lik kare kutuda iki harf sıkışıyor, "TR" bitişik yazılınca
+   "rn" gibi okunuyordu. Üstelik kutuda tek bir kod görünüyor ve bunun
+   *mevcut* dil mi yoksa *geçilecek* dil mi olduğu belirsiz kalıyordu.
+   Şimdi iki dil de aynı anda görünüyor, aktif olan vurgulanıyor - hangi
+   dilde olunduğu ve tıklayınca ne olacağı tek bakışta anlaşılıyor. */
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.lang-option {
+  padding: 0 8px;
+  line-height: 26px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  /* Bitişik büyük harfler ayrışsın diye: "TR" tek bir "rn" gibi okunmasın. */
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.lang-option.is-active {
+  background: var(--color-accent);
+  color: #FFFFFF;
+}
+
+/* Aktif olmayan yarı, tıklanabilir hedefin kendisi olduğu için hover'da
+   belirginleşiyor; aktif yarı zaten seçili, tepki vermesi yanıltıcı olurdu. */
+.lang-toggle:hover .lang-option:not(.is-active) {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
 .notification-bell {
   position: relative;
+}
+
+/* Bildirimler sayfasındayken zil, sidebar'daki aktif bağlantı gibi seçili
+   görünüyor. pointer-events kapalı: hover ve tıklama tepkisi vermesi,
+   gidilecek bir yer varmış izlenimi bırakırdı - zaten o sayfadayız. */
+.notification-bell.is-active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #FFFFFF;
+  pointer-events: none;
 }
 
 .notification-badge {

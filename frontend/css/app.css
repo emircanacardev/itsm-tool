@@ -500,36 +500,21 @@ input[type="number"]::-webkit-inner-spin-button {
   border-color: var(--color-danger-hover);
 }
 
+/* Tablo kendi içinde DİKEY kaydırılmaz (tasarım dili §1): sayfa başına satır
+   sayısı zaten sabit, sayfanın kendi scroll'u yeterli. İç scroll ayrıca
+   sayfayı iki ayrı kaydırma alanına bölüp tekerleğin hangisini süreceğini
+   belirsizleştiriyordu.
+
+   Yatay kaydırma ise kalıyor: dar ekranda çok kolonlu tablolar (yönetim
+   paneli, proje detayı) hiçbir şekilde sığmıyor ve sayfanın tamamının yana
+   kayması §10'a aykırı olurdu. Taşma tablonun kendi içinde kalıyor. */
 .ticket-table-wrap {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  overflow: auto;
-  max-height: calc(100vh - 320px);
+  overflow-x: auto;
   transition: background-color var(--transition-base), border-color var(--transition-base);
-}
-
-/* Admin panelindeki tablolar sayfa başına en fazla 10-20 satır gösteriyor
-   (bkz. admin.js PAGE_SIZE sabitleri), bu yüzden Tickets sayfasındaki gibi
-   ayrı bir iç scroll'a gerek yok - uzun tablolarda sayfanın kendi scroll'u
-   yeterli. Sadece admin panelinde override ediyoruz ki Tickets sayfasındaki
-   davranış değişmesin. */
-.admin-view .ticket-table-wrap,
-.project-detail-view .ticket-table-wrap {
-  overflow: visible;
-  max-height: none;
-}
-
-/* Dar ekranda çok kolonlu tablolar (yönetim paneli, proje detayı) hiçbir
-   şekilde sığmıyor. Yukarıdaki "iç scroll yok" kuralı masaüstü içindi;
-   burada tablonun kendi içinde yatay kaydırılmasına izin veriyoruz ki
-   sayfanın tamamı yana kaymasın (tasarım dili §10). Dikey scroll yine yok. */
-@media (max-width: 900px) {
-  .admin-view .ticket-table-wrap,
-  .project-detail-view .ticket-table-wrap {
-    overflow-x: auto;
-  }
 }
 
 .col-right {
@@ -591,10 +576,11 @@ table {
   border-collapse: collapse;
 }
 
+/* Başlık satırı bir zamanlar sticky idi; anlamı vardı, çünkü tablo kendi
+   içinde dikey kayıyordu. İç scroll kalkınca (bkz. .ticket-table-wrap)
+   yapışma referansı sayfa oluyor ve başlıklar, üstlerindeki topbar yukarı
+   kayıp gittikten sonra ekranın tepesinde havada asılı kalıyordu. */
 thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   text-align: left;
   font-size: 11px;
   font-weight: var(--weight-bold);
