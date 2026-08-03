@@ -475,15 +475,25 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* Dar ekranda başlık + aksiyon butonları tek satıra sığmıyordu ve sayfa
+     yatay scroll'a giriyordu (bkz. tasarım dili §10). Sarmaya izin verip
+     başlık bloğuna min-width: 0 vererek butonlar alt satıra düşüyor. */
+  flex-wrap: wrap;
+  gap: var(--space-3);
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
+.topbar-page > div:first-child {
+  min-width: 0;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
@@ -517,6 +527,10 @@ body {
 .content {
   padding: var(--space-6);
   flex: 1;
+  /* Flex çocuğunun varsayılan min-width'i "auto"; bu, içindeki geniş
+     kolon/kart alanın altına inmesini engelleyip sayfayı yana kaydırıyordu.
+     0'a çekilince içerik gerçekten kaplayabildiği genişliğe uyuyor. */
+  min-width: 0;
 }
 
 /* Login/register gibi "public" sayfalarda sidebar/topbar gizlenir,
@@ -720,6 +734,13 @@ select::-ms-expand {
   display: block;
 }
 
+/* Aranabilir listede üst iç boşluğu arama kutusunun kendisi veriyor;
+   menüde de kalsaydı kaydırılan seçenekler o boşlukta kutunun üstünde
+   görünürdü (sticky kutu ancak kendi kenarına kadar örtebiliyor). */
+.custom-select-menu:has(.custom-select-search) {
+  padding-top: 0;
+}
+
 .custom-select-option {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
@@ -740,6 +761,49 @@ select::-ms-expand {
   background: var(--color-accent-bg);
   color: var(--color-accent);
   font-weight: var(--weight-semibold);
+}
+
+/* Aranabilir select'in (enhanceSelect'e { searchable: true } verilen) kutusu.
+   Liste uzun olabildiği için sticky: kullanıcı aşağı kaydırdığında arama
+   kutusu kaybolmuyor.
+
+   Negatif margin + eşit padding, menünün kendi 6px'lik iç boşluğunu iptal
+   ediyor: kutu menünün üst kenarına yapışıyor. Aksi halde kaydırılan
+   seçenekler o 6px'lik boşluktan kutunun üstünde görünüp yarı kesik
+   duruyordu. Arka plan opak ve sticky bağlamının üstünde (z-index). */
+.custom-select-search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -6px 2px;
+  padding: 6px 6px 7px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.custom-select-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.custom-select-search input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Arama hiçbir seçeneği tutmadığında liste sessizce boş kalmasın. */
+.custom-select-empty {
+  padding: 10px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
 /* Filtre çubuğunda select'ler tam genişlik değil, kompakt dursun. */
@@ -994,5 +1058,72 @@ textarea:focus {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- Dar ekranda kabuk ----------
+   Sidebar sabit 240px olduğu için dar ekranda içeriğe çok az yer kalıyordu
+   ve her sayfa (talepler, panel, yönetim, bilgi bankası) yatay scroll'a
+   giriyordu - tasarım dili §10'un "yatay scroll oluşmaz" kuralına aykırı.
+   900px altında sidebar ikon şeridine dönüşüyor: gezinme erişilebilir
+   kalıyor ama içerik ~170px daha genişliyor. */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 64px;
+    padding: var(--space-5) var(--space-2);
+    align-items: center;
+  }
+
+  /* Yazılar gidiyor, ikonlar kalıyor. */
+  .sidebar .brand-name-sm,
+  .sidebar .nav-list a span,
+  .sidebar .sidebar-user-info {
+    display: none;
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+    padding: var(--space-2);
+  }
+
+  .nav-list a {
+    justify-content: center;
+    gap: 0;
+    padding: var(--space-2);
+    border-left-width: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .sidebar-user {
+    justify-content: center;
+  }
+
+  .sidebar-footer {
+    align-items: center;
+  }
+}
+
+/* Telefon genişliği: ikon şeridi biraz daha daralıyor ve başlık küçülüyor.
+   Sidebar tamamen gizlenmiyor - gizlendiğinde gezinmenin tek yolu kalmıyor
+   (uygulamada hamburger menü yok), kullanıcı sayfalar arasında geçemez hale
+   geliyordu. */
+@media (max-width: 560px) {
+  .sidebar {
+    width: 56px;
+    padding: var(--space-4) 6px;
+  }
+
+  .topbar-page {
+    padding: var(--space-4);
+  }
+
+  .page-title {
+    font-size: var(--text-2xl);
+  }
+
+  /* Telefonda 24px'lik iki yan boşluk, kalan dar alandan gereğinden fazla
+     yiyordu. */
+  .content {
+    padding: var(--space-4);
   }
 }
