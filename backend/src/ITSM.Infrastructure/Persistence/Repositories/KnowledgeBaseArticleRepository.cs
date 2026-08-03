@@ -92,6 +92,30 @@ public class KnowledgeBaseArticleRepository : IKnowledgeBaseArticleRepository
         return (items, totalCount);
     }
 
+    public async Task<List<KnowledgeBaseArticle>> GetMostViewedAsync(int count)
+    {
+        return await _context.KnowledgeBaseArticles
+            .Include(k => k.Project)
+            .Include(k => k.Category)
+            .Include(k => k.CreatedByUser)
+            .Where(k => k.IsPublished && k.ViewCount > 0)
+            .OrderByDescending(k => k.ViewCount)
+            // Hiç okunmamış makaleler zaten dışarıda; eşit sayıda okunanlarda
+            // sıranın istekten isteğe değişmemesi için ikincil bir ölçüt.
+            .ThenByDescending(k => k.UpdatedAt)
+            .Take(count)
+            .ToListAsync();
+    }
+
+    public async Task IncrementViewCountAsync(long id)
+    {
+        // ExecuteUpdateAsync ChangeTracker'a uğramadan doğrudan UPDATE atıyor
+        // (bkz. arayüzdeki açıklama: denetim kaydı ve yarış durumu).
+        await _context.KnowledgeBaseArticles
+            .Where(k => k.Id == id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(k => k.ViewCount, k => k.ViewCount + 1));
+    }
+
     public async Task AddAsync(KnowledgeBaseArticle article)
     {
         _context.KnowledgeBaseArticles.Add(article);

@@ -12,4 +12,10 @@ public class DashboardSummaryResponse
     public List<PriorityCountResponse> TicketsByPriority { get; set; } = new();
     public double SlaCompliancePercentage { get; set; }
     public List<RecentTicketResponse> RecentTickets { get; set; } = new();
+
+    /// <summary>
+    /// En çok görüntülenen bilgi bankası makaleleri. Hangi konuların
+    /// tekrar tekrar arandığını gösteriyor.
+    /// </summary>
+    public List<ArticleResponse> MostViewedArticles { get; set; } = new();
 }

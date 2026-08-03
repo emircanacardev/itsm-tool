@@ -135,6 +135,64 @@ function renderRecentTickets(listEl, tickets) {
   });
 }
 
+// En çok okunan makaleler. Talep listesiyle aynı satır düzenini kullanıyor
+// (aynı ekranda iki farklı liste dili olmasın diye); sağdaki sayı, satırın
+// neden bu sırada olduğunu söyleyen tek bilgi olduğu için gösteriliyor.
+function renderMostViewedArticles(listEl, articles) {
+  if (!articles || articles.length === 0) {
+    listEl.innerHTML = `<div class="state-box" style="border: none;"><span>${t('dashboard.noArticleData')}</span></div>`;
+    return;
+  }
+
+  listEl.innerHTML = '';
+  articles.forEach((article) => {
+    const row = document.createElement('div');
+    row.className = 'recent-ticket-row';
+    row.addEventListener('click', () => {
+      window.location.hash = `#/knowledge-base/${article.id}`;
+    });
+
+    // Başlık kullanıcı girdisi - textContent (tasarım dili §8).
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'recent-ticket-title-wrap';
+    const titleText = document.createElement('span');
+    titleText.className = 'ticket-title';
+    titleText.textContent = article.title;
+    titleWrap.appendChild(titleText);
+
+    const meta = document.createElement('div');
+    meta.className = 'recent-ticket-meta';
+
+    if (article.projectName) {
+      const projectTag = document.createElement('span');
+      projectTag.className = 'article-tag';
+      projectTag.textContent = article.projectName;
+      meta.appendChild(projectTag);
+    }
+
+    const views = document.createElement('span');
+    views.className = 'article-view-count';
+    views.textContent = t('dashboard.viewCount').replace('{count}', article.viewCount);
+    meta.appendChild(views);
+
+    const chevron = document.createElement('svg');
+    chevron.setAttribute('class', 'row-chevron');
+    chevron.setAttribute('viewBox', '0 0 24 24');
+    chevron.setAttribute('fill', 'none');
+    chevron.setAttribute('stroke', 'currentColor');
+    chevron.setAttribute('stroke-width', '2');
+    chevron.setAttribute('stroke-linecap', 'round');
+    chevron.setAttribute('stroke-linejoin', 'round');
+    chevron.style.width = '16px';
+    chevron.style.height = '16px';
+    chevron.innerHTML = '<path d="M9 6l6 6-6 6"/>';
+    meta.appendChild(chevron);
+
+    row.append(titleWrap, meta);
+    listEl.appendChild(row);
+  });
+}
+
 function renderSummary(container, summary) {
   const statusMax = Math.max(1, ...summary.ticketsByStatus.map((s) => s.count));
   const priorityMax = Math.max(1, ...summary.ticketsByPriority.map((p) => p.count));
@@ -174,9 +232,14 @@ function renderSummary(container, summary) {
       <h3 class="dashboard-card-title">${t('dashboard.recentTickets')}</h3>
       <div id="dashboardRecentList"></div>
     </div>
+    <div class="card dashboard-recent-card">
+      <h3 class="dashboard-card-title">${t('dashboard.mostViewedArticles')}</h3>
+      <div id="dashboardArticleList"></div>
+    </div>
   `;
 
   renderRecentTickets(container.querySelector('#dashboardRecentList'), summary.recentTickets);
+  renderMostViewedArticles(container.querySelector('#dashboardArticleList'), summary.mostViewedArticles);
 }
 
 export function render(container) {
