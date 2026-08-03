@@ -106,6 +106,10 @@ export function render(container, currentUser) {
   const nextPageButton = container.querySelector('#projectNextPageButton');
   const toast = container.querySelector('#projectToast');
 
+  // Seçenek metinleri data-i18n ile boş geliyor; enhanceSelect etiketleri
+  // native <option>'lardan kopyaladığı için önce çeviriler uygulanmalı,
+  // yoksa özel açılır liste boş etiketlerle kurulur.
+  applyTranslations();
   enhanceSelect(statusSelect);
   enhanceSelect(sortSelect);
 

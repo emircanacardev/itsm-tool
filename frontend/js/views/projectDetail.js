@@ -7,7 +7,17 @@ import {
   isClosedStatus
 } from '../constants.js';
 
-const TICKET_PAGE_SIZE = 10;
+const TICKET_PAGE_SIZE = 15;
+
+// Sıralanabilir kolonlar - backend'in beklediği sortBy anahtarları burada
+// tanımlı, başlık satırı bu listeden üretiliyor (tickets.js ile aynı pattern).
+const TICKET_COLUMNS = [
+  { key: 'title', i18nKey: 'projectDetail.colTitle' },
+  { key: 'status', i18nKey: 'projectDetail.colStatus' },
+  { key: 'priority', i18nKey: 'projectDetail.colPriority' },
+  { key: 'assignedToName', i18nKey: 'projectDetail.colAssignee' },
+  { key: 'dueAt', i18nKey: 'projectDetail.colDue' }
+];
 
 // Sekme tanımları tek yerde: butonlar da içerik de bu listeden üretiliyor.
 const TABS = [
@@ -154,7 +164,11 @@ export function render(container, projectId, currentUser) {
       </button>
     `).join('');
 
+    // .project-detail-view sarmalayıcısı: içerideki tablolar sayfa başına
+    // sabit sayıda satır gösterip kendi pagination'ını kullandığı için
+    // ayrı bir iç scroll istemiyoruz (bkz. app.css'teki override).
     container.innerHTML = `
+      <div class="project-detail-view">
       <a class="project-back-link" href="#/projects">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -176,6 +190,7 @@ export function render(container, projectId, currentUser) {
 
       <div class="admin-tabs" id="projectDetailTabs">${tabButtons}</div>
       <div id="projectDetailPanel"></div>
+      </div>
     `;
 
     container.querySelector('#detailProjectCode').textContent = project.code;
@@ -211,43 +226,93 @@ export function render(container, projectId, currentUser) {
 // --- Talepler sekmesi ---
 
 function renderTicketsTab(panel, projectId) {
+  const columnsHtml = TICKET_COLUMNS.map((col) => `
+    <th class="col-sortable" data-sort-key="${col.key}">
+      <div class="th-inner">
+        <span data-i18n="${col.i18nKey}"></span>
+        <svg class="sort-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+    </th>
+  `).join('');
+
   panel.innerHTML = `
     <div class="project-tab-toolbar">
       <a class="btn-secondary" href="#/tickets" data-i18n="projectDetail.viewAllTickets"></a>
     </div>
-    <div class="ticket-table-wrap table-static">
+    <div class="ticket-table-wrap">
       <table>
         <thead>
-          <tr>
-            <th><span data-i18n="projectDetail.colTitle"></span></th>
-            <th><span data-i18n="projectDetail.colStatus"></span></th>
-            <th><span data-i18n="projectDetail.colPriority"></span></th>
-            <th><span data-i18n="projectDetail.colAssignee"></span></th>
-            <th><span data-i18n="projectDetail.colDue"></span></th>
-          </tr>
+          <tr>${columnsHtml}</tr>
         </thead>
         <tbody id="projectTicketsBody">${loadingRow(5, 'projectDetail.ticketsLoading')}</tbody>
       </table>
+    </div>
+    <div class="pagination-bar">
+      <span class="pagination-info" id="projectTicketsInfo"></span>
+      <div class="pagination-controls">
+        <button type="button" class="btn-secondary pagination-btn" id="projectTicketsPrev" data-i18n-title="tickets.prevPage" title="">‹</button>
+        <span class="page-indicator" id="projectTicketsPage"></span>
+        <button type="button" class="btn-secondary pagination-btn" id="projectTicketsNext" data-i18n-title="tickets.nextPage" title="">›</button>
+      </div>
     </div>
   `;
   applyTranslations();
 
   const body = panel.querySelector('#projectTicketsBody');
+  const info = panel.querySelector('#projectTicketsInfo');
+  const pageIndicator = panel.querySelector('#projectTicketsPage');
+  const prevButton = panel.querySelector('#projectTicketsPrev');
+  const nextButton = panel.querySelector('#projectTicketsNext');
 
-  (async () => {
+  let sortField = 'createdAt';
+  let sortDescending = true;
+  let currentPage = 1;
+  let totalPages = 1;
+
+  function updateSortHeaderUI() {
+    panel.querySelectorAll('.col-sortable').forEach((th) => {
+      const isActive = th.dataset.sortKey === sortField;
+      th.classList.toggle('is-active', isActive);
+      th.classList.toggle('is-asc', isActive && !sortDescending);
+    });
+  }
+
+  function updatePagination(result) {
+    if (!result || result.totalCount === 0) {
+      info.textContent = '';
+      pageIndicator.textContent = '';
+      prevButton.disabled = true;
+      nextButton.disabled = true;
+      return;
+    }
+
+    totalPages = Math.max(1, Math.ceil(result.totalCount / TICKET_PAGE_SIZE));
+    const firstItem = (currentPage - 1) * TICKET_PAGE_SIZE + 1;
+    const lastItem = Math.min(currentPage * TICKET_PAGE_SIZE, result.totalCount);
+    info.textContent = `${firstItem}-${lastItem} / ${result.totalCount}`;
+    pageIndicator.textContent = `${currentPage} / ${totalPages}`;
+    prevButton.disabled = currentPage <= 1;
+    nextButton.disabled = currentPage >= totalPages;
+  }
+
+  async function loadTickets() {
+    body.innerHTML = loadingRow(5, 'projectDetail.ticketsLoading');
     try {
       const params = new URLSearchParams({
         projectId: String(projectId),
-        page: '1',
+        page: String(currentPage),
         pageSize: String(TICKET_PAGE_SIZE),
-        sortBy: 'createdAt',
-        sortDescending: 'true'
+        sortBy: sortField,
+        sortDescending: String(sortDescending)
       });
       const result = await apiRequest(`/ticket?${params.toString()}`);
 
       body.innerHTML = '';
       if (result.items.length === 0) {
         body.innerHTML = messageRow(5, 'projectDetail.ticketsEmpty', false);
+        updatePagination(result);
         return;
       }
 
@@ -279,10 +344,46 @@ function renderTicketsTab(panel, projectId) {
         row.append(titleCell, statusCell, priorityCell, assigneeCell, dueCell);
         body.appendChild(row);
       });
+
+      updatePagination(result);
     } catch (error) {
       body.innerHTML = messageRow(5, 'projectDetail.ticketsError', true);
+      updatePagination(null);
     }
-  })();
+  }
+
+  // Aynı kolona tekrar tıklamak yönü çevirir, farklı kolon azalan başlar.
+  panel.querySelectorAll('.col-sortable').forEach((th) => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sortKey;
+      if (sortField === key) {
+        sortDescending = !sortDescending;
+      } else {
+        sortField = key;
+        sortDescending = true;
+      }
+      currentPage = 1;
+      updateSortHeaderUI();
+      loadTickets();
+    });
+  });
+
+  prevButton.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      loadTickets();
+    }
+  });
+
+  nextButton.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage += 1;
+      loadTickets();
+    }
+  });
+
+  updateSortHeaderUI();
+  loadTickets();
 }
 
 // --- Kategoriler sekmesi (salt okunur; düzenleme admin panelinde) ---

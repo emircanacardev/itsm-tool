@@ -1,0 +1,180 @@
+# Frontend Tasarım Dili
+
+Bu dosya, Pulse ITSM arayüzünde **yeni bir sayfa/sekme eklerken uyulması zorunlu**
+kuralları toplar. Amaç: her yeni ekranda aynı şeyleri baştan konuşmak zorunda
+kalmamak. Yeni bir liste/tablo ekranı yazmadan önce bu dosya okunur.
+
+Referans uygulamalar: `frontend/js/views/tickets.js` (kanonik liste ekranı),
+`frontend/js/views/admin.js` (sekmeli yönetim ekranları),
+`frontend/js/views/projects.js` + `projectDetail.js`.
+
+---
+
+## 1. Tablolar
+
+**Sayfa başına 15 satır.** Sabit: `const PAGE_SIZE = 15;` (dosyanın en üstünde).
+Admin panelindeki bazı eski tablolar 10/20 kullanıyor; **yeni yazılan her tablo 15**.
+
+**Tablo içinde scroll YOK.** Satır sayısı zaten sayfa başına sabit olduğu için
+iç scroll'a gerek yok — sayfanın kendi scroll'u yeterli. `.ticket-table-wrap`
+varsayılan olarak `overflow: auto` + `max-height` uyguluyor; bunu sayfa
+sarmalayıcısıyla kapat:
+
+```css
+.admin-view .ticket-table-wrap,
+.project-detail-view .ticket-table-wrap {
+  overflow: visible;
+  max-height: none;
+}
+```
+
+Yani her yeni sayfa kendi sarmalayıcı sınıfını (`<div class="xxx-view">`) alır ve
+bu override listesine eklenir.
+
+**Her tablonun altında pagination olur.** Standart iskelet:
+
+```html
+<div class="pagination-bar">
+  <span class="pagination-info" id="..."></span>
+  <div class="pagination-controls">
+    <button class="btn-secondary pagination-btn" data-i18n-title="tickets.prevPage">‹</button>
+    <span class="page-indicator" id="..."></span>
+    <button class="btn-secondary pagination-btn" data-i18n-title="tickets.nextPage">›</button>
+  </div>
+</div>
+```
+
+- `pagination-info`: `"1-15 / 42"` biçiminde
+- `page-indicator`: `"1 / 3"` biçiminde
+- İlk sayfada `prev`, son sayfada `next` **disabled** olur
+- Sonuç boşsa pagination gizlenir ya da boşaltılır
+
+## 2. Sıralanabilir başlıklar
+
+**Tablo başlıklarının her biri tıklanabilir ve sıralanabilir olmalı.** İstisna:
+salt gösterim amaçlı kolonlar (ör. "İşlem" butonları).
+
+Kolonlar tek bir dizide tanımlanır, `<thead>` bu diziden üretilir — tek kaynak:
+
+```js
+const COLUMNS = [
+  { key: 'title', i18nKey: 'x.colTitle' },
+  { key: 'status', i18nKey: 'x.colStatus' },
+  // key = backend'in beklediği sortBy anahtarı
+];
+
+const columnsHtml = COLUMNS.map((col) => `
+  <th class="col-sortable ${col.className || ''}" data-sort-key="${col.key}">
+    <div class="th-inner">
+      <span data-i18n="${col.i18nKey}"></span>
+      <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </div>
+  </th>
+`).join('');
+```
+
+Davranış:
+- Aynı kolona tekrar tıkla → yön ters çevrilir (`sortDescending = !sortDescending`)
+- Farklı kolona tıkla → o kolona geçilir, **azalan** başlar
+- Her sıralama değişiminde `currentPage = 1`
+- Aktif kolon `.is-active`, artan yön `.is-asc` sınıfı alır (`updateSortHeaderUI()`)
+
+**Sıralama ve sayfalama sunucu tarafında yapılır** — `sortBy`, `sortDescending`,
+`page`, `pageSize` query parametreleriyle. İstemcide diziyi `.sort()`'lamak yok
+(sadece o sayfayı sıralar, yanlış sonuç verir).
+
+## 3. Açılır listeler (select)
+
+Native `<select>` yerine `enhanceSelect()` kullanılır (`js/customSelect.js`).
+
+**Çağrı sırası kritik:** `enhanceSelect` seçenek etiketlerini native
+`<option>`'lardan kopyalar. `<option>`'lar `data-i18n` ile boş geldiği için
+**önce `applyTranslations()`, sonra `enhanceSelect()`** çağrılmalı:
+
+```js
+applyTranslations();      // önce çeviriler
+enhanceSelect(mySelect);  // sonra görsel katman
+```
+
+Ters sırada çağrılırsa açılır liste boş etiketlerle kurulur.
+
+Seçenekleri sonradan API'den doldurduğunda `enhanceSelect`'i **tekrar** çağır.
+
+Tarih girdileri için aynı mantıkla `enhanceDateInput()` (`js/customDatePicker.js`).
+
+## 4. Durum kutuları (yükleniyor / boş / hata)
+
+Üç durumun üçü de her zaman ele alınır — hiçbir liste sessizce boş kalmaz.
+
+- **Yükleniyor:** `pulseLoader(t('x.loading'))` (`js/loading.js`) — marka nabız animasyonu
+- **Boş / Hata:** `.state-box` içinde ikon + mesaj
+
+Tablo içindeyse tek hücreye yayılır:
+
+```js
+`<tr><td colspan="5" style="padding: 0; border-bottom: none;">${...}</td></tr>`
+```
+
+Hata durumunda ham hata mesajı gösterilmez; i18n anahtarından çevrilmiş
+kullanıcı dostu metin gösterilir.
+
+## 5. Filtre çubuğu
+
+Tablonun üstünde `.filter-bar` içinde `.filter-group`'lar:
+
+- Arama kutusu `.filter-group-search` + `.search-box` (büyüteç ikonu içeride)
+- Arama **300ms debounce** ile tetiklenir
+- Herhangi bir filtre değişiminde `currentPage = 1`
+- Filtreler sunucuya query parametresi olarak gider
+
+## 6. Bildirimler ve onaylar
+
+- **Toast:** `.toast` + `success`/`error` sınıfı, 3 saniye sonra kaybolur.
+  Her kaydet/sil/oluştur işleminden sonra kullanıcıya geri bildirim verilir.
+- **Onay:** `window.confirm()` **kullanılmaz** — `showConfirmDialog()`
+  (`js/confirmDialog.js`). Geri alınamaz işlemlerde `{ danger: true }`.
+- **Modal:** `.modal-overlay` + `.modal-card`. Esc ve zemine tıklama ile kapanır,
+  kartın içine tıklama kapatmaz.
+
+## 7. i18n (mutlak kural)
+
+- Arayüzdeki **hiçbir metin koda gömülmez** — `data-i18n` / `t()` kullanılır
+- `js/i18n.js`'e eklenen her anahtar **hem `tr` hem `en`** bloğuna eklenir
+- **Çevrilmiş isme göre dallanma YASAK.** Renk, rozet, "kapandı mı" gibi
+  mantıklar `js/constants.js`'teki **id**'lerden gelir
+  (`STATUS_DOT_COLORS[statusId]`, `isClosedStatus(statusId)`).
+  İsimle karşılaştırma dil değişince sessizce bozulur.
+- Bilinmeyen id gelirse `NEUTRAL_BADGE` / `NEUTRAL_DOT_COLOR`'a düşülür
+
+## 8. Güvenlik
+
+Kullanıcı girdisi olan her metin (`title`, `name`, `description`, kullanıcı adı…)
+**`textContent`** ile basılır, `innerHTML` ile değil. `innerHTML` yalnızca
+kod içinde sabit olan iskelet HTML için kullanılır.
+
+## 9. Yetkiye göre arayüz
+
+- Yetkisi olmayana buton **hiç gösterilmez** (disabled değil, yok)
+- Kontrol `currentUser.isAdmin` ya da
+  `currentUser.permissions.some(p => p.permissionCode === 'X')` ile yapılır
+- Backend yetkisiz kaynak için 403 değil **404** döner (varlığı sızdırmamak
+  için); arayüz bunu "bulunamadı ya da yetkin yok" diye gösterir
+
+## 10. Tema ve responsive
+
+- Renk/ölçü/yazı tipi **doğrudan yazılmaz**, `css/variables.css`'teki
+  değişkenler kullanılır (`var(--color-accent)`, `var(--space-4)`,
+  `var(--text-sm)`, `var(--font-heading)`…) — koyu tema bunlarla çalışır
+- Her yeni ekran koyu temada da kontrol edilir
+- `< 640px`: grid'ler tek sütuna düşer, yatay scroll oluşmaz
+
+## 11. Kod düzeni
+
+- Her sayfa `js/views/<ad>.js` içinde `export function render(container, ...params, currentUser)`
+- Route `js/router.js`'teki `routes` dizisine eklenir; sidebar linki
+  `index.html`'de `data-route` ile eşleşir
+  (**link eklendiyse route da eklenmeli** — aksi halde link sessizce ana sayfaya atar)
+- Yorumlar Türkçe ve **neden**'i anlatır, ne yaptığını değil
