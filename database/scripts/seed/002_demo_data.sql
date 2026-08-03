@@ -1108,6 +1108,42 @@ INSERT INTO "KnowledgeBaseArticles" ("ProjectId", "CategoryId", "Title", "Conten
      E'GSM 03.38 alfabesi Türkçe karakterlerin tamamını içermez; ş, ğ, İ, ı gibi karakterler bozulur.\n\nTürkçe karakter içeren mesajlarda UCS-2 kodlaması kullanılmalıdır. UCS-2''de tek parça mesaj 70 karakterdir (GSM 03.38''de 160), bu da mesajın birden fazla parçaya bölünmesine ve maliyetin artmasına yol açar.',
      true, 29, now() - interval '21 days', now() - interval '21 days');
 
+-- ==========================================================
+-- BİLDİRİMLER
+-- ==========================================================
+-- Bildirimler hazır cümle olarak değil, tür + payload olarak saklanıyor
+-- (bkz. NotificationRenderer): cümle okuma anında okuyanın diline göre
+-- kuruluyor, böylece dil değiştirilince geçmiş bildirimler de çevriliyor.
+-- Buradaki payload'lar da bu yüzden yalnızca ham veri içeriyor ve alan
+-- adları camelCase - JsonNamingPolicy.CamelCase ile eşleşmeleri gerekiyor.
+--
+-- Alıcılar taleplerin gerçek atanan/açan kişileri; bir bildirimin sahibi
+-- olmayan bir kullanıcıya bildirim yazmak veri tutarlılığını bozardı.
+-- Okundu/okunmadı karışık: zil rozetinin sayı göstermesi için okunmamış,
+-- listede iki durumun da görünmesi için okunmuş kayıtlar var.
+INSERT INTO "Notifications" ("UserId", "TicketId", "Type", "PayloadJson", "IsRead", "CreatedAt") VALUES
+    -- Atama bildirimleri (atanan kişiye)
+    (3, 1,  'TicketAssigned',      '{"ticketTitle":"Üretim veritabanı sunucusu yanıt vermiyor"}',      false, now() - interval '7 hours'),
+    (6, 2,  'TicketAssigned',      '{"ticketTitle":"Genel merkez internet bağlantısı kesintili"}',     false, now() - interval '5 hours'),
+    (2, 4,  'TicketAutoAssigned',  '{"ticketTitle":"Uygulama iOS 18''de açılışta kapanıyor"}',         false, now() - interval '55 minutes'),
+    (2, 5,  'TicketAutoAssigned',  '{"ticketTitle":"Kullanıcılar tek seferlik koda erişemiyor"}',      true,  now() - interval '95 minutes'),
+    (7, 8,  'TicketAssigned',      '{"ticketTitle":"Gecelik ETL işi başarısız oldu"}',                 true,  now() - interval '2 days'),
+    (2, 11, 'TicketAssigned',      '{"ticketTitle":"Portala toplu dışa aktarma özelliği eklensin"}',   true,  now() - interval '3 days'),
+    (7, 12, 'TicketAssigned',      '{"ticketTitle":"Stok raporu kaynak sistemle uyuşmuyor"}',          false, now() - interval '4 days'),
+
+    -- Durum değişikliği bildirimleri (talebi açana)
+    (8,  1,  'TicketStatusChanged', '{"ticketTitle":"Üretim veritabanı sunucusu yanıt vermiyor"}',     false, now() - interval '6 hours'),
+    (10, 2,  'TicketStatusChanged', '{"ticketTitle":"Genel merkez internet bağlantısı kesintili"}',    false, now() - interval '4 hours'),
+    (14, 13, 'TicketStatusChanged', '{"ticketTitle":"Küçük ekranlı cihazlarda buton görünmüyor"}',     true,  now() - interval '2 days'),
+    (3,  14, 'TicketStatusChanged', '{"ticketTitle":"Yedekleme servisi aralıklı olarak duruyor"}',     true,  now() - interval '3 days'),
+    (10, 17, 'TicketStatusChanged', '{"ticketTitle":"VPN bağlantısı uzaktan çalışanlarda kopuyor"}',   true,  now() - interval '5 days'),
+
+    -- SLA ihlali: talebi açana ihlal türüyle, atanana ayrı cümleyle gidiyor
+    -- (bkz. NotificationRenderer.RenderSlaBreach).
+    (8, 1, 'SlaBreach', '{"ticketTitle":"Üretim veritabanı sunucusu yanıt vermiyor","breachType":"Resolution"}',                          false, now() - interval '2 hours'),
+    (3, 1, 'SlaBreach', '{"ticketTitle":"Üretim veritabanı sunucusu yanıt vermiyor","breachType":"Resolution","isAssigneeNotification":true}', false, now() - interval '2 hours'),
+    (10, 2, 'SlaBreach', '{"ticketTitle":"Genel merkez internet bağlantısı kesintili","breachType":"Response"}',                          true,  now() - interval '3 hours');
+
 COMMIT;
 
 -- ==========================================================
@@ -1135,8 +1171,14 @@ COMMIT;
 -- Tüm şifreler: 12345
 -- Admin girişi:  admin@itsm.local
 --
--- Notification, SlaBreach ve AuditLog kayıtları bilinçli olarak
--- eklenmedi: bunlar uygulama çalışırken doğal olarak oluşmalı.
--- SLA'sı aşmış talepler (1, 2, 3) arka plan servisi çalıştığında
--- ihlal kaydı ve bildirim üretecek - sunumda bu akış canlı izlenebilir.
+-- 15 bildirim (4 tür de temsil ediliyor, okundu/okunmadı karışık) eklendi:
+-- bildirim ekranının ve zil rozetinin boş bir veritabanında gösterilecek
+-- hiçbir şeyi olmuyordu.
+--
+-- SlaBreach ve AuditLog kayıtları hâlâ bilinçli olarak eklenmedi: bunlar
+-- uygulama çalışırken doğal olarak oluşuyor. SLA'sı aşmış talepler (1, 2, 3)
+-- arka plan servisi çalıştığında ihlal kaydı üretecek - sunumda bu akış
+-- canlı izlenebilir. Servis o sırada kendi bildirimlerini de yazacağı için
+-- buradaki SlaBreach bildirimleri tekrarlanabilir; ikisi de aynı olayı
+-- anlattığından bu bir tutarsızlık değil.
 -- ==========================================================
