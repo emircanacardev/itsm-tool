@@ -65,7 +65,7 @@ public class ProjectService
             var (items, totalCount) = await _projectRepository.GetAllPagedAsync(search, sortBy, sortDescending, page, pageSize);
             return new PagedResult<ProjectResponse>
             {
-                Items = items.Select(MapToResponse).ToList(),
+                Items = await WithStatsAsync(items.Select(MapToResponse).ToList()),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
@@ -99,7 +99,7 @@ public class ProjectService
         var pagedForUser = filteredList.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         return new PagedResult<ProjectResponse>
         {
-            Items = pagedForUser.Select(MapToResponse).ToList(),
+            Items = await WithStatsAsync(pagedForUser.Select(MapToResponse).ToList()),
             TotalCount = filteredList.Count,
             Page = page,
             PageSize = pageSize
@@ -115,18 +115,17 @@ public class ProjectService
         }
 
         var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
-        if (isAdmin)
+        if (!isAdmin)
         {
-            return MapToResponse(project);
+            var isMember = await _projectMemberRepository.GetByProjectAndUserAsync(id, userId) is not null;
+            if (!isMember)
+            {
+                return null;
+            }
         }
 
-        var isMember = await _projectMemberRepository.GetByProjectAndUserAsync(id, userId) is not null;
-        if (!isMember)
-        {
-            return null;
-        }
-
-        return MapToResponse(project);
+        var withStats = await WithStatsAsync([MapToResponse(project)]);
+        return withStats[0];
     }
 
     public async Task<bool> UpdateProjectAsync(long id, UpdateProjectRequest request)
@@ -143,6 +142,34 @@ public class ProjectService
 
         await _projectRepository.UpdateAsync(project);
         return true;
+    }
+
+    // Verilen yanıtlara sayaçları tek sorguda doldurur. Liste ve detay
+    // yolları aynı yardımcıyı kullanıyor ki sayaç mantığı tek yerde kalsın.
+    private async Task<List<ProjectResponse>> WithStatsAsync(List<ProjectResponse> responses)
+    {
+        if (responses.Count == 0)
+        {
+            return responses;
+        }
+
+        var stats = await _projectRepository.GetStatsAsync(responses.Select(r => r.Id));
+        var statsById = stats.ToDictionary(s => s.ProjectId);
+
+        foreach (var response in responses)
+        {
+            if (!statsById.TryGetValue(response.Id, out var stat))
+            {
+                continue;
+            }
+
+            response.TicketCount = stat.TicketCount;
+            response.OpenTicketCount = stat.OpenTicketCount;
+            response.OverdueTicketCount = stat.OverdueTicketCount;
+            response.MemberCount = stat.MemberCount;
+        }
+
+        return responses;
     }
 
     private static ProjectResponse MapToResponse(Project project)
