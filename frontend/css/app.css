@@ -521,6 +521,17 @@ input[type="number"]::-webkit-inner-spin-button {
   max-height: none;
 }
 
+/* Dar ekranda çok kolonlu tablolar (yönetim paneli, proje detayı) hiçbir
+   şekilde sığmıyor. Yukarıdaki "iç scroll yok" kuralı masaüstü içindi;
+   burada tablonun kendi içinde yatay kaydırılmasına izin veriyoruz ki
+   sayfanın tamamı yana kaymasın (tasarım dili §10). Dikey scroll yine yok. */
+@media (max-width: 900px) {
+  .admin-view .ticket-table-wrap,
+  .project-detail-view .ticket-table-wrap {
+    overflow-x: auto;
+  }
+}
+
 .col-right {
   text-align: right;
 }
@@ -538,6 +549,19 @@ input[type="number"]::-webkit-inner-spin-button {
   gap: var(--space-2);
   margin-bottom: var(--space-5);
   border-bottom: 1px solid var(--color-border);
+  /* Sekme sayısı yetkiye göre altıya kadar çıkabiliyor; dar ekranda tek
+     satıra sığmayınca sayfayı yana kaydırıyorlardı. Şeridin kendi içinde
+     kayıyorlar, sekmeler de daralıp okunmaz hale gelmiyor. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tab {
+  flex-shrink: 0;
 }
 
 .admin-tab {
@@ -1537,9 +1561,12 @@ tbody tr:hover .row-chevron {
    Talepler tablo olarak listeleniyor; projeler ise sayıca az ve her biri
    özet sayaç taşıdığı için kart olarak gösteriliyor. */
 
+/* min(300px, 100%): 300px'ten dar bir alanda sabit 300px'lik kolon sığmayıp
+   ızgarayı taşırıyordu. min() ile kolon, alan daraldığında onunla birlikte
+   daralıyor. */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: var(--space-4);
 }
 
