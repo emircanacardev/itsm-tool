@@ -1,4 +1,5 @@
 import { pulseLoader } from '../loading.js';
+import { showConfirmDialog } from '../confirmDialog.js';
 import {
   STATUS_DOT_COLORS,
   PRIORITY_BADGE_MAP,
@@ -11,12 +12,18 @@ const TICKET_PAGE_SIZE = 15;
 
 // Sıralanabilir kolonlar - backend'in beklediği sortBy anahtarları burada
 // tanımlı, başlık satırı bu listeden üretiliyor (tickets.js ile aynı pattern).
+//
+// width'ler sabit (tablo table-layout: fixed): otomatik yerleşimde "Son Tarih"
+// hücresi "Gecikti · 15.07.2026" gibi uzun bir metin taşıdığı için kolon
+// gereksiz yere Durum/Atanan'ın iki katı genişliyordu. Toplam %100.
 const TICKET_COLUMNS = [
-  { key: 'title', i18nKey: 'projectDetail.colTitle' },
-  { key: 'status', i18nKey: 'projectDetail.colStatus' },
-  { key: 'priority', i18nKey: 'projectDetail.colPriority' },
-  { key: 'assignedToName', i18nKey: 'projectDetail.colAssignee' },
-  { key: 'dueAt', i18nKey: 'projectDetail.colDue' }
+  { key: 'title', i18nKey: 'projectDetail.colTitle', width: '40%' },
+  { key: 'status', i18nKey: 'projectDetail.colStatus', width: '14%' },
+  { key: 'priority', i18nKey: 'projectDetail.colPriority', width: '12%' },
+  { key: 'assignedToName', i18nKey: 'projectDetail.colAssignee', width: '17%' },
+  // Son hücre satır sonu ok'unu da taşıdığı için içeriği sağa dayalı;
+  // başlık da aynı hizada dursun diye col-right.
+  { key: 'dueAt', i18nKey: 'projectDetail.colDue', className: 'col-right', width: '17%' }
 ];
 
 // Sekme tanımları tek yerde: butonlar da içerik de bu listeden üretiliyor.
@@ -41,6 +48,14 @@ function formatDuration(minutes) {
     return t('projectDetail.hours').replace('{count}', String(minutes / 60));
   }
   return t('projectDetail.minutes').replace('{count}', String(minutes));
+}
+
+function debounce(fn, delayMs) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delayMs);
+  };
 }
 
 function getInitials(fullName) {
@@ -205,7 +220,7 @@ export function render(container, projectId, currentUser) {
     const renderers = {
       tickets: () => renderTicketsTab(panelEl, projectId),
       categories: () => renderCategoriesTab(panelEl, projectId),
-      team: () => renderTeamTab(panelEl, projectId),
+      team: () => renderTeamTab(panelEl, projectId, isAdmin),
       sla: () => renderSlaTab(panelEl, projectId)
     };
 
@@ -227,7 +242,7 @@ export function render(container, projectId, currentUser) {
 
 function renderTicketsTab(panel, projectId) {
   const columnsHtml = TICKET_COLUMNS.map((col) => `
-    <th class="col-sortable" data-sort-key="${col.key}">
+    <th class="col-sortable ${col.className || ''}" data-sort-key="${col.key}" style="width: ${col.width};">
       <div class="th-inner">
         <span data-i18n="${col.i18nKey}"></span>
         <svg class="sort-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -238,8 +253,11 @@ function renderTicketsTab(panel, projectId) {
   `).join('');
 
   panel.innerHTML = `
+    <div class="project-tab-toolbar">
+      <a class="btn-secondary" href="#/tickets?projectId=${projectId}" data-i18n="projectDetail.viewAllTickets"></a>
+    </div>
     <div class="ticket-table-wrap">
-      <table>
+      <table class="table-fixed">
         <thead>
           <tr>${columnsHtml}</tr>
         </thead>
@@ -446,31 +464,162 @@ function renderCategoriesTab(panel, projectId) {
 
 // --- Ekip sekmesi ---
 
-function renderTeamTab(panel, projectId) {
+function renderTeamTab(panel, projectId, isAdmin) {
+  // Üye ekleme/çıkarma backend'de ADMIN_MANAGE; admin olmayan için
+  // arama kutusu ve İşlem kolonu hiç basılmıyor (disabled değil, yok).
+  const columnCount = isAdmin ? 3 : 2;
+
   panel.innerHTML = `
+    ${isAdmin ? `
+    <div class="filter-bar">
+      <div class="filter-group" style="min-width: 260px;">
+        <label for="teamUserSearch" data-i18n="projectDetail.addMemberLabel"></label>
+        <div style="position: relative;">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7"/>
+              <path d="M21 21l-4.3-4.3"/>
+            </svg>
+            <input type="text" id="teamUserSearch" autocomplete="off" data-i18n-placeholder="projectDetail.addMemberPlaceholder">
+          </div>
+          <div class="custom-select-menu" id="teamUserResults"></div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
           <tr>
             <th><span data-i18n="projectDetail.colMember"></span></th>
             <th><span data-i18n="projectDetail.colEmail"></span></th>
+            ${isAdmin ? '<th class="col-center"><span data-i18n="projectDetail.colAction"></span></th>' : ''}
           </tr>
         </thead>
-        <tbody id="projectTeamBody">${loadingRow(2, 'projectDetail.teamLoading')}</tbody>
+        <tbody id="projectTeamBody">${loadingRow(columnCount, 'projectDetail.teamLoading')}</tbody>
       </table>
     </div>
+    <div class="toast" id="teamToast" style="display: none;"></div>
   `;
   applyTranslations();
 
   const body = panel.querySelector('#projectTeamBody');
+  const toast = panel.querySelector('#teamToast');
+  const userSearch = panel.querySelector('#teamUserSearch');
+  const userResults = panel.querySelector('#teamUserResults');
 
-  (async () => {
+  // Zaten üye olan kullanıcıları arama sonuçlarından elemek için tutuluyor.
+  let memberUserIds = new Set();
+
+  function showToast(key, isError) {
+    toast.textContent = t(key);
+    toast.className = `toast ${isError ? 'error' : 'success'}`;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  async function removeMember(member, button) {
+    const confirmed = await showConfirmDialog(
+      t('projectDetail.confirmRemoveMember').replace('{name}', member.userFullName),
+      { danger: true }
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    button.disabled = true;
+    try {
+      await apiRequest(`/project/${projectId}/members/${member.id}`, { method: 'DELETE' });
+      showToast('projectDetail.memberRemoved', false);
+      loadMembers();
+    } catch (error) {
+      showToast('projectDetail.memberRemoveError', true);
+      button.disabled = false;
+    }
+  }
+
+  async function addMember(userId) {
+    try {
+      await apiRequest(`/project/${projectId}/members`, {
+        method: 'POST',
+        body: JSON.stringify({ userId })
+      });
+      showToast('projectDetail.memberAdded', false);
+      loadMembers();
+    } catch (error) {
+      // Backend aynı kullanıcı zaten üyeyse 409 Conflict dönüyor.
+      const isDuplicate = String(error.message).includes('409');
+      showToast(isDuplicate ? 'projectDetail.memberAlreadyError' : 'projectDetail.memberAddError', true);
+    }
+  }
+
+  function renderUserResults(users) {
+    userResults.innerHTML = '';
+
+    const candidates = users.filter((u) => !memberUserIds.has(u.id));
+    if (candidates.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'custom-select-option';
+      empty.textContent = t('projectDetail.noUserFound');
+      userResults.appendChild(empty);
+    } else {
+      candidates.forEach((user) => {
+        const item = document.createElement('div');
+        item.className = 'custom-select-option';
+        item.textContent = `${user.fullName} (${user.email})`;
+        item.addEventListener('click', () => {
+          userSearch.value = '';
+          userResults.style.display = 'none';
+          userResults.innerHTML = '';
+          addMember(user.id);
+        });
+        userResults.appendChild(item);
+      });
+    }
+    userResults.style.display = 'block';
+  }
+
+  function wireUserSearch() {
+    const debouncedSearch = debounce(async () => {
+      const query = userSearch.value.trim();
+      if (query.length < 2) {
+        userResults.style.display = 'none';
+        userResults.innerHTML = '';
+        return;
+      }
+      try {
+        // search verilince /user düz dizi dönüyor; page verilince PagedResult -
+        // ikisini de karşılayacak şekilde okunuyor (bkz. UserController).
+        const result = await apiRequest(`/user?search=${encodeURIComponent(query)}`);
+        renderUserResults(result.items ?? result);
+      } catch (error) {
+        userResults.style.display = 'none';
+        userResults.innerHTML = '';
+      }
+    }, 300);
+
+    userSearch.addEventListener('input', debouncedSearch);
+    userSearch.addEventListener('focus', () => {
+      if (userResults.innerHTML) {
+        userResults.style.display = 'block';
+      }
+    });
+    document.addEventListener('click', (event) => {
+      if (event.target !== userSearch && !userResults.contains(event.target)) {
+        userResults.style.display = 'none';
+      }
+    });
+  }
+
+  async function loadMembers() {
+    body.innerHTML = loadingRow(columnCount, 'projectDetail.teamLoading');
     try {
       const members = await apiRequest(`/project/${projectId}/members`);
+      memberUserIds = new Set(members.map((m) => m.userId));
 
       body.innerHTML = '';
       if (members.length === 0) {
-        body.innerHTML = messageRow(2, 'projectDetail.teamEmpty', false);
+        body.innerHTML = messageRow(columnCount, 'projectDetail.teamEmpty', false);
         return;
       }
 
@@ -495,12 +644,31 @@ function renderTeamTab(panel, projectId) {
         emailCell.textContent = member.userEmail;
 
         row.append(nameCell, emailCell);
+
+        if (isAdmin) {
+          const actionCell = document.createElement('td');
+          actionCell.className = 'col-center';
+          const removeButton = document.createElement('button');
+          removeButton.type = 'button';
+          removeButton.className = 'btn-secondary btn-danger';
+          removeButton.textContent = t('projectDetail.removeMember');
+          removeButton.addEventListener('click', () => removeMember(member, removeButton));
+          actionCell.appendChild(removeButton);
+          row.appendChild(actionCell);
+        }
+
         body.appendChild(row);
       });
     } catch (error) {
-      body.innerHTML = messageRow(2, 'projectDetail.teamError', true);
+      body.innerHTML = messageRow(columnCount, 'projectDetail.teamError', true);
     }
-  })();
+  }
+
+  if (isAdmin) {
+    wireUserSearch();
+  }
+
+  loadMembers();
 }
 
 // --- SLA sekmesi ---

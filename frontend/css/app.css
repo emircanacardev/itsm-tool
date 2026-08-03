@@ -486,13 +486,16 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 /* Silme/kaldırma gibi geri alınamaz işlemler için kırmızı varyant - Düzenle
-   ile aynı satırda dururken renk farkı hangisinin yıkıcı olduğunu netleştiriyor. */
-.admin-view .btn-secondary.btn-danger {
+   ile aynı satırda dururken renk farkı hangisinin yıkıcı olduğunu netleştiriyor.
+   Admin paneline bağlı değil: proje detayındaki "üyeyi çıkar" gibi yıkıcı
+   işlemler de aynı görünümü kullanıyor, o yüzden rengi kendisi tanımlıyor. */
+.btn-secondary.btn-danger {
   background: var(--color-danger);
+  color: #FFFFFF;
   border-color: var(--color-danger);
 }
 
-.admin-view .btn-secondary.btn-danger:hover {
+.btn-secondary.btn-danger:hover {
   background: var(--color-danger-hover);
   border-color: var(--color-danger-hover);
 }
@@ -1697,6 +1700,12 @@ tbody tr:hover .row-chevron {
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+.project-tab-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-3);
 }
 
 /* Detay başlığında kod rozeti, yanındaki durum rozetiyle (.badge) yan yana
