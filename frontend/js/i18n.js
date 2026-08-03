@@ -354,7 +354,7 @@ const translations = {
     'projectDetail.colStatus': 'Durum',
     'projectDetail.colPriority': 'Öncelik',
     'projectDetail.colAssignee': 'Atanan',
-    'projectDetail.colDue': 'Termin',
+    'projectDetail.colDue': 'Son Tarih',
     'projectDetail.unassigned': 'Atanmamış',
     'projectDetail.categoriesLoading': 'Kategoriler yükleniyor...',
     'projectDetail.categoriesEmpty': 'Bu projede henüz kategori yok.',
