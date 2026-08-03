@@ -9,6 +9,14 @@ public class KnowledgeBaseArticle
     public required string Content { get; set; }
     public required long CreatedBy { get; set; }
     public bool IsPublished { get; set; } = false;
+
+    /// <summary>
+    /// Makalenin kaç kez görüntülendiği. "En çok okunan makaleler" listesi
+    /// bunun üzerinden kuruluyor - hangi konuların tekrar tekrar arandığını,
+    /// dolayısıyla hangi taleplerin önlenebileceğini gösteriyor.
+    /// </summary>
+    public int ViewCount { get; set; } = 0;
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

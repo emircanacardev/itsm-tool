@@ -58,7 +58,11 @@ export function render(container) {
 
     try {
       await login(email, password);
-      window.location.hash = '#/tickets';
+      // Hedefi burada sabitlemiyoruz: giriş sonrası açılacak sayfa
+      // kullanıcının yetkisine bağlı (panel REPORT_VIEW istiyor), bu bilgi
+      // de router'da. Sabit "#/tickets" yazıldığı sürece paneli görmesi
+      // gereken kullanıcı da talep listesine düşüyordu.
+      await routeToDefault();
     } catch (error) {
       errorMessage.textContent = t('login.error');
       errorMessage.style.display = 'block';

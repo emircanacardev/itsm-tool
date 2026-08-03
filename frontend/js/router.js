@@ -7,6 +7,8 @@ import { render as renderNewTicket } from './views/newTicket.js';
 import { render as renderNotifications } from './views/notifications.js';
 import { render as renderProjects } from './views/projects.js';
 import { render as renderProjectDetail } from './views/projectDetail.js';
+import { render as renderKnowledgeBase } from './views/knowledgeBase.js';
+import { render as renderKnowledgeBaseDetail } from './views/knowledgeBaseDetail.js';
 import { render as renderAdmin } from './views/admin.js';
 import { PERMISSIONS, ADMIN_AREA_PERMISSIONS, hasPermission, hasAnyPermissionInAnyProject } from './constants.js';
 
@@ -21,12 +23,16 @@ const routes = [
   { pattern: /^dashboard$/, view: renderDashboard, titleKey: 'dashboard.pageTitle', subtitleKey: 'dashboard.pageSubtitle', requiredPermissions: [PERMISSIONS.REPORT_VIEW] },
   { pattern: /^tickets$/, view: renderTickets, titleKey: 'tickets.pageTitle', subtitleKey: 'tickets.pageSubtitle' },
   { pattern: /^tickets\/(\d+)$/, view: renderTicketDetail, titleKey: 'tickets.pageTitle' },
-  { pattern: /^new-ticket$/, view: renderNewTicket, titleKey: 'newTicket.pageTitle' },
+  { pattern: /^new-ticket$/, view: renderNewTicket, titleKey: 'newTicket.pageTitle', subtitleKey: 'newTicket.pageSubtitle' },
   { pattern: /^projects$/, view: renderProjects, titleKey: 'projects.pageTitle', subtitleKey: 'projects.pageSubtitle' },
   // Başlık projenin kendi adıyla değiştirileceği için (bkz. projectDetail.js)
   // buradaki titleKey sadece yükleme anındaki geçici başlık.
   { pattern: /^projects\/(\d+)$/, view: renderProjectDetail, titleKey: 'projects.pageTitle' },
-  { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle' },
+  { pattern: /^knowledge-base$/, view: renderKnowledgeBase, titleKey: 'knowledgeBase.pageTitle', subtitleKey: 'knowledgeBase.pageSubtitle' },
+  // Başlık makalenin kendi adıyla değiştiriliyor (bkz. knowledgeBaseDetail.js);
+  // buradaki titleKey sadece yükleme anındaki geçici başlık.
+  { pattern: /^knowledge-base\/(\d+)$/, view: renderKnowledgeBaseDetail, titleKey: 'knowledgeBase.pageTitle' },
+  { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle', subtitleKey: 'notifications.pageSubtitle' },
   { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS }
 ];
 
@@ -74,9 +80,20 @@ function parseHash() {
   const raw = window.location.hash.replace(/^#\/?/, '');
   const [path, queryString = ''] = raw.split('?');
   return {
-    path: path || 'tickets',
+    // Boş hash burada bilerek boş bırakılıyor: varsayılan sayfa kullanıcının
+    // yetkisine bağlı, kullanıcı ise henüz yüklenmemiş olabilir (bkz.
+    // navigate). Kararı orada, /auth/me geldikten sonra veriyoruz.
+    path,
     query: new URLSearchParams(queryString)
   };
+}
+
+// Adres verilmediğinde ve yetkisiz bir sayfadan atılırken gidilecek yer.
+// Panel özet ekranı olduğu için varsayılan orası; ama REPORT_VIEW
+// gerektiriyor, yetkisi olmayan kullanıcı talep listesine düşüyor.
+// currentUser yüklenmiş olmalı - aksi halde her zaman talep listesi döner.
+function defaultRoute() {
+  return hasPermission(currentUser, PERMISSIONS.REPORT_VIEW) ? '#/dashboard' : '#/tickets';
 }
 
 function matchRoute(path) {
@@ -143,23 +160,46 @@ function setActiveNav(path) {
   document.querySelectorAll('.nav-list a').forEach((link) => {
     link.classList.toggle('active', link.dataset.route === topLevel);
   });
+
+  // Zil de bir gezinme bağlantısı: bildirimler sayfasındayken seçili
+  // görünüyor ve tıklanamıyor (zaten oradayız). Sadece işaretlemek yetmez,
+  // pointer-events olmadan tıklama aynı sayfaya gidip görünümü yeniden
+  // kurar - kullanıcıya bozuk bir tepki gibi gelir.
+  notificationBellButton.classList.toggle('is-active', topLevel === 'notifications');
 }
 
+// Düğme iki dili birden gösteriyor (bkz. .lang-toggle); burada yalnızca
+// hangisinin aktif olduğu işaretleniyor. Eskiden düğmenin metni "geçilecek"
+// dile ayarlanıyordu - Türkçedeyken "EN" yazması hangisinin geçerli olduğunu
+// belirsiz bırakıyordu.
 function updateLangButtonLabel() {
-  langToggleButton.textContent = getLanguage() === 'tr' ? 'EN' : 'TR';
+  const language = getLanguage();
+  langToggleButton.querySelectorAll('.lang-option').forEach((option) => {
+    option.classList.toggle('is-active', option.dataset.lang === language);
+  });
 }
 
 async function navigate() {
   const { path, query } = parseHash();
-  const matched = matchRoute(path);
+  const authed = isAuthenticated();
+
+  // Adres boş (ör. siteye ilk giriş) ya da tanınmıyorsa: giriş yapılmışsa
+  // kullanıcıyı yükleyip yetkisine uygun varsayılan sayfaya, yapılmamışsa
+  // giriş ekranına gönderiyoruz. Kullanıcı burada yükleniyor çünkü
+  // defaultRoute() yetkiye bakıyor.
+  const matched = path ? matchRoute(path) : null;
 
   if (!matched) {
-    window.location.hash = '#/tickets';
+    if (!authed) {
+      window.location.hash = '#/login';
+      return;
+    }
+    await loadCurrentUser();
+    window.location.hash = defaultRoute();
     return;
   }
 
   const { route, params } = matched;
-  const authed = isAuthenticated();
 
   if (!route.public && !authed) {
     window.location.hash = '#/login';
@@ -167,7 +207,8 @@ async function navigate() {
   }
 
   if (route.public && authed) {
-    window.location.hash = '#/tickets';
+    await loadCurrentUser();
+    window.location.hash = defaultRoute();
     return;
   }
 
@@ -184,7 +225,7 @@ async function navigate() {
     await loadCurrentUser();
 
     if (route.requiredPermissions && !hasAnyPermissionInAnyProject(currentUser, route.requiredPermissions)) {
-      window.location.hash = '#/tickets';
+      window.location.hash = defaultRoute();
       return;
     }
 
@@ -245,6 +286,21 @@ langToggleButton.addEventListener('click', async () => {
 });
 
 window.addEventListener('hashchange', navigate);
+
+// Giriş/kayıt sonrası hangi sayfanın açılacağı kullanıcının yetkisine bağlı
+// (bkz. defaultRoute) ve bu bilgi router'da. Bu yüzden login/register hedefi
+// kendisi seçmiyor, sadece "yönlendir" diyor. router.js bir modül olduğu için
+// (index.html'de type="module") içindekiler kendiliğinden global olmuyor;
+// api.js/auth.js gibi klasik scriptlerin aksine bu atama gerekiyor.
+window.routeToDefault = async () => {
+  // Yeni oturum: önbellekteki kullanıcı bir öncekine ait olabilir.
+  currentUser = null;
+  await loadCurrentUser();
+  window.location.hash = defaultRoute();
+  // Hash zaten hedef sayfaya eşitse (ör. çıkış yapılmadan yeniden giriş)
+  // hashchange tetiklenmez; görünümün kurulması için navigate şart.
+  navigate();
+};
 
 updateLangButtonLabel();
 navigate();

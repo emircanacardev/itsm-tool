@@ -53,25 +53,36 @@ function renderDueCell(ticket) {
   return { text: formatDate(ticket.dueAt), className: 'due-ok' };
 }
 
-function kpiCard(value, labelKey, color) {
+// Dikkat isteyen sayaçlar (kritik, SLA riski) sıfırken vurgulanmıyor: sıfır
+// gecikme iyi haber, kırmızı bir rakamla duyurulması yanlış alarm oluyor.
+function kpiCard(value, labelKey, color, { alert = false } = {}) {
+  const isAlerting = alert && value > 0;
   return `
-    <div class="card kpi-tile">
+    <div class="card kpi-tile${isAlerting ? ' is-alerting' : ''}" style="--kpi-color: ${color};">
       <span class="kpi-label">${t(labelKey)}</span>
       <span class="kpi-value">${value}</span>
-      <span class="kpi-underline" style="background: ${color};"></span>
+      <span class="kpi-underline"></span>
     </div>
   `;
 }
 
-function barRow(name, count, maxCount, color) {
-  const pct = maxCount === 0 ? 0 : Math.round((count / maxCount) * 100);
+// Dolgu oranı toplama göre hesaplanıyor, en büyük satıra göre değil. Eskiden
+// en yüksek sayı barı sonuna kadar doldurduğu için, dört durumdan biri
+// hafif öndeyken bile "hepsi bunda" izlenimi veriyordu; artık barların
+// toplamı %100 ediyor ve paylar birbiriyle karşılaştırılabiliyor.
+function barRow(name, count, total, color) {
+  const ratio = total === 0 ? 0 : (count / total) * 100;
+  // Payı çok küçük olan bir durum barı büsbütün görünmez kalmasın diye
+  // sıfırdan büyük her değere en az bir iz genişliği veriliyor.
+  const width = count > 0 ? Math.max(ratio, 1.5) : 0;
   return `
     <div class="bar-row">
       <span class="bar-label">${name}</span>
       <div class="bar-track">
-        <div class="bar-fill" style="width: ${pct}%; background: ${color};"></div>
+        <div class="bar-fill" style="width: ${width}%; background: ${color};"></div>
       </div>
       <span class="bar-count">${count}</span>
+      <span class="bar-percent">${Math.round(ratio)}%</span>
     </div>
   `;
 }
@@ -102,9 +113,16 @@ function renderRecentTickets(listEl, tickets) {
       window.location.hash = `#/tickets/${ticket.id}`;
     });
 
+    // Başlık kullanıcı girdisi - textContent ile basılıyor (tasarım dili §8).
     const titleWrap = document.createElement('div');
     titleWrap.className = 'recent-ticket-title-wrap';
-    titleWrap.innerHTML = `<span class="ticket-id">#${ticket.id}</span><span class="ticket-title">${ticket.title}</span>`;
+    const idBadge = document.createElement('span');
+    idBadge.className = 'ticket-id';
+    idBadge.textContent = `#${ticket.id}`;
+    const titleText = document.createElement('span');
+    titleText.className = 'ticket-title';
+    titleText.textContent = ticket.title;
+    titleWrap.append(idBadge, titleText);
 
     const meta = document.createElement('div');
     meta.className = 'recent-ticket-meta';
@@ -135,30 +153,95 @@ function renderRecentTickets(listEl, tickets) {
   });
 }
 
+// En çok okunan makaleler. Talep listesiyle aynı satır düzenini kullanıyor
+// (aynı ekranda iki farklı liste dili olmasın diye); sağdaki sayı, satırın
+// neden bu sırada olduğunu söyleyen tek bilgi olduğu için gösteriliyor.
+function renderMostViewedArticles(listEl, articles) {
+  if (!articles || articles.length === 0) {
+    listEl.innerHTML = `<div class="state-box" style="border: none;"><span>${t('dashboard.noArticleData')}</span></div>`;
+    return;
+  }
+
+  listEl.innerHTML = '';
+  articles.forEach((article) => {
+    const row = document.createElement('div');
+    row.className = 'recent-ticket-row';
+    row.addEventListener('click', () => {
+      window.location.hash = `#/knowledge-base/${article.id}`;
+    });
+
+    // Başlık kullanıcı girdisi - textContent (tasarım dili §8).
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'recent-ticket-title-wrap';
+    const titleText = document.createElement('span');
+    titleText.className = 'ticket-title';
+    titleText.textContent = article.title;
+    titleWrap.appendChild(titleText);
+
+    const meta = document.createElement('div');
+    meta.className = 'recent-ticket-meta';
+
+    if (article.projectName) {
+      const projectTag = document.createElement('span');
+      projectTag.className = 'article-tag';
+      projectTag.textContent = article.projectName;
+      meta.appendChild(projectTag);
+    }
+
+    const views = document.createElement('span');
+    views.className = 'article-view-count';
+    views.textContent = t('dashboard.viewCount').replace('{count}', article.viewCount);
+    meta.appendChild(views);
+
+    const chevron = document.createElement('svg');
+    chevron.setAttribute('class', 'row-chevron');
+    chevron.setAttribute('viewBox', '0 0 24 24');
+    chevron.setAttribute('fill', 'none');
+    chevron.setAttribute('stroke', 'currentColor');
+    chevron.setAttribute('stroke-width', '2');
+    chevron.setAttribute('stroke-linecap', 'round');
+    chevron.setAttribute('stroke-linejoin', 'round');
+    chevron.style.width = '16px';
+    chevron.style.height = '16px';
+    chevron.innerHTML = '<path d="M9 6l6 6-6 6"/>';
+    meta.appendChild(chevron);
+
+    row.append(titleWrap, meta);
+    listEl.appendChild(row);
+  });
+}
+
 function renderSummary(container, summary) {
-  const statusMax = Math.max(1, ...summary.ticketsByStatus.map((s) => s.count));
-  const priorityMax = Math.max(1, ...summary.ticketsByPriority.map((p) => p.count));
+  // Her iki dağılımın toplamı da tüm talepleri kapsıyor; yine de summary
+  // üzerinden değil kendi dizisinden toplanıyor, çünkü bir durum/öncelik
+  // hiç talep içermiyorsa listede satırı da olmuyor.
+  const statusTotal = summary.ticketsByStatus.reduce((sum, s) => sum + s.count, 0);
+  const priorityTotal = summary.ticketsByPriority.reduce((sum, p) => sum + p.count, 0);
   const criticalCount = summary.ticketsByPriority.find((p) => p.priorityId === PRIORITY.CRITICAL)?.count || 0;
 
   const statusRowsHtml = summary.ticketsByStatus.length > 0
     ? `<div class="bar-list">${summary.ticketsByStatus
-        .map((s) => barRow(s.statusName, s.count, statusMax, STATUS_DOT_COLORS[s.statusId] || NEUTRAL_DOT_COLOR))
+        .map((s) => barRow(s.statusName, s.count, statusTotal, STATUS_DOT_COLORS[s.statusId] || NEUTRAL_DOT_COLOR))
         .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
   const priorityRowsHtml = summary.ticketsByPriority.length > 0
     ? `<div class="bar-list">${summary.ticketsByPriority
-        .map((p) => barRow(p.priorityName, p.count, priorityMax, PRIORITY_DOT_COLORS[p.priorityId] || NEUTRAL_DOT_COLOR))
+        .map((p) => barRow(p.priorityName, p.count, priorityTotal, PRIORITY_DOT_COLORS[p.priorityId] || NEUTRAL_DOT_COLOR))
         .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
   container.innerHTML = `
+    <!-- Sıra rastgele değil, okuma sırasını izliyor: önce iş hacmi (toplam,
+         açık), sonra dikkat isteyenler (kritik, SLA riski), en sonda bugünkü
+         çıktı. Eskiden beş kart eşit ağırlıkta ve karışık sıradaydı, hangi
+         sayının önce okunacağı belli değildi. -->
     <div class="dashboard-kpi-grid">
-      ${kpiCard(summary.openTickets, 'dashboard.kpiOpen', 'var(--status-open-fg)')}
-      ${kpiCard(criticalCount, 'dashboard.kpiCritical', 'var(--priority-critical-fg)')}
-      ${kpiCard(summary.slaAtRiskCount, 'dashboard.kpiSlaRisk', 'var(--status-inprogress-fg)')}
-      ${kpiCard(summary.resolvedTodayCount, 'dashboard.kpiResolvedToday', 'var(--status-resolved-fg)')}
       ${kpiCard(summary.totalTickets, 'dashboard.kpiTotal', 'var(--color-accent)')}
+      ${kpiCard(summary.openTickets, 'dashboard.kpiOpen', 'var(--status-open-fg)')}
+      ${kpiCard(criticalCount, 'dashboard.kpiCritical', 'var(--priority-critical-fg)', { alert: true })}
+      ${kpiCard(summary.slaAtRiskCount, 'dashboard.kpiSlaRisk', 'var(--sla-urgent)', { alert: true })}
+      ${kpiCard(summary.resolvedTodayCount, 'dashboard.kpiResolvedToday', 'var(--status-resolved-fg)')}
     </div>
     <div class="dashboard-chart-grid">
       <div class="card">
@@ -174,9 +257,14 @@ function renderSummary(container, summary) {
       <h3 class="dashboard-card-title">${t('dashboard.recentTickets')}</h3>
       <div id="dashboardRecentList"></div>
     </div>
+    <div class="card dashboard-recent-card">
+      <h3 class="dashboard-card-title">${t('dashboard.mostViewedArticles')}</h3>
+      <div id="dashboardArticleList"></div>
+    </div>
   `;
 
   renderRecentTickets(container.querySelector('#dashboardRecentList'), summary.recentTickets);
+  renderMostViewedArticles(container.querySelector('#dashboardArticleList'), summary.mostViewedArticles);
 }
 
 export function render(container) {

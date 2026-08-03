@@ -7,20 +7,29 @@ namespace ITSM.Application.Services;
 public class DashboardService
 {
     /// <summary>Panelde gösterilen "Son Talepler" listesinin uzunluğu.</summary>
-    private const int RecentTicketCount = 5;
+    private const int RecentTicketCount = 10;
+
+    /// <summary>Panelde gösterilen "En Çok Okunan" makale sayısı.</summary>
+    private const int MostViewedArticleCount = 3;
 
     private readonly IDashboardRepository _dashboardRepository;
     private readonly IUserPermissionRepository _userPermissionRepository;
     private readonly ICurrentLanguageProvider _languageProvider;
+    private readonly KnowledgeBaseArticleService _articleService;
 
     public DashboardService(
         IDashboardRepository dashboardRepository,
         IUserPermissionRepository userPermissionRepository,
-        ICurrentLanguageProvider languageProvider)
+        ICurrentLanguageProvider languageProvider,
+        KnowledgeBaseArticleService articleService)
     {
         _dashboardRepository = dashboardRepository;
         _userPermissionRepository = userPermissionRepository;
         _languageProvider = languageProvider;
+        // Makale listesini kendi repository'sinden değil, sahibi olan servisten
+        // alıyoruz (bkz. CommentService -> TicketService): görünürlük ve DTO
+        // eşlemesi orada tanımlı, burada kopyalanmamalı.
+        _articleService = articleService;
     }
 
     public async Task<DashboardSummaryResponse> GetSummaryAsync(long userId)
@@ -35,6 +44,7 @@ public class DashboardService
         var slaAtRiskCount = await _dashboardRepository.GetSlaAtRiskCountAsync(userId, includeAll);
         var resolvedTodayCount = await _dashboardRepository.GetResolvedTodayCountAsync(userId, includeAll);
         var recentTickets = await _dashboardRepository.GetRecentTicketsAsync(userId, includeAll, RecentTicketCount, language);
+        var mostViewedArticles = await _articleService.GetMostViewedArticlesAsync(MostViewedArticleCount);
 
         var openTickets = statusCounts.Where(s => TicketStatuses.OpenStates.Contains(s.StatusId)).Sum(s => s.Count);
         var resolvedTickets = statusCounts.Where(s => s.StatusId == TicketStatuses.Cozuldu).Sum(s => s.Count);
@@ -71,7 +81,8 @@ public class DashboardService
                     DueAt = r.DueAt,
                     CreatedAt = r.CreatedAt
                 })
-                .ToList()
+                .ToList(),
+            MostViewedArticles = mostViewedArticles
         };
     }
 }

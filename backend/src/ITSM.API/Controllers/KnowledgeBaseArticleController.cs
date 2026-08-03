@@ -30,11 +30,11 @@ public class KnowledgeBaseArticleController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> SearchArticles([FromQuery] string? search)
+    public async Task<IActionResult> SearchArticles([FromQuery] ArticleFilterRequest filter)
     {
         var userId = User.GetUserId();
 
-        var result = await _articleService.SearchArticlesAsync(search, userId);
+        var result = await _articleService.SearchArticlesAsync(filter, userId);
         return Ok(result);
     }
 
@@ -56,6 +56,22 @@ public class KnowledgeBaseArticleController : ControllerBase
     public async Task<IActionResult> UpdateArticle(long id, UpdateArticleRequest request)
     {
         var success = await _articleService.UpdateArticleAsync(id, request);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+
+    // Silme, POST/PUT'un aksine policy ile korunmuyor: yetki kontrolü servise
+    // indi, çünkü KB_MANAGE'i olmayan bir kullanıcı da kendi taslağını
+    // silebilmeli. Yetkisiz istek 403 değil 404 alır.
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteArticle(long id)
+    {
+        var userId = User.GetUserId();
+
+        var success = await _articleService.DeleteArticleAsync(id, userId);
         if (!success)
         {
             return NotFound();

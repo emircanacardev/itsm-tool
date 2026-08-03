@@ -74,27 +74,38 @@
   --status-open-bg: #E7ECFE;
   --status-open-fg: #3557D6;
   --status-inprogress-bg: #FFF3DC;
-  --status-inprogress-fg: #B7791F;
-  --status-pending-bg: #E9EEF3;
-  --status-pending-fg: #51677A;
+  --status-inprogress-fg: #96620F;
+  /* Beklemede bir zamanlar griydi ve Kapalı'nın grisinden ayırt edilemiyordu.
+     Oysa ikisi zıt: beklemede = hâlâ açık, takılmış, müdahale bekliyor;
+     kapalı = bitti. Mor, hem Kapalı'dan ayrışıyor hem de markanın ana
+     rengiyle aynı aileden. */
+  --status-pending-bg: #EDE7FB;
+  --status-pending-fg: #7C3AED;
   --status-resolved-bg: #E9F7EC;
-  --status-resolved-fg: #2F8F46;
+  --status-resolved-fg: #237537;
   --status-closed-bg: #EFEFEF;
-  --status-closed-fg: #6B7280;
+  --status-closed-fg: #5A606B;
 
   --priority-critical-bg: #FDECEC;
-  --priority-critical-fg: #D64545;
+  --priority-critical-fg: #B93030;
   --priority-high-bg: #FFF6E0;
   --priority-high-fg: #B45309;
-  --priority-medium-bg: #EFF6FF;
-  --priority-medium-fg: #2563EB;
+  /* Orta öncelik ile Açık durumu ikisi de maviydi; talep listesinde durum
+     noktası ve öncelik rozeti yan yana durduğu için göz ikisini tek bir
+     sinyal sanıyordu. Camgöbeği, ısı skalasındaki yerini koruyup Açık'ın
+     lacivert mavisinden ayrışıyor. */
+  --priority-medium-bg: #E0F2FE;
+  --priority-medium-fg: #0369A1;
   --priority-low-bg: #E6F7F5;
   --priority-low-fg: #0F766E;
 
-  --sla-overdue: #D64545;
-  --sla-urgent: #B7791F;
-  --sla-ok: #2F8F46;
-  --sla-done: #6B7280;
+  /* Son tarih hücresindeki düz metin renkleri (bkz. .due-overdue vd.).
+     Rozetlerle aynı tonlara çekildi: beyaz zeminde okunabilir olmaları
+     rozetlerden daha da önemli, çünkü gecikme uyarısının kendisi bunlar. */
+  --sla-overdue: #B93030;
+  --sla-urgent: #96620F;
+  --sla-ok: #237537;
+  --sla-done: #5A606B;
 
   --color-danger: #D64545;
   --color-danger-hover: #C13636;
@@ -123,8 +134,8 @@
   --status-open-fg: #8DA6FF;
   --status-inprogress-bg: rgba(183, 121, 31, 0.2);
   --status-inprogress-fg: #F0B429;
-  --status-pending-bg: rgba(81, 103, 122, 0.24);
-  --status-pending-fg: #B7C4D1;
+  --status-pending-bg: rgba(124, 58, 237, 0.24);
+  --status-pending-fg: #C4A5FF;
   --status-resolved-bg: rgba(47, 143, 70, 0.2);
   --status-resolved-fg: #6FDB8B;
   --status-closed-bg: rgba(107, 114, 128, 0.22);
@@ -134,8 +145,8 @@
   --priority-critical-fg: #FF8A8A;
   --priority-high-bg: rgba(245, 166, 35, 0.18);
   --priority-high-fg: #F5A623;
-  --priority-medium-bg: rgba(37, 99, 235, 0.2);
-  --priority-medium-fg: #7FA8FF;
+  --priority-medium-bg: rgba(2, 132, 199, 0.22);
+  --priority-medium-fg: #5FC8F5;
   --priority-low-bg: rgba(15, 118, 110, 0.22);
   --priority-low-fg: #5FD9CC;
 
@@ -475,15 +486,25 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* Dar ekranda başlık + aksiyon butonları tek satıra sığmıyordu ve sayfa
+     yatay scroll'a giriyordu (bkz. tasarım dili §10). Sarmaya izin verip
+     başlık bloğuna min-width: 0 vererek butonlar alt satıra düşüyor. */
+  flex-wrap: wrap;
+  gap: var(--space-3);
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
+.topbar-page > div:first-child {
+  min-width: 0;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
@@ -517,6 +538,10 @@ body {
 .content {
   padding: var(--space-6);
   flex: 1;
+  /* Flex çocuğunun varsayılan min-width'i "auto"; bu, içindeki geniş
+     kolon/kart alanın altına inmesini engelleyip sayfayı yana kaydırıyordu.
+     0'a çekilince içerik gerçekten kaplayabildiği genişliğe uyuyor. */
+  min-width: 0;
 }
 
 /* Login/register gibi "public" sayfalarda sidebar/topbar gizlenir,
@@ -554,8 +579,61 @@ body {
   height: 18px;
 }
 
+/* Dil düğmesi bir zamanlar .theme-toggle sınıfını ödünç alıyordu: ikon için
+   yapılmış 34px'lik kare kutuda iki harf sıkışıyor, "TR" bitişik yazılınca
+   "rn" gibi okunuyordu. Üstelik kutuda tek bir kod görünüyor ve bunun
+   *mevcut* dil mi yoksa *geçilecek* dil mi olduğu belirsiz kalıyordu.
+   Şimdi iki dil de aynı anda görünüyor, aktif olan vurgulanıyor - hangi
+   dilde olunduğu ve tıklayınca ne olacağı tek bakışta anlaşılıyor. */
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.lang-option {
+  padding: 0 8px;
+  line-height: 26px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  /* Bitişik büyük harfler ayrışsın diye: "TR" tek bir "rn" gibi okunmasın. */
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.lang-option.is-active {
+  background: var(--color-accent);
+  color: #FFFFFF;
+}
+
+/* Aktif olmayan yarı, tıklanabilir hedefin kendisi olduğu için hover'da
+   belirginleşiyor; aktif yarı zaten seçili, tepki vermesi yanıltıcı olurdu. */
+.lang-toggle:hover .lang-option:not(.is-active) {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
 .notification-bell {
   position: relative;
+}
+
+/* Bildirimler sayfasındayken zil, sidebar'daki aktif bağlantı gibi seçili
+   görünüyor. pointer-events kapalı: hover ve tıklama tepkisi vermesi,
+   gidilecek bir yer varmış izlenimi bırakırdı - zaten o sayfadayız. */
+.notification-bell.is-active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #FFFFFF;
+  pointer-events: none;
 }
 
 .notification-badge {
@@ -720,6 +798,13 @@ select::-ms-expand {
   display: block;
 }
 
+/* Aranabilir listede üst iç boşluğu arama kutusunun kendisi veriyor;
+   menüde de kalsaydı kaydırılan seçenekler o boşlukta kutunun üstünde
+   görünürdü (sticky kutu ancak kendi kenarına kadar örtebiliyor). */
+.custom-select-menu:has(.custom-select-search) {
+  padding-top: 0;
+}
+
 .custom-select-option {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
@@ -740,6 +825,49 @@ select::-ms-expand {
   background: var(--color-accent-bg);
   color: var(--color-accent);
   font-weight: var(--weight-semibold);
+}
+
+/* Aranabilir select'in (enhanceSelect'e { searchable: true } verilen) kutusu.
+   Liste uzun olabildiği için sticky: kullanıcı aşağı kaydırdığında arama
+   kutusu kaybolmuyor.
+
+   Negatif margin + eşit padding, menünün kendi 6px'lik iç boşluğunu iptal
+   ediyor: kutu menünün üst kenarına yapışıyor. Aksi halde kaydırılan
+   seçenekler o 6px'lik boşluktan kutunun üstünde görünüp yarı kesik
+   duruyordu. Arka plan opak ve sticky bağlamının üstünde (z-index). */
+.custom-select-search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -6px 2px;
+  padding: 6px 6px 7px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.custom-select-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.custom-select-search input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Arama hiçbir seçeneği tutmadığında liste sessizce boş kalmasın. */
+.custom-select-empty {
+  padding: 10px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
 /* Filtre çubuğunda select'ler tam genişlik değil, kompakt dursun. */
@@ -994,5 +1122,115 @@ textarea:focus {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ==========================================================
+   KIRILMA NOKTALARI (breakpoint)
+   ==========================================================
+   Yeni bir @media yazmadan önce buradaki üç değerden birini seç; ara bir
+   değer uydurma. Kırılmalar zamanla 1100/900/860/640/560 diye dağılmıştı ve
+   aynı iş (ör. iki kolonu tek kolona indirmek) sayfadan sayfaya farklı
+   genişlikte oluyordu - kullanıcı pencereyi daralttıkça arayüz parça parça,
+   rastgele anlarda yeniden diziliyordu.
+
+     1100px - "geniş masaüstü değil": çok kolonlu ızgaralar seyrelir
+              (panel KPI'ları 5 -> 3, grafikler yan yanadan alt alta).
+     900px  - "tablet": sidebar ikon şeridine döner, iki kolonlu detay
+              yerleşimleri tek kolona iner, tablolar kendi içinde kayar.
+     560px  - "telefon": her şey tek kolon, yazı ve boşluklar küçülür.
+
+   CSS'te @media sorgusu değişken kabul etmiyor (custom property'ler
+   değerlendirilmiyor), bu yüzden sayılar elle yazılıyor - bu liste de o
+   yüzden sözleşme niteliğinde.
+   ========================================================== */
+
+/* ---------- Dar ekranda kabuk ----------
+   Sidebar sabit 240px olduğu için dar ekranda içeriğe çok az yer kalıyordu
+   ve her sayfa (talepler, panel, yönetim, bilgi bankası) yatay scroll'a
+   giriyordu - tasarım dili §10'un "yatay scroll oluşmaz" kuralına aykırı.
+   900px altında sidebar ikon şeridine dönüşüyor: gezinme erişilebilir
+   kalıyor ama içerik ~170px daha genişliyor. */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 64px;
+    padding: var(--space-5) var(--space-2);
+    align-items: center;
+  }
+
+  /* Yazılar gidiyor, ikonlar kalıyor. */
+  .sidebar .brand-name-sm,
+  .sidebar .nav-list a span,
+  .sidebar .sidebar-user-info {
+    display: none;
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+    padding: var(--space-2);
+  }
+
+  .nav-list a {
+    justify-content: center;
+    gap: 0;
+    padding: var(--space-2);
+    border-left-width: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .sidebar-user {
+    justify-content: center;
+  }
+
+  .sidebar-footer {
+    align-items: center;
+  }
+}
+
+/* Telefon genişliği: ikon şeridi biraz daha daralıyor ve başlık küçülüyor.
+   Sidebar tamamen gizlenmiyor - gizlendiğinde gezinmenin tek yolu kalmıyor
+   (uygulamada hamburger menü yok), kullanıcı sayfalar arasında geçemez hale
+   geliyordu. */
+@media (max-width: 560px) {
+  .sidebar {
+    width: 56px;
+    padding: var(--space-4) 6px;
+  }
+
+  .topbar-page {
+    padding: var(--space-4);
+  }
+
+  .page-title {
+    font-size: var(--text-2xl);
+  }
+
+  /* Altbaşlık telefonda iki-üç satıra yayılıp içeriği aşağı itiyordu;
+     sayfanın hangi sayfa olduğunu başlık zaten söylüyor. */
+  .page-subtitle {
+    display: none;
+  }
+
+  /* Sayfa aksiyonu (Yeni Talep, Yeni Proje...) alt satıra düştüğünde
+     satırı boydan boya kaplasın - tek başına kalan kısa bir düğme
+     ortada asılı duruyordu. */
+  .topbar-page-actions {
+    width: 100%;
+  }
+
+  .topbar-page-actions .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Zil, dil ve tema düğmeleri kendi satırlarında yan yana kalsın. */
+  .topbar-actions {
+    gap: var(--space-2);
+  }
+
+  /* Telefonda 24px'lik iki yan boşluk, kalan dar alandan gereğinden fazla
+     yiyordu. */
+  .content {
+    padding: var(--space-4);
   }
 }

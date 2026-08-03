@@ -92,7 +92,24 @@ public class TicketRepository : ITicketRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(t => EF.Functions.ILike(t.Title, $"%{search}%"));
+            // Kullanıcı arama kutusuna talep numarası da yazabiliyor: "42" ya da
+            // "#42". Baştaki '#' aranan metnin parçası değil, numara kastedildiğini
+            // belirten bir işaret - kırpılıyor. Kırpma burada yapılıyor ki API'yi
+            // doğrudan çağıran (Swagger, testler) için de aynı davransın.
+            var searchTerm = search.Trim().TrimStart('#');
+
+            // Sayı yazıldıysa numara eşleşmesi ekleniyor ama başlık araması
+            // kaldırılmıyor: "2024" yazan biri hem #2024'ü hem başlığında 2024
+            // geçen talepleri görmeli, numara araması diğerini gizlememeli.
+            if (long.TryParse(searchTerm, out var searchId))
+            {
+                query = query.Where(t => t.Id == searchId
+                    || EF.Functions.ILike(t.Title, $"%{searchTerm}%"));
+            }
+            else
+            {
+                query = query.Where(t => EF.Functions.ILike(t.Title, $"%{searchTerm}%"));
+            }
         }
 
         var totalCount = await query.CountAsync();

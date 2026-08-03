@@ -280,7 +280,7 @@
   text-decoration: underline;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .login-page {
     flex-direction: column;
   }
@@ -290,6 +290,42 @@
   .slogan-title {
     font-size: var(--text-2xl);
     white-space: normal;
+  }
+}
+
+/* Telefonda marka paneli ekranın yarısını yiyordu; giriş formu ilk
+   görünende olmalı, marka bloğu ona başlık gibi eşlik etmeli. */
+@media (max-width: 560px) {
+  .brand-panel {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .brand-lockup {
+    margin-bottom: var(--space-3);
+  }
+
+  .brand-mark {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brand-mark svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .brand-name {
+    font-size: var(--text-2xl);
+  }
+
+  .slogan-title {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
+  }
+
+  /* Slogan metni telefonda formu aşağı itmekten başka iş görmüyor. */
+  .slogan-body {
+    display: none;
   }
 }
 
@@ -348,6 +384,34 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Flex çocuğunun varsayılan min-width'i "auto": içindeki select uzun bir
+     seçenek adı yüzünden gerildiğinde grup da onunla geriliyor ve çubuk
+     taşıyordu. */
+  min-width: 0;
+}
+
+/* Telefonda filtreler yan yana sığmıyor; her biri tam genişlik alıp alt
+   alta diziliyor. Ara genişliklerde .filter-bar'ın kendi flex-wrap'i
+   zaten yeterli. */
+@media (max-width: 560px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  /* Arama kutusunun tuttuğu 200px'lik alt sınır tek kolonda gereksiz. */
+  .filter-group-search {
+    min-width: 0;
+  }
+
+  /* Filtreleri temizle gibi tek başına duran butonlar satırı doldurmasın,
+     kendi boyunda kalsın. */
+  .filter-bar > .btn-secondary,
+  .filter-bar > .btn-primary {
+    align-self: flex-start;
+  }
 }
 
 .filter-group label {
@@ -500,25 +564,52 @@ input[type="number"]::-webkit-inner-spin-button {
   border-color: var(--color-danger-hover);
 }
 
+/* Tablo kendi içinde DİKEY kaydırılmaz (tasarım dili §1): sayfa başına satır
+   sayısı zaten sabit, sayfanın kendi scroll'u yeterli. İç scroll ayrıca
+   sayfayı iki ayrı kaydırma alanına bölüp tekerleğin hangisini süreceğini
+   belirsizleştiriyordu.
+
+   Yatay kaydırma ise kalıyor: dar ekranda çok kolonlu tablolar (yönetim
+   paneli, proje detayı) hiçbir şekilde sığmıyor ve sayfanın tamamının yana
+   kayması §10'a aykırı olurdu. Taşma tablonun kendi içinde kalıyor. */
 .ticket-table-wrap {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  overflow: auto;
-  max-height: calc(100vh - 320px);
+  overflow-x: auto;
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
-/* Admin panelindeki tablolar sayfa başına en fazla 10-20 satır gösteriyor
-   (bkz. admin.js PAGE_SIZE sabitleri), bu yüzden Tickets sayfasındaki gibi
-   ayrı bir iç scroll'a gerek yok - uzun tablolarda sayfanın kendi scroll'u
-   yeterli. Sadece admin panelinde override ediyoruz ki Tickets sayfasındaki
-   davranış değişmesin. */
-.admin-view .ticket-table-wrap,
-.project-detail-view .ticket-table-wrap {
-  overflow: visible;
-  max-height: none;
+/* Telefonda tablolar kendi içinde yana kayıyor (bkz. .ticket-table-wrap).
+   Kaydırmayı büsbütün ortadan kaldırmak mümkün değil - yedi kolonlu bir
+   talep tablosu 360px'e sığmıyor - ama hücre boşluklarını daraltarak kaç
+   kolonun aynı anda görüneceğini artırıyoruz, böylece kaydırma mesafesi
+   kısalıyor. Kolon gizlemiyoruz: hangi kolonun kime gereksiz olduğuna
+   burada karar verilemez. */
+@media (max-width: 560px) {
+  thead th,
+  tbody td {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  tbody td {
+    font-size: var(--text-sm);
+  }
+
+  /* Kaydırılabilir olduğu belli olsun: kenarda kesilen içerik, tablonun
+     devamı olduğunu kendiliğinden anlatmıyor. */
+  .ticket-table-wrap {
+    background-image: linear-gradient(to left, var(--color-surface-alt), transparent);
+    background-size: 24px 100%;
+    background-position: right center;
+    background-repeat: no-repeat;
+  }
+
+  .pagination-bar {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
 }
 
 .col-right {
@@ -538,6 +629,56 @@ input[type="number"]::-webkit-inner-spin-button {
   gap: var(--space-2);
   margin-bottom: var(--space-5);
   border-bottom: 1px solid var(--color-border);
+  /* Sekme sayısı yetkiye göre altıya kadar çıkabiliyor; dar ekranda tek
+     satıra sığmayınca sayfayı yana kaydırıyorlardı. Şeridin kendi içinde
+     kayıyorlar, sekmeler de daralıp okunmaz hale gelmiyor. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tab {
+  flex-shrink: 0;
+}
+
+/* Kullanıcı satırındaki grup değiştirme kutusu. Hücre konumlanma bağlamı
+   oluyor, kutu da onun üstünde mutlak duruyor: satır yüksekliği düzenleme
+   açılınca değişmiyor ve sonuç listesi tablo satırlarının üstüne binebiliyor
+   (aksi halde tablo hücresi tarafından kırpılırdı). */
+.group-cell {
+  position: relative;
+}
+
+.group-picker-wrap {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: var(--space-4);
+  right: var(--space-4);
+  z-index: 5;
+}
+
+/* Telefonda hücre yatay boşluğu --space-3'e iniyor (bkz. tablo kuralları);
+   kutu da hücreyle aynı hizada dursun diye onunla birlikte daralıyor. */
+@media (max-width: 560px) {
+  .group-picker-wrap {
+    left: var(--space-3);
+    right: var(--space-3);
+  }
+}
+
+/* Proje Ayarları'nda düzenlenen projenin adı. Sekmenin içinde proje
+   değiştirilemediği için (bkz. admin.js) hangi projede olunduğunu tek
+   söyleyen şey bu başlık. */
+.ps-project-heading {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-4);
 }
 
 .admin-tab {
@@ -567,10 +708,11 @@ table {
   border-collapse: collapse;
 }
 
+/* Başlık satırı bir zamanlar sticky idi; anlamı vardı, çünkü tablo kendi
+   içinde dikey kayıyordu. İç scroll kalkınca (bkz. .ticket-table-wrap)
+   yapışma referansı sayfa oluyor ve başlıklar, üstlerindeki topbar yukarı
+   kayıp gittikten sonra ekranın tepesinde havada asılı kalıyordu. */
 thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   text-align: left;
   font-size: 11px;
   font-weight: var(--weight-bold);
@@ -859,12 +1001,14 @@ tbody tr:hover .row-chevron {
   gap: 6px;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  color: var(--color-text);
+  /* Sayfadaki diğer butonlar mor; geri linki nötr kaldığı için tıklanabilir
+     bir öğe olduğu yeterince belli olmuyordu. */
+  color: var(--color-accent);
   text-decoration: none;
   margin-bottom: var(--space-4);
   cursor: pointer;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-accent-bg);
+  border: 1px solid var(--color-accent);
   padding: 7px var(--space-3);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
@@ -877,10 +1021,12 @@ tbody tr:hover .row-chevron {
   height: 15px;
 }
 
+/* Zemin zaten accent-bg olduğu için hover'da renk değişimi yetmiyor;
+   dolu mora geçip metni beyaza çeviriyoruz. */
 .back-link:hover {
-  color: var(--color-accent);
+  color: #FFFFFF;
   border-color: var(--color-accent);
-  background: var(--color-accent-bg);
+  background: var(--color-accent);
 }
 
 .detail-grid {
@@ -919,10 +1065,24 @@ tbody tr:hover .row-chevron {
   margin-top: 0;
 }
 
+/* Etiket üstte, rakam altta ve altçizgi her kartta aynı hizada: eskiden
+   kartlar yalnızca içeriklerine göre diziliyordu, etiket iki satıra taşan
+   kartın rakamı komşularından aşağıda kalıyordu. margin-top:auto altçizgiyi
+   kartın dibine sabitliyor. */
 .kpi-tile {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.kpi-tile .kpi-underline {
+  margin-top: auto;
+}
+
+/* Kritik ve SLA riski sıfırdan büyükken kendi rengini alıyor; sıfırken
+   diğer kartlardan ayrışmıyor (bkz. dashboard.js kpiCard). */
+.kpi-tile.is-alerting .kpi-value {
+  color: var(--kpi-color);
 }
 
 .kpi-label {
@@ -946,6 +1106,7 @@ tbody tr:hover .row-chevron {
   height: 3px;
   border-radius: 999px;
   margin-top: var(--space-1);
+  background: var(--kpi-color, var(--color-accent));
 }
 
 .dashboard-chart-grid {
@@ -979,7 +1140,7 @@ tbody tr:hover .row-chevron {
 
 .bar-row {
   display: grid;
-  grid-template-columns: 100px 1fr 32px;
+  grid-template-columns: 100px 1fr 32px 40px;
   align-items: center;
   gap: var(--space-3);
 }
@@ -1009,6 +1170,15 @@ tbody tr:hover .row-chevron {
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   text-align: right;
+}
+
+/* Sayının yanındaki pay oranı. Sayıdan daha soluk: asıl bilgi adet, oran
+   onu bağlama oturtan ikincil bilgi. */
+.bar-percent {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .dashboard-recent-card {
@@ -1065,13 +1235,73 @@ tbody tr:hover .row-chevron {
   font-size: var(--text-sm);
 }
 
+/* Panel listelerinde (son talepler, en çok okunanlar) satır başlık + meta
+   olarak yan yana duruyor. Telefonda meta bloğu (rozet, durum, son tarih,
+   ok) başlığa yer bırakmıyordu; alt satıra alıp başlığı tam genişliğe
+   kavuşturuyoruz. */
+@media (max-width: 560px) {
+  .recent-ticket-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .recent-ticket-meta {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  /* Sabit 140px, artık sola dayalı olan hücreyi gereksiz yere geriyordu. */
+  .recent-ticket-meta .due-cell {
+    min-width: 0;
+    text-align: left;
+  }
+
+  /* Satır ok'u yalnızca hover'da beliriyor; dokunmatikte hover olmadığı
+     için yer kaplamaktan başka iş görmüyor. */
+  .recent-ticket-meta .row-chevron {
+    display: none;
+  }
+}
+
+/* Beş KPI kartı 1100px altında sığmıyor. Doğrudan 2 kolona düşmek yerine
+   3'e uğruyoruz: 5 kart 2 kolonda 3 satır ediyor ve son satırda tek başına
+   kalan kart yarım kutu gibi duruyordu. */
 @media (max-width: 1100px) {
   .dashboard-kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .dashboard-chart-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  /* Telefonda iki KPI yan yana okunabiliyor - tek kolona indirmek beş kartı
+     beş ekrana yayıp özet olma amacını bozardı. Rakam bir tık küçülüyor. */
+  .kpi-value {
+    font-size: var(--text-2xl);
+  }
+
+  /* Etiket, sayı ve oran için 100px'lik sabit etiket kolonu telefonda
+     çubuğa yer bırakmıyordu. */
+  .bar-row {
+    grid-template-columns: 84px 1fr auto;
+    gap: var(--space-2);
+  }
+
+  /* Oran yüzdesi telefonda düşüyor: sayının kendisi zaten orada ve
+     çubuğun uzunluğu payı gösteriyor. */
+  .bar-percent {
+    display: none;
   }
 }
 
@@ -1083,10 +1313,19 @@ tbody tr:hover .row-chevron {
   margin-bottom: var(--space-4);
 }
 
+/* Talep listesindeki .ticket-id rozetiyle aynı görsel dil: kaydın kısa
+   teknik kimliği düz metin yerine gri kutucukta durunca başlıktan ayrıştığı
+   hemen anlaşılıyor (proje kodu rozeti de aynı desende). */
 .ticket-id-large {
+  display: inline-block;
   color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .ticket-title-large {
@@ -1143,7 +1382,21 @@ tbody tr:hover .row-chevron {
 
 .action-form {
   display: flex;
+  align-items: stretch;
   gap: var(--space-2);
+}
+
+/* enhanceSelect native select'i gizleyip yanına kendi tetikleyicisini
+   koyuyor; aşağıdaki ".action-form select" kuralları o katmana geçmediği
+   için açılır liste ile Kaydet butonu farklı yüksekliklerde kalıyordu.
+   Sarmalayıcı satırı doldurup tetikleyici de yüksekliği devralıyor. */
+.action-form .custom-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-form .custom-select-trigger {
+  height: 100%;
 }
 
 .action-form select {
@@ -1419,6 +1672,44 @@ tbody tr:hover .row-chevron {
   }
 }
 
+/* Talep detayı telefonda: yan yana duran her şey alt alta iniyor.
+   Ayrı ayrı küçük kurallar yerine tek blok, çünkü hepsi aynı sayfanın
+   aynı daralma anındaki davranışı. */
+@media (max-width: 560px) {
+  /* Başlık ile durum/öncelik rozetleri: uzun bir başlık rozetleri ezip
+     kendi de iki-üç satıra bölünüyordu. */
+  .ticket-header {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .ticket-title-large {
+    font-size: var(--text-xl);
+  }
+
+  /* Durum güncelleme / atama: açılır liste ile buton yan yana sığmıyor. */
+  .action-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Dosya seçici zaten geniş bir kontrol; butonla yan yana kalınca
+     ikisi de kullanılamayacak kadar daralıyordu. */
+  .upload-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  /* Dahili not kutusu ile Gönder düğmesi arasına boşluk girmezse
+     düğme kutunun dibine yapışıyor. */
+  .comment-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+}
+
 /* ---------- New ticket form ---------- */
 .form-card {
   background: var(--color-surface);
@@ -1527,9 +1818,14 @@ tbody tr:hover .row-chevron {
   cursor: not-allowed;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 560px) {
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  /* Form kartının iç boşluğu telefonda alanın önemli bir kısmını yiyordu. */
+  .form-card {
+    padding: var(--space-4);
   }
 }
 
@@ -1537,9 +1833,12 @@ tbody tr:hover .row-chevron {
    Talepler tablo olarak listeleniyor; projeler ise sayıca az ve her biri
    özet sayaç taşıdığı için kart olarak gösteriliyor. */
 
+/* min(300px, 100%): 300px'ten dar bir alanda sabit 300px'lik kolon sığmayıp
+   ızgarayı taşırıyordu. min() ile kolon, alan daraldığında onunla birlikte
+   daralıyor. */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: var(--space-4);
 }
 
@@ -1688,9 +1987,28 @@ tbody tr:hover .row-chevron {
   color: var(--color-text-muted);
 }
 
+/* Alt band kartın iki kenarına kadar uzanıyor: kartın kendi yatay padding'i
+   negatif margin ile geri alınıp bandın kendi padding'i veriliyor. Gri zemin
+   bandı gövdeden ayırdığı için ayrıca üst çizgi yok - üstündeki sayaç
+   bloğunun border-top'u zaten orada. Alt köşeler kartın yuvarlaklığını
+   izliyor, yoksa zemin köşelerden taşardı. */
 .project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+.project-card-footer-date {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Proje detay sayfası ---------- */
@@ -1790,6 +2108,11 @@ tbody tr:hover .row-chevron {
   box-shadow: var(--shadow-elevated);
   padding: var(--space-5);
   animation: confirm-pop-in var(--transition-base) ease;
+  /* Alçak ekranda (telefon yatay, küçük dizüstü) uzun bir modal ekranı
+     taşırıyor ve alttaki Kaydet/Vazgeç düğmelerine ulaşılamıyordu. Kart
+     görünen alanı aşmayıp kendi içinde kayıyor. */
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow-y: auto;
 }
 
 .modal-title {
@@ -1813,7 +2136,254 @@ tbody tr:hover .row-chevron {
   margin-top: var(--space-5);
 }
 
-@media (max-width: 640px) {
+/* ---------- Bilgi bankası ----------
+   Kart ızgarası proje kartlarıyla aynı iskeleti (.project-grid /
+   .project-card / .project-card-head …) kullanıyor; burada yalnızca
+   makaleye özgü farklar tanımlı: etiket satırı, yazar satırı ve okuma
+   görünümü. */
+
+/* Başlık 1-2, önizleme 2-3 satır tutabildiği için kartlar farklı boyda
+   kalıyordu ve ızgara satırları kayıyordu. Başlığa iki satırlık, önizlemeye
+   üç satırlık sabit yükseklik vererek her kart aynı boyda başlıyor; alt
+   şerit zaten margin-top: auto ile en alta yapışıyor. */
+.article-card .project-card-name {
+  min-height: 2.6em;
+}
+
+.article-card .project-card-description {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  min-height: 4.5em;
+}
+
+/* Proje kartında ad + kod alt alta duruyor; makalede kodun yerini yazar
+   alıyor, bu yüzden ad tek satıra sıkışmak yerine iki satıra taşabiliyor
+   (başlıklar proje adlarından uzun). */
+.article-card-title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.article-card-author {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Kartın alt şeridi: solda proje/kategori etiketleri, sağda tarih.
+   Kart yüksekliklerini eşitlemek için üst boşluğu otomatik. */
+.article-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Etiketler tek satırda kalıyor: sarmalarına izin verilince uzun proje +
+   kategori adı olan kart (ör. "Monitoring Platformu" + "Nöbet & Eskalasyon")
+   iki satıra çıkıp ızgaradaki diğer kartlardan yüksek duruyordu. Sığmayan
+   ad, etiketin kendi içinde "…" ile kırpılıyor. */
+.article-card-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Tek etiket varsa tüm şeridi kullanabilsin, iki etiket varsa alanı
+   paylaşsınlar: ikisi de kırpılabilir ama kategori önce daralıyor
+   (proje adı, makalenin nereye ait olduğunu anlatan asıl bilgi). */
+.article-card-tags .article-tag {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Görüntülenme sayısı ikincil bilgi: satırın neden bu sırada olduğunu
+   söylüyor ama başlığın önüne geçmemeli. */
+.article-view-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.article-card-tags .article-tag.is-muted {
+  flex-shrink: 2;
+}
+
+.article-card-date {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Proje/kategori etiketi. Proje kodu rozetiyle (.project-card-code) aynı
+   görsel dil, ama büyük harfe çevrilmiyor: burada gösterilen şey bir kod
+   değil, insan tarafından okunan bir ad. */
+/* display: block (inline-flex değil) - inline-flex'te text-overflow: ellipsis
+   çalışmıyor, metin kırpılmak yerine taşıyordu. */
+.article-tag {
+  display: block;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+  background: var(--color-surface-alt);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.article-tag.is-muted {
+  color: var(--color-text-muted);
+}
+
+/* ---------- Makale okuma görünümü ---------- */
+
+.article-detail {
+  max-width: 760px;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.article-detail-head {
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.article-detail-title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.article-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.article-detail-author,
+.article-detail-date {
+  color: var(--color-text-muted);
+}
+
+/* İçerik düz metin olarak saklanıyor (Markdown/HTML değil). pre-wrap,
+   yazarın koyduğu satır sonlarını ve adım numaralarının hizasını koruyor;
+   metin textContent ile basıldığı için HTML yorumlanmıyor. */
+.article-detail-content {
+  white-space: pre-wrap;
+  font-size: var(--text-base);
+  line-height: 1.7;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+/* Makalenin altındaki aksiyon şeridi. İçerikten bir ayraçla ayrılıyor ve
+   sağa yaslanıyor - formlardaki .modal-actions ile aynı hizalama dili. */
+.article-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.article-detail-actions .btn-secondary {
+  gap: 6px;
+}
+
+.article-detail-actions .btn-secondary svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------- Makale formu (yeni makale modalı + satır içi düzenleme) ---------- */
+
+.article-modal-card {
+  max-width: 640px;
+}
+
+.article-edit-form {
+  max-width: 760px;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Proje ve kategori yan yana: ikisi birlikte tek bir seçim (hangi projenin
+   hangi kategorisi) oluşturuyor, alt alta konunca form gereksiz uzuyordu. */
+.article-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* .filter-group içinde textarea için bir kural yoktu; select/input ile aynı
+   kutu görünümünü veriyoruz ki form karışık görünmesin. */
+.article-content-input {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  resize: vertical;
+  min-height: 140px;
+}
+
+.article-content-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.article-publish-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.article-publish-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
   .project-grid {
     grid-template-columns: 1fr;
   }
@@ -1821,5 +2391,21 @@ tbody tr:hover .row-chevron {
   .project-card-stats {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-3);
+  }
+
+  /* Dar ekranda proje/kategori yan yana sığmıyor. */
+  .article-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .article-detail {
+    padding: var(--space-4);
+  }
+
+  /* Makale üst bilgisindeki etiketler (proje, kategori, yazar, tarih,
+     okunma) tek satırda taşıyordu. */
+  .article-detail-meta {
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
 }
