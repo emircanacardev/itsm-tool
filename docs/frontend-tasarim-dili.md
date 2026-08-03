@@ -194,12 +194,33 @@ kullanıcı dostu metin gösterilir.
 
 ## 5. Filtre çubuğu
 
+**Her tablonun üstünde arama kutusu olur** — istisnasız. Bugün 5 satır olan bir
+tablo yarın binlerce satıra çıkıyor; aramasız tablo o noktada kullanılamaz hale
+geliyor. Kayıt az diye atlanmaz.
+
 Tablonun üstünde `.filter-bar` içinde `.filter-group`'lar:
 
 - Arama kutusu `.filter-group-search` + `.search-box` (büyüteç ikonu içeride)
-- Arama **300ms debounce** ile tetiklenir
+- Arama **debounce** ile tetiklenir (sunucuya gidiyorsa 300ms, istemcide
+  filtreliyorsa 200ms yeterli)
 - Herhangi bir filtre değişiminde `currentPage = 1`
-- Filtreler sunucuya query parametresi olarak gider
+
+**Arama nerede çalışır:**
+
+- **Sayfalanmış tablo** → sunucuda, `search` query parametresiyle. İstemcide
+  filtrelemek yalnızca görünen sayfayı süzer, diğer sayfalardaki eşleşmeler
+  kaybolur.
+- **Sayfalanmayan tablo** (tüm kayıtlar tek istekte) → istemcide,
+  `filterRows(rows, columns, query)` ile. Kolonların `getValue`'ları üzerinde
+  arar, yani sıralamayla aynı veriyi kullanır.
+
+Gösterilen değer ile sıralama değeri farklıysa (ör. SLA'da öncelik kolonu
+sıralama için id döndürüyor), aramaya **kullanıcının gördüğü metin** verilir —
+kimse id araştırmaz.
+
+**Boş sonuç iki farklı durumdur:** hiç kayıt yoksa "henüz kayıt yok", arama
+eşleşmediyse "aramanla eşleşen kayıt yok". Aynı mesajı kullanmak kullanıcıya
+verinin silindiğini düşündürür.
 
 ## 6. Bildirimler ve onaylar
 

@@ -1,5 +1,7 @@
 import { pulseLoader } from '../loading.js';
 import { showConfirmDialog } from '../confirmDialog.js';
+import { enhanceSelect } from '../customSelect.js';
+import { enhanceDateInput } from '../customDatePicker.js';
 import {
   STATUS_DOT_COLORS,
   PRIORITY_BADGE_MAP,
@@ -186,6 +188,36 @@ function createClientSorter(columns, onSorted) {
   return { sortRows, wire };
 }
 
+// Sayfalanmayan sekmelerin arama kutusu. Filtre istemcide çalışıyor çünkü
+// tüm kayıtlar zaten tek istekte gelmiş durumda; kolonların getValue'ları
+// üzerinde arandığı için sıralamayla aynı veriyi kullanıyor.
+function searchBarHtml(inputId, placeholderKey) {
+  return `
+    <div class="filter-group filter-group-search">
+      <label for="${inputId}" data-i18n="projectDetail.searchLabel"></label>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <input type="text" id="${inputId}" data-i18n-placeholder="${placeholderKey}">
+      </div>
+    </div>
+  `;
+}
+
+// Girilen metni kolon değerlerinde arar. Büyük/küçük harf ve Türkçe
+// karakterler için locale'e duyarlı karşılaştırma yapılıyor.
+function filterRows(rows, columns, query) {
+  const term = query.trim().toLocaleLowerCase(getLanguage());
+  if (!term) {
+    return rows;
+  }
+
+  return rows.filter((row) =>
+    columns.some((col) => String(col.getValue(row)).toLocaleLowerCase(getLanguage()).includes(term)));
+}
+
 // Sıralanabilir başlık hücrelerini üretir (tickets.js'teki th yapısının aynısı).
 function sortableHeaders(columns) {
   return columns.map((col) => `
@@ -329,6 +361,35 @@ function renderTicketsTab(panel, projectId) {
   `).join('');
 
   panel.innerHTML = `
+    <div class="filter-bar">
+      ${searchBarHtml('projectTicketSearch', 'projectDetail.ticketSearchPlaceholder')}
+      <div class="filter-group">
+        <label for="ticketFilterStatus" data-i18n="tickets.filterStatus"></label>
+        <select id="ticketFilterStatus">
+          <option value="" data-i18n="tickets.filterAll"></option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="ticketFilterPriority" data-i18n="tickets.filterPriority"></label>
+        <select id="ticketFilterPriority">
+          <option value="" data-i18n="tickets.filterAll"></option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="ticketFilterFromDate" data-i18n="tickets.filterFrom"></label>
+        <input type="date" id="ticketFilterFromDate">
+      </div>
+      <div class="filter-group">
+        <label for="ticketFilterToDate" data-i18n="tickets.filterTo"></label>
+        <input type="date" id="ticketFilterToDate">
+      </div>
+      <button type="button" class="btn-secondary btn-icon-only" id="ticketClearFilters" data-i18n-title="tickets.clearFilters" title="">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+          <path d="M3 12a9 9 0 1 0 2.64-6.36"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
+    </div>
     <div class="ticket-table-wrap">
       <table class="table-fixed">
         <thead>
@@ -349,6 +410,12 @@ function renderTicketsTab(panel, projectId) {
   applyTranslations();
 
   const body = panel.querySelector('#projectTicketsBody');
+  const searchInput = panel.querySelector('#projectTicketSearch');
+  const filterStatus = panel.querySelector('#ticketFilterStatus');
+  const filterPriority = panel.querySelector('#ticketFilterPriority');
+  const filterFromDate = panel.querySelector('#ticketFilterFromDate');
+  const filterToDate = panel.querySelector('#ticketFilterToDate');
+  const clearFiltersButton = panel.querySelector('#ticketClearFilters');
   const info = panel.querySelector('#projectTicketsInfo');
   const pageIndicator = panel.querySelector('#projectTicketsPage');
   const prevButton = panel.querySelector('#projectTicketsPrev');
@@ -395,6 +462,19 @@ function renderTicketsTab(panel, projectId) {
         sortBy: sortField,
         sortDescending: String(sortDescending)
       });
+
+      // Arama ve filtreler sunucuda: bu sekme sayfalanıyor, istemcide
+      // filtrelemek yalnızca görünen sayfayı süzerdi.
+      const search = searchInput.value.trim();
+      if (search) {
+        params.set('search', search);
+      }
+      if (filterStatus.value) params.set('statusId', filterStatus.value);
+      if (filterPriority.value) params.set('priorityId', filterPriority.value);
+      if (filterFromDate.value) params.set('fromDate', filterFromDate.value);
+      // Bitiş tarihi günün sonuna çekiliyor, yoksa seçilen gün filtre dışı kalır.
+      if (filterToDate.value) params.set('toDate', `${filterToDate.value}T23:59:59`);
+
       const result = await apiRequest(`/ticket?${params.toString()}`);
 
       body.innerHTML = '';
@@ -485,6 +565,51 @@ function renderTicketsTab(panel, projectId) {
     }
   });
 
+  function resetPageAndLoad() {
+    // Filtre değişince ilk sayfaya dönülüyor: 3. sayfadayken filtreleyince
+    // sonuç 1 sayfaya düşerse boş ekran kalırdı.
+    currentPage = 1;
+    loadTickets();
+  }
+
+  searchInput.addEventListener('input', debounce(resetPageAndLoad, 300));
+  filterStatus.addEventListener('change', resetPageAndLoad);
+  filterPriority.addEventListener('change', resetPageAndLoad);
+  filterFromDate.addEventListener('change', resetPageAndLoad);
+  filterToDate.addEventListener('change', resetPageAndLoad);
+
+  clearFiltersButton.addEventListener('click', () => {
+    searchInput.value = '';
+    filterStatus.value = '';
+    filterPriority.value = '';
+    filterFromDate.value = '';
+    filterToDate.value = '';
+    enhanceSelect(filterStatus);
+    enhanceSelect(filterPriority);
+    enhanceDateInput(filterFromDate);
+    enhanceDateInput(filterToDate);
+    resetPageAndLoad();
+  });
+
+  // Durum/öncelik adları dile göre backend'den geliyor; seçenekler
+  // doldurulduktan sonra enhanceSelect çağrılıyor (boş etiket olmasın diye).
+  (async () => {
+    try {
+      const [statuses, priorities] = await Promise.all([
+        apiRequest('/status'),
+        apiRequest('/priority')
+      ]);
+      statuses.forEach((s) => filterStatus.add(new Option(s.name, s.id)));
+      priorities.forEach((p) => filterPriority.add(new Option(p.name, p.id)));
+    } catch (error) {
+      // Seçenekler gelmese de liste filtresiz çalışmaya devam eder.
+    }
+    enhanceSelect(filterStatus);
+    enhanceSelect(filterPriority);
+  })();
+
+  enhanceDateInput(filterFromDate);
+  enhanceDateInput(filterToDate);
   updateSortHeaderUI();
   loadTickets();
 }
@@ -520,6 +645,9 @@ function renderCategoriesTab(panel, projectId, canManage) {
       </button>
     </div>
     ` : ''}
+    <div class="filter-bar">
+      ${searchBarHtml('categorySearchInput', 'projectDetail.categorySearchPlaceholder')}
+    </div>
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
@@ -536,7 +664,10 @@ function renderCategoriesTab(panel, projectId, canManage) {
   applyTranslations();
 
   const body = panel.querySelector('#projectCategoriesBody');
+  const searchInput = panel.querySelector('#categorySearchInput');
   const toast = panel.querySelector('#categoryToast');
+
+  searchInput.addEventListener('input', debounce(() => renderRows(), 200));
 
   function showToast(key, isError) {
     toast.textContent = t(key);
@@ -621,12 +752,18 @@ function renderCategoriesTab(panel, projectId, canManage) {
 
   function renderRows() {
       body.innerHTML = '';
-      if (categories.length === 0) {
-        body.innerHTML = messageRow(columnCount, 'projectDetail.categoriesEmpty', false);
+
+      const visible = filterRows(categories, CATEGORY_COLUMNS, searchInput.value);
+      if (visible.length === 0) {
+        // Kayıt hiç yok mu, yoksa arama mı boş döndü - ayrı mesajlar.
+        const emptyKey = categories.length === 0
+          ? 'projectDetail.categoriesEmpty'
+          : 'projectDetail.noSearchResult';
+        body.innerHTML = messageRow(columnCount, emptyKey, false);
         return;
       }
 
-      sorter.sortRows(categories).forEach((category) => {
+      sorter.sortRows(visible).forEach((category) => {
         const row = document.createElement('tr');
 
         const nameCell = document.createElement('td');
@@ -724,8 +861,9 @@ function renderTeamTab(panel, projectId, canManage) {
   const sorter = createClientSorter(TEAM_COLUMNS, () => renderRows());
 
   panel.innerHTML = `
-    ${canManage ? `
     <div class="filter-bar">
+      ${searchBarHtml('teamSearchInput', 'projectDetail.teamSearchPlaceholder')}
+      ${canManage ? `
       <div class="filter-group" style="min-width: 260px;">
         <label for="teamUserSearch" data-i18n="projectDetail.addMemberLabel"></label>
         <div style="position: relative;">
@@ -739,8 +877,8 @@ function renderTeamTab(panel, projectId, canManage) {
           <div class="custom-select-menu" id="teamUserResults"></div>
         </div>
       </div>
+      ` : ''}
     </div>
-    ` : ''}
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
@@ -758,8 +896,13 @@ function renderTeamTab(panel, projectId, canManage) {
 
   const body = panel.querySelector('#projectTeamBody');
   const toast = panel.querySelector('#teamToast');
+  // İki ayrı kutu: userSearch yeni üye aramak için (tüm kullanıcılar),
+  // memberSearchInput mevcut ekip listesini süzmek için.
   const userSearch = panel.querySelector('#teamUserSearch');
   const userResults = panel.querySelector('#teamUserResults');
+  const memberSearchInput = panel.querySelector('#teamSearchInput');
+
+  memberSearchInput.addEventListener('input', debounce(() => renderRows(), 200));
 
   // Zaten üye olan kullanıcıları arama sonuçlarından elemek için tutuluyor.
   let memberUserIds = new Set();
@@ -866,12 +1009,17 @@ function renderTeamTab(panel, projectId, canManage) {
 
   function renderRows() {
       body.innerHTML = '';
-      if (members.length === 0) {
-        body.innerHTML = messageRow(columnCount, 'projectDetail.teamEmpty', false);
+
+      const visible = filterRows(members, TEAM_COLUMNS, memberSearchInput.value);
+      if (visible.length === 0) {
+        const emptyKey = members.length === 0
+          ? 'projectDetail.teamEmpty'
+          : 'projectDetail.noSearchResult';
+        body.innerHTML = messageRow(columnCount, emptyKey, false);
         return;
       }
 
-      sorter.sortRows(members).forEach((member) => {
+      sorter.sortRows(visible).forEach((member) => {
         const row = document.createElement('tr');
 
         const nameCell = document.createElement('td');
@@ -947,6 +1095,15 @@ function renderSlaTab(panel, projectId) {
   const sorter = createClientSorter(SLA_COLUMNS, () => renderRows());
 
   panel.innerHTML = `
+    <div class="filter-bar">
+      ${searchBarHtml('slaSearchInput', 'projectDetail.slaSearchPlaceholder')}
+      <div class="filter-group">
+        <label for="slaFilterPriority" data-i18n="tickets.filterPriority"></label>
+        <select id="slaFilterPriority">
+          <option value="" data-i18n="tickets.filterAll"></option>
+        </select>
+      </div>
+    </div>
     <div class="ticket-table-wrap table-static">
       <table>
         <thead>
@@ -959,15 +1116,36 @@ function renderSlaTab(panel, projectId) {
   applyTranslations();
 
   const body = panel.querySelector('#projectSlaBody');
+  const searchInput = panel.querySelector('#slaSearchInput');
+  const priorityFilter = panel.querySelector('#slaFilterPriority');
+
+  searchInput.addEventListener('input', debounce(() => renderRows(), 200));
+  priorityFilter.addEventListener('change', () => renderRows());
 
   function renderRows() {
     body.innerHTML = '';
-    if (slaRows.length === 0) {
-      body.innerHTML = messageRow(4, 'projectDetail.slaEmpty', false);
+
+    // Öncelik kolonu id döndürüyor (sıralama için); aramada kullanıcının
+    // gördüğü ada bakılmalı, o yüzden arama kolonları ayrı tanımlanıyor.
+    const searchColumns = [
+      { getValue: (s) => s.categoryName },
+      { getValue: (s) => s.priorityName }
+    ];
+
+    const byPriority = priorityFilter.value
+      ? slaRows.filter((s) => String(s.priorityId) === priorityFilter.value)
+      : slaRows;
+
+    const visible = filterRows(byPriority, searchColumns, searchInput.value);
+    if (visible.length === 0) {
+      const emptyKey = slaRows.length === 0
+        ? 'projectDetail.slaEmpty'
+        : 'projectDetail.noSearchResult';
+      body.innerHTML = messageRow(4, emptyKey, false);
       return;
     }
 
-    sorter.sortRows(slaRows).forEach((sla) => {
+    sorter.sortRows(visible).forEach((sla) => {
       const row = document.createElement('tr');
 
       const categoryCell = document.createElement('td');
@@ -1007,6 +1185,16 @@ function renderSlaTab(panel, projectId) {
             ? (categoryNameById.get(s.categoryId) || `#${s.categoryId}`)
             : t('projectDetail.slaAllCategories')
         }));
+
+      // Öncelik seçenekleri gelen satırlardan türetiliyor: ayrı bir /priority
+      // isteği atmaya gerek yok, hem de listede karşılığı olmayan öncelik
+      // seçilip boş sonuç dönmesi engelleniyor.
+      const seen = new Map();
+      slaRows.forEach((s) => seen.set(s.priorityId, s.priorityName));
+      [...seen.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .forEach(([id, name]) => priorityFilter.add(new Option(name, id)));
+      enhanceSelect(priorityFilter);
 
       renderRows();
     } catch (error) {
