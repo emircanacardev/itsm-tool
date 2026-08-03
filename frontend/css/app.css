@@ -1518,10 +1518,12 @@ tbody tr:hover .row-chevron {
   gap: var(--space-3);
 }
 
+/* Yüksekliği, yanındaki ad + kod bloğuyla aynı hizada bitecek şekilde
+   seçildi (ad satırı + boşluk + kod rozeti ≈ 44px). */
 .project-card-mark {
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1529,7 +1531,7 @@ tbody tr:hover .row-chevron {
   background: var(--color-accent);
   color: #FFFFFF;
   font-family: var(--font-heading);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--weight-bold);
   letter-spacing: 0.5px;
 }
@@ -1537,7 +1539,7 @@ tbody tr:hover .row-chevron {
 .project-card-title-wrap {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
   min-width: 0;
   flex: 1;
 }
@@ -1551,9 +1553,20 @@ tbody tr:hover .row-chevron {
   text-overflow: ellipsis;
 }
 
+/* Proje kodu, talep listesindeki #12 rozetiyle (.ticket-id) aynı görsel dili
+   kullanıyor: ikisi de kaydın kısa, teknik kimliği - düz metin yerine gri
+   kutucuk içinde durunca addan ayrıştığı hemen anlaşılıyor. */
 .project-card-code {
-  font-size: var(--text-xs);
+  display: inline-flex;
+  align-self: flex-start;
+  /* --text-xs (12px) rozet için bir tık iri kalıyordu; ölçek değişkenlerinin
+     altında bir kademe olduğu için doğrudan yazıldı. */
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
   letter-spacing: 0.6px;
   text-transform: uppercase;
 }
