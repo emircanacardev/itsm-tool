@@ -1702,11 +1702,6 @@ tbody tr:hover .row-chevron {
   margin-bottom: var(--space-4);
 }
 
-.project-tab-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-3);
-}
 
 /* Detay başlığında kod rozeti, yanındaki durum rozetiyle (.badge) yan yana
    duruyor - kartta olduğu gibi daha küçük kalınca ikisinin üst/alt kenarları

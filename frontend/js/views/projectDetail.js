@@ -253,9 +253,6 @@ function renderTicketsTab(panel, projectId) {
   `).join('');
 
   panel.innerHTML = `
-    <div class="project-tab-toolbar">
-      <a class="btn-secondary" href="#/tickets?projectId=${projectId}" data-i18n="projectDetail.viewAllTickets"></a>
-    </div>
     <div class="ticket-table-wrap">
       <table class="table-fixed">
         <thead>
