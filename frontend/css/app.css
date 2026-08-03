@@ -1658,39 +1658,6 @@ tbody tr:hover .row-chevron {
   cursor: pointer;
 }
 
-/* Satır sonundaki ok: tablonun tıklanabilir olduğunu belli ediyor ama
-   her satırda sürekli durup tabloyu kalabalıklaştırmıyor - sadece o
-   satırın üzerine gelince beliriyor. Hücre her zaman yerini koruyor
-   (sadece opacity değişiyor), yoksa hover'da kolon genişlikleri oynardı. */
-.col-chevron {
-  width: 36px;
-  text-align: right;
-  padding-right: var(--space-4) !important;
-}
-
-.row-chevron {
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-muted);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity var(--transition-fast), transform var(--transition-fast), color var(--transition-fast);
-}
-
-.clickable-row:hover .row-chevron,
-.clickable-row:focus-within .row-chevron {
-  opacity: 1;
-  transform: translateX(0);
-  color: var(--color-accent);
-}
-
-/* Dokunmatik cihazlarda hover yok - ok kalıcı olarak görünsün. */
-@media (hover: none) {
-  .row-chevron {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
 .member-cell {
   display: flex;

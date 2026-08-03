@@ -241,9 +241,9 @@ function renderTicketsTab(panel, projectId) {
     <div class="ticket-table-wrap">
       <table>
         <thead>
-          <tr>${columnsHtml}<th class="col-chevron" aria-hidden="true"></th></tr>
+          <tr>${columnsHtml}</tr>
         </thead>
-        <tbody id="projectTicketsBody">${loadingRow(6, 'projectDetail.ticketsLoading')}</tbody>
+        <tbody id="projectTicketsBody">${loadingRow(5, 'projectDetail.ticketsLoading')}</tbody>
       </table>
     </div>
     <div class="pagination-bar">
@@ -295,7 +295,7 @@ function renderTicketsTab(panel, projectId) {
   }
 
   async function loadTickets() {
-    body.innerHTML = loadingRow(6, 'projectDetail.ticketsLoading');
+    body.innerHTML = loadingRow(5, 'projectDetail.ticketsLoading');
     try {
       const params = new URLSearchParams({
         projectId: String(projectId),
@@ -308,7 +308,7 @@ function renderTicketsTab(panel, projectId) {
 
       body.innerHTML = '';
       if (result.items.length === 0) {
-        body.innerHTML = messageRow(6, 'projectDetail.ticketsEmpty', false);
+        body.innerHTML = messageRow(5, 'projectDetail.ticketsEmpty', false);
         updatePagination(result);
         return;
       }
@@ -333,28 +333,31 @@ function renderTicketsTab(panel, projectId) {
         const assigneeCell = document.createElement('td');
         assigneeCell.textContent = ticket.assignedToName || t('projectDetail.unassigned');
 
-        const dueCell = document.createElement('td');
+        // Ok son hücrenin içinde duruyor (ayrı kolon değil) - tickets.js'teki
+        // .row-end pattern'i; ayrı kolon açmak son veri sütunuyla ok arasında
+        // gereksiz bir boşluk bırakıyordu.
         const due = renderDueCell(ticket);
-        dueCell.textContent = due.text;
-        if (due.className) dueCell.className = due.className;
-
-        // Satırın tıklanabilir olduğunu görsel olarak belli eden ok;
-        // sadece hover/focus'ta beliriyor ki tablo kalabalıklaşmasın.
-        const chevronCell = document.createElement('td');
-        chevronCell.className = 'col-chevron';
-        chevronCell.innerHTML = `
-          <svg class="row-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 18l6-6-6-6"/>
+        const dueCell = document.createElement('td');
+        dueCell.className = `due-cell ${due.className}`;
+        const dueWrap = document.createElement('div');
+        dueWrap.className = 'row-end';
+        const dueText = document.createElement('span');
+        dueText.textContent = due.text;
+        dueWrap.innerHTML = `
+          <svg class="row-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;" aria-hidden="true">
+            <path d="M9 6l6 6-6 6"/>
           </svg>
         `;
+        dueWrap.prepend(dueText);
+        dueCell.appendChild(dueWrap);
 
-        row.append(titleCell, statusCell, priorityCell, assigneeCell, dueCell, chevronCell);
+        row.append(titleCell, statusCell, priorityCell, assigneeCell, dueCell);
         body.appendChild(row);
       });
 
       updatePagination(result);
     } catch (error) {
-      body.innerHTML = messageRow(6, 'projectDetail.ticketsError', true);
+      body.innerHTML = messageRow(5, 'projectDetail.ticketsError', true);
       updatePagination(null);
     }
   }
