@@ -70,10 +70,64 @@ dotnet ef database update --project src/ITSM.Infrastructure --startup-project sr
 
 ## Authentication & authorization
 
-- JWT bearer auth. Tokens carry `sub` (user id), `email`, `name`. Issued by `JwtTokenGenerator`, HMAC-SHA256, config-driven issuer/audience/expiry.
+- JWT bearer auth. Tokens carry `sub` (user id), `email`, `name` — claim names live in `ClaimNames`. Issued by `JwtTokenGenerator`, HMAC-SHA256, config-driven issuer/audience/expiry.
+- Controllers read the user id via `User.GetUserId()` (`ITSM.API/Extensions/ClaimsPrincipalExtensions.cs`), not by parsing the claim inline.
 - **Permission model is per-user, not role-based.** `permissions` is a catalog (codes like `TICKET_CREATE`, `TICKET_ASSIGN`, `REPORT_VIEW`); `user_permissions` grants a permission to a user, optionally scoped to a `project_id` (null = global). Two users in the same group can have different permissions.
-- Enforcement: a policy per permission code registered in `Program.cs` (`options.AddPolicy("TICKET_CREATE", ...)`), backed by `PermissionRequirement` + `PermissionAuthorizationHandler`, which checks `IUserPermissionRepository.HasPermissionAsync`. Protect an action with `[Authorize(Policy = "TICKET_CREATE")]`.
-- When you add a new permission code, register a matching policy in `Program.cs` or the `[Authorize(Policy=...)]` will fail.
+- Enforcement: `Program.cs` loops over `Permissions.All` and registers one policy per code, backed by `PermissionRequirement` + `PermissionAuthorizationHandler`, which checks `IUserPermissionRepository.HasPermissionAsync`. Protect an action with `[Authorize(Policy = Permissions.TicketCreate)]`.
+- **To add a permission: add the constant to `Permissions` and put it in `All`.** The policy registration follows automatically — no separate `AddPolicy` call to forget.
+
+## Constants (no magic values)
+
+Status ids, priority ids, permission codes, claim names, notification types
+and system group keys all live in `ITSM.Domain/Constants/`. Don't reintroduce
+literals for these — `TicketStatuses.ClosedStates` in particular is the single
+definition of "closed", used by SLA tracking, dashboard counts and workload
+queries alike.
+
+Environment-dependent values (`Pagination`, `Storage`, `SlaMonitoring`, `Cors`)
+are bound from `appsettings.json` via the options pattern. Paged endpoints must
+normalize input through `PaginationOptions.NormalizePage/NormalizePageSize`;
+skipping it lets a client request an unbounded page size.
+
+## Internationalization (tr / en)
+
+The whole stack is bilingual. Language comes from the `Accept-Language` header
+(`SupportedLanguages`, default `tr`), resolved by `UseRequestLocalization()`
+early in the pipeline — it must stay before authentication so everything
+downstream sees the right `CurrentUICulture`.
+
+Three kinds of text, three mechanisms:
+
+1. **Reference data** (`Status.Name`, `Priority.Name`) — `StatusTranslation` /
+   `PriorityTranslation` tables, resolved by `GetLocalizedName(language)` with a
+   requested-language → default-language → entity-name fallback. The `Name`
+   column stays as that final fallback.
+2. **System-generated stored text** (notifications) — never store a finished
+   sentence. `Notification` holds `Type` + `PayloadJson`; `NotificationRenderer`
+   builds the sentence on read, so past notifications follow the reader's
+   language. `TicketAssignment.Note` for auto-assignment is the one place that
+   still stores translated text, because it shares a column with user-written
+   notes.
+3. **Transient output** (API errors, emails) — `.resx` files under
+   `ITSM.Application/Localization`, accessed through `ILocalizedMessageProvider`.
+   Use `Get()` inside a request and `GetFor(language)` in background services and
+   emails, where there is no request culture and the text must follow the
+   *recipient* (`User.PreferredLanguage`).
+
+Deliberately not translated: log messages, and `AuditLog.EntityName`/`Action`
+(technical values; the frontend renders them through its own dictionary).
+
+**Frontend rule:** never branch on a translated name. Colour maps, badges and
+"is this closed" checks key off ids via `frontend/js/constants.js`, which mirrors
+the backend constants. Name-based logic breaks silently the moment the language
+changes. `api.js` sends `Accept-Language` on every request, and switching
+language re-runs `navigate()` so server-provided text refetches.
+
+The `Messages` marker class sits in the `ITSM.Application` root namespace on
+purpose: `ResourceManagerStringLocalizerFactory` composes the resource name from
+root namespace + `ResourcesPath` + the type's path, so putting it under
+`Localization/` would look for `...Localization.Localization.Messages` and
+silently return raw keys.
 
 ## Claude ile Çalışma Kuralı (AI Kullanımı — brief §4.4)
 
@@ -117,9 +171,8 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   GetAllForUserAsync(userId)` pattern). Unauthorized single-resource access returns 404, not 403
   (deliberate — avoids leaking existence of a resource the user can't see). See
   `docs/proje-gereksinimleri.md` §7 for the rationale.
-- `Program.cs` has a temporary `/hash-test` endpoint marked `//todo: bunu sonradan kaldırıcam` — kept
-  intentionally for now (demo purposes), remove before any production/merge.
-- Ticket creation currently hardcodes `StatusId = 10` ("Açık") — that magic number depends on the `SeedStatuses` migration.
+- The temporary `/hash-test` endpoint has been removed (it exposed password hashing without auth).
+  To generate a hash for seed data, write a throwaway test that calls `PasswordHasher`.
 - SonarQube (brief-mandatory) is running locally via Docker (Community Edition, `localhost:9000`,
   container name `sonarqube` — restart with `docker start sonarqube`, don't `docker run` again).
   Project key `itsm-tool`. First scan (`dotnet sonarscanner begin/end`, run from `backend/`)
@@ -160,13 +213,10 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   before recording. Email: `IEmailService`/`MailKitEmailService` (MailKit, SMTP config in
   `appsettings.json` under `Email:*`, credentials `Email:Username`/`Email:Password` in user-secrets),
   tested against a Mailtrap sandbox inbox end-to-end.
-- **Known tech debt (flagged, not yet fixed): `Notification.Message` is hardcoded Turkish text**
-  (e.g. `"\"{title}\" başlıklı talep size atandı."`), baked in at creation time in `TicketService`.
-  The app is planned to get a language switcher later; hardcoded backend strings won't be
-  retranslatable retroactively. Correct fix when i18n work starts: stop storing a finished sentence,
-  store only `Type` + structured data (`TicketId`, etc.) and have the frontend render the localized
-  sentence from `Type`. Deliberately deferred — user chose to keep it hardcoded for now and revisit
-  during frontend/i18n work.
+- ~~Known tech debt: `Notification.Message` is hardcoded Turkish~~ — **resolved.** See the
+  Internationalization section: notifications now store `Type` + `PayloadJson` and the sentence is
+  rendered per read. The migration deleted existing notification rows (clean cut) since their
+  sentences could not be turned back into structured payloads.
 - **Day 6 complete.** Audit logging is automatic, not manual: `AppDbContext.SaveChangesAsync` is
   overridden to read `ChangeTracker.Entries()` for Added/Modified/Deleted entities (excluding
   `AuditLog` itself), save the real changes first (so DB-generated Ids populate on the tracked
@@ -195,13 +245,26 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   nullable-reference warnings in `MailKitEmailService`, a stale TODO in `Attachment.cs` describing
   a rule already enforced by a DB check constraint); `Migrations/` excluded from analysis
   (`sonar.exclusions`) since auto-generated migration files shouldn't be graded like hand-written
-  code; two Info-level suggestions (`/hash-test` TODO, `AddAuthorizationBuilder` style suggestion)
-  deliberately left open/confirmed in SonarQube with a reason.
-  **Quality Gate currently shows "Failed"** — the only failing condition is the default 80% new-code
-  coverage requirement (currently 0.0%, since only `PasswordHasherTests` exists). This is expected
-  and left as-is deliberately; it will improve naturally once Day 10's "expand unit test coverage"
-  work happens. Not a regression, not something to chase now.
-- Dashboard/reporting, SLA breach detection, email integration, admin panel backend, and audit
-  logging are all done. The entire frontend (Days 7-9) and final polish/testing/SonarQube-final/
-  README (Day 10) are still outstanding — see `docs/gelistirme-plani.md` for the day-by-day
-  breakdown.
+  code; two Info-level suggestions (`/hash-test` TODO — since resolved by removing the endpoint,
+  and an `AddAuthorizationBuilder` style suggestion) deliberately left open/confirmed in SonarQube
+  with a reason.
+  The Quality Gate was failing only on the default 80% new-code coverage condition. The test suite
+  has since grown to 89 tests (constants, EF query translation, localization, translation fallback,
+  notification rendering, auth/language), so this should be re-measured on the next scan rather
+  than assumed to still be failing.
+- Dashboard/reporting, SLA breach detection, email integration, admin panel backend, audit
+  logging and the frontend (auth, tickets, detail, dashboard, admin panel) are done.
+- **Full-stack i18n is complete** (`feature/full-i18n-and-demo-seed`): constants extraction,
+  request localization, reference-data translation tables, notification payloads, localized API
+  errors, and the frontend switch to id-based logic. Verified end to end against a real database
+  in both languages.
+- **Demo seed:** `database/scripts/seed/002_demo_data.sql` — 14 users / 4 projects / 40 tickets,
+  built so every feature (visibility filter, SLA fallback layers, auto-assignment, overdue and
+  due-soon badges, inactive user, English-preferring user) can be shown live. Re-runnable; all
+  passwords are `12345`, admin is `admin@itsm.local`. Notifications/breaches/audit logs are left
+  for the running app to generate.
+- Two real bugs found and fixed during the i18n work: `Ticket.ResolvedAt` was never populated (so
+  the "Resolved Today" KPI always read zero), and three admin list endpoints applied no upper bound
+  to `pageSize`.
+- Remaining: final polish/testing, the final SonarQube scan and the README (Day 10) — see
+  `docs/gelistirme-plani.md`.
