@@ -91,10 +91,23 @@ async function loadCurrentUser() {
   try {
     currentUser = await apiRequest('/auth/me');
     applyCurrentUserToSidebar(currentUser);
+    applyStoredLanguagePreference(currentUser);
   } catch (error) {
     currentUser = null;
   }
   return currentUser;
+}
+
+// Kullanıcının hesabına kayıtlı dili, bu tarayıcıda seçili olandan
+// farklıysa uygular. Böylece başka bir cihazda yapılan dil tercihi
+// giriş yapıldığında da geçerli oluyor.
+function applyStoredLanguagePreference(user) {
+  if (!user?.preferredLanguage || user.preferredLanguage === getLanguage()) {
+    return;
+  }
+
+  setLanguage(user.preferredLanguage);
+  updateLangButtonLabel();
 }
 
 function setActiveNav(path) {
@@ -172,9 +185,32 @@ notificationBellButton.addEventListener('click', () => {
   window.location.hash = '#/notifications';
 });
 
-langToggleButton.addEventListener('click', () => {
-  setLanguage(getLanguage() === 'tr' ? 'en' : 'tr');
+langToggleButton.addEventListener('click', async () => {
+  const nextLanguage = getLanguage() === 'tr' ? 'en' : 'tr';
+
+  setLanguage(nextLanguage);
   updateLangButtonLabel();
+
+  // Tercihi backend'e de yazıyoruz: HTTP isteği olmayan bağlamlar
+  // (SLA ihlal taraması, bildirim e-postaları) Accept-Language göremediği
+  // için kullanıcının kayıtlı dilini kullanıyor.
+  if (isAuthenticated()) {
+    try {
+      await apiRequest('/auth/me/language', {
+        method: 'PUT',
+        body: JSON.stringify({ language: nextLanguage })
+      });
+      if (currentUser) {
+        currentUser.preferredLanguage = nextLanguage;
+      }
+    } catch (error) {
+      // Tercih kaydedilemese bile arayüz dili değişmiş olmalı;
+      // sadece e-postalar eski dilde gelmeye devam eder.
+    }
+  }
+
+  // Durum/öncelik adları ve bildirim metinleri backend'den geliyor,
+  // bu yüzden statik metinleri çevirmek yetmiyor - veri yeniden çekiliyor.
   navigate();
 });
 
