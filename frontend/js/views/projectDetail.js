@@ -277,9 +277,21 @@ export function render(container, projectId, currentUser) {
 
     // Admin için "Proje ayarları" kısayolu: kategori/kural düzenleme
     // admin panelinde yaşıyor, burada tekrarlanmıyor.
-    document.getElementById('topbarPageActions').innerHTML = isAdmin
-      ? `<a class="btn-secondary" href="#/admin" data-i18n="projectDetail.projectSettings"></a>`
-      : '';
+    // Yeni talep bu projeye açılıyor: projectId parametresiyle gidildiği için
+    // form proje alanını kilitli açıyor (bkz. newTicket.js).
+    const canCreateTicket = hasPermission(currentUser, PERMISSIONS.TICKET_CREATE, projectId);
+
+    document.getElementById('topbarPageActions').innerHTML = `
+      ${isAdmin ? `<a class="btn-secondary" href="#/admin" data-i18n="projectDetail.projectSettings"></a>` : ''}
+      ${canCreateTicket ? `
+      <a class="btn-primary" href="#/new-ticket?projectId=${projectId}">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span data-i18n="tickets.newTicket"></span>
+      </a>
+      ` : ''}
+    `;
 
     const tabButtons = TABS.map((tab, index) => `
       <button type="button" class="admin-tab ${index === 0 ? 'is-active' : ''}" data-tab="${tab.key}">
