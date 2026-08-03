@@ -17,6 +17,15 @@ public static class Permissions
     public const string AdminManage = "ADMIN_MANAGE";
 
     /// <summary>
+    /// Bir projenin kendi kurulumunu (kategoriler, ekip üyeleri, SLA kuralları)
+    /// yönetme yetkisi. ADMIN_MANAGE'den farkı: user_permissions.project_id ile
+    /// tek bir projeye kapsanabiliyor, böylece "sadece Kurumsal Portal'ın
+    /// yöneticisi" gibi bir kullanıcı tanımlanabiliyor (bkz. brief §3.2 -
+    /// yetkilendirme esnek olmalı). ADMIN_MANAGE'i olan zaten her şeyi yapabilir.
+    /// </summary>
+    public const string ProjectManage = "PROJECT_MANAGE";
+
+    /// <summary>
     /// Policy kaydı için kullanılan tam liste.
     /// </summary>
     public static readonly string[] All =
@@ -24,6 +33,7 @@ public static class Permissions
         TicketCreate,
         TicketAssign,
         TicketStatusUpdate,
-        AdminManage
+        AdminManage,
+        ProjectManage
     ];
 }

@@ -5,6 +5,8 @@ import { render as renderTickets } from './views/tickets.js';
 import { render as renderTicketDetail } from './views/ticketDetail.js';
 import { render as renderNewTicket } from './views/newTicket.js';
 import { render as renderNotifications } from './views/notifications.js';
+import { render as renderProjects } from './views/projects.js';
+import { render as renderProjectDetail } from './views/projectDetail.js';
 import { render as renderAdmin } from './views/admin.js';
 
 // Her route: path deseni, hangi view modülünün render edeceği, sayfa başlığı için i18n anahtarı.
@@ -17,6 +19,10 @@ const routes = [
   { pattern: /^tickets$/, view: renderTickets, titleKey: 'tickets.pageTitle', subtitleKey: 'tickets.pageSubtitle' },
   { pattern: /^tickets\/(\d+)$/, view: renderTicketDetail, titleKey: 'tickets.pageTitle' },
   { pattern: /^new-ticket$/, view: renderNewTicket, titleKey: 'newTicket.pageTitle' },
+  { pattern: /^projects$/, view: renderProjects, titleKey: 'projects.pageTitle', subtitleKey: 'projects.pageSubtitle' },
+  // Başlık projenin kendi adıyla değiştirileceği için (bkz. projectDetail.js)
+  // buradaki titleKey sadece yükleme anındaki geçici başlık.
+  { pattern: /^projects\/(\d+)$/, view: renderProjectDetail, titleKey: 'projects.pageTitle' },
   { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle' },
   { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiresAdmin: true }
 ];
@@ -57,9 +63,17 @@ function getInitials(fullName) {
   return initials.toUpperCase();
 }
 
+// Hash'i yol ve sorgu dizesi olarak ayırıyoruz: #/tickets?projectId=3
+// gibi bağlantılar sayesinde bir sayfa, başlangıç filtresiyle açılabiliyor
+// (ör. proje detayından "tüm talepleri gör"). Sorgu kısmı route desenine
+// karışmasın diye eşleştirmeden önce ayrılıyor.
 function parseHash() {
-  const hash = window.location.hash.replace(/^#\/?/, '');
-  return hash || 'tickets';
+  const raw = window.location.hash.replace(/^#\/?/, '');
+  const [path, queryString = ''] = raw.split('?');
+  return {
+    path: path || 'tickets',
+    query: new URLSearchParams(queryString)
+  };
 }
 
 function matchRoute(path) {
@@ -122,7 +136,7 @@ function updateLangButtonLabel() {
 }
 
 async function navigate() {
-  const path = parseHash();
+  const { path, query } = parseHash();
   const matched = matchRoute(path);
 
   if (!matched) {
@@ -170,7 +184,9 @@ async function navigate() {
   pageSubtitleEl.textContent = route.public || !route.subtitleKey ? '' : t(route.subtitleKey);
   document.title = `${t(route.titleKey)} — Pulse ITSM`;
 
-  route.view(viewEl, ...params, currentUser);
+  // query en sonda: mevcut view'ların (container, ...params, currentUser)
+  // imzası bozulmasın, sadece ihtiyacı olan view ek parametreyi okusun.
+  route.view(viewEl, ...params, currentUser, query);
   applyTranslations();
 }
 

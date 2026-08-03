@@ -6,6 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ITSM.API.Controllers;
 
+// SLA yazma işlemleri bilerek ADMIN_MANAGE'de bırakıldı (kategori ve ekip
+// yönetimi PROJECT_MANAGE'e taşınmışken): bir SLA kuralının ProjectId'si
+// null olabiliyor, yani tüm projeleri etkileyen genel bir kural yazılabiliyor.
+// Ayrıca proje id'si route'ta değil gövdede geldiği için yetki katmanı
+// kuralın hangi projeye ait olduğunu göremiyor - proje kapsamlı bir yetkiyle
+// açmak, o kullanıcının global kural yazmasına da izin vermek olurdu.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

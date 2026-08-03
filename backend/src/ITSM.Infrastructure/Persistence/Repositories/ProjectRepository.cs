@@ -1,4 +1,6 @@
-﻿using ITSM.Application.Interfaces;
+﻿using ITSM.Application.DTOs;
+using ITSM.Application.Interfaces;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using ITSM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -77,5 +79,37 @@ public class ProjectRepository : IProjectRepository
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    // Sayaçlar tek sorguda alt-sorgu (correlated subquery) olarak hesaplanıyor.
+    // "Açık" ve "gecikmiş" tanımı TicketStatuses.ClosedStates'ten geliyor -
+    // kapanmış sayılan durumlar listesi değişirse burası da otomatik uyar.
+    public async Task<List<ProjectStats>> GetStatsAsync(IEnumerable<long> projectIds)
+    {
+        var ids = projectIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var now = DateTimeOffset.UtcNow;
+
+        return await _context.Projects
+            .Where(p => ids.Contains(p.Id))
+            .Select(p => new ProjectStats
+            {
+                ProjectId = p.Id,
+                TicketCount = _context.Tickets.Count(t => t.ProjectId == p.Id),
+                OpenTicketCount = _context.Tickets
+                    .Count(t => t.ProjectId == p.Id && !TicketStatuses.ClosedStates.Contains(t.StatusId)),
+                // Gecikmiş = süresi geçmiş ama hâlâ kapanmamış talep.
+                OverdueTicketCount = _context.Tickets
+                    .Count(t => t.ProjectId == p.Id
+                        && t.DueAt != null
+                        && t.DueAt < now
+                        && !TicketStatuses.ClosedStates.Contains(t.StatusId)),
+                MemberCount = _context.ProjectMembers.Count(pm => pm.ProjectId == p.Id)
+            })
+            .ToListAsync();
     }
 }

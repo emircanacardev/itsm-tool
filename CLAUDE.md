@@ -8,6 +8,12 @@ Codebase language note: user-facing/domain strings and some comments are in Turk
 `docs/gelistirme-plani.md` (the 10-day sprint plan, kept up to date with ✅/🔄/⬜ status per item).
 Read both before proposing scope changes.
 
+**Source of truth for frontend UI:** `docs/frontend-tasarim-dili.md` — the binding
+conventions for any new page/tab (15 rows per page, no in-table scroll, every column
+header sortable, pagination under every table, `applyTranslations()` before
+`enhanceSelect()`, id-based not name-based logic, `textContent` for user input).
+**Read it before writing any new view**; don't re-derive these rules per feature.
+
 ## Layout
 
 ```
@@ -158,6 +164,12 @@ izin verdiği durumlar. Şüphede kalınca chat'e yaz, dosyaya dokunma.
   bitti, test edildi, çalışıyor) kullanıcıyı proaktif olarak uyarmalı — "şimdi commit atmalıyız"
   diyip commit mesajını hazırlamalıdır. Kullanıcının hatırlatmasını beklemek yerine Claude bunu
   kendi başına fark edip söylemeli.
+- **Commit mesajları İngilizce yazılır.** `Co-Authored-By` satırı **eklenmez**.
+- Claude commit mesajını verirken **yanında ilgili `git add <dosyalar>` komutunu da** yazar
+  (hangi dosyaların o commit'e gireceği açık olsun diye). İlgisiz değişiklikler sahneye
+  alınmaz; gerekirse `git restore --staged <dosya>` ile ayıklanır.
+- Büyük bir iş tek seferde değil, **parça parça commit'lenir** (ör. önce backend, sonra
+  frontend) — her commit kendi başına tutarlı ve test edilmiş olmalı.
 
 ## Notes / current state
 

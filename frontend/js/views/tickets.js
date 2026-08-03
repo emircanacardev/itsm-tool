@@ -87,7 +87,7 @@ function debounce(fn, delayMs) {
   };
 }
 
-export function render(container, currentUser) {
+export function render(container, currentUser, query) {
   const topbarPageActions = document.getElementById('topbarPageActions');
   const canCreateTicket = currentUser?.permissions?.some((p) => p.permissionCode === 'TICKET_CREATE');
   topbarPageActions.innerHTML = canCreateTicket
@@ -365,6 +365,14 @@ export function render(container, currentUser) {
       populateSelect(filterStatus, statuses, 'name', 'id');
       populateSelect(filterPriority, priorities, 'name', 'id');
       populateSelect(filterProject, projects, 'name', 'id');
+
+      // Başlangıç filtresi (ör. proje detayından #/tickets?projectId=3 ile
+      // gelindiyse) ancak seçenekler dolduktan sonra atanabiliyor - option
+      // henüz DOM'da yokken value ataması sessizce boşa giderdi.
+      const initialProjectId = query?.get('projectId');
+      if (initialProjectId && filterProject.querySelector(`option[value="${initialProjectId}"]`)) {
+        filterProject.value = initialProjectId;
+      }
     } catch (error) {
       // Filtre seçenekleri yüklenemese bile liste filtresiz çalışmaya devam eder.
     }
@@ -416,6 +424,7 @@ export function render(container, currentUser) {
   enhanceDateInput(filterFromDate);
   enhanceDateInput(filterToDate);
   updateSortHeaderUI();
-  loadFilterOptions();
-  loadTickets();
+  // Önce filtre seçenekleri (ve varsa başlangıç filtresi), sonra liste -
+  // aksi halde ilk istek projectId'siz gidip sonuçlar bir an filtresiz görünürdü.
+  loadFilterOptions().then(loadTickets);
 }

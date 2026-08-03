@@ -55,6 +55,34 @@ export function isClosedStatus(statusId) {
   return CLOSED_STATUS_IDS.includes(statusId);
 }
 
+// Backend'deki ITSM.Domain/Constants/Permissions.cs karşılıkları.
+export const PERMISSIONS = {
+  TICKET_CREATE: 'TICKET_CREATE',
+  TICKET_ASSIGN: 'TICKET_ASSIGN',
+  TICKET_STATUS_UPDATE: 'TICKET_STATUS_UPDATE',
+  ADMIN_MANAGE: 'ADMIN_MANAGE',
+  PROJECT_MANAGE: 'PROJECT_MANAGE'
+};
+
+// Kullanıcının bir yetkisi var mı? projectId verilirse, o projeye kapsanmış
+// yetkiler de sayılıyor - backend'deki HasPermissionAsync ile aynı kural:
+// ProjectId null olan yetki her projede, dolu olan sadece kendi projesinde.
+// ADMIN_MANAGE her şeyi kapsıyor (bkz. PermissionAuthorizationHandler).
+export function hasPermission(currentUser, permissionCode, projectId = null) {
+  const permissions = currentUser?.permissions;
+  if (!permissions) {
+    return false;
+  }
+
+  if (permissions.some((p) => p.permissionCode === PERMISSIONS.ADMIN_MANAGE)) {
+    return true;
+  }
+
+  return permissions.some((p) =>
+    p.permissionCode === permissionCode &&
+    (p.projectId === null || p.projectId === undefined || p.projectId === Number(projectId)));
+}
+
 // Renk haritalarında karşılığı olmayan bir Id gelirse (ör. sonradan eklenen
 // bir durum) arayüz kırılmasın diye nötr renge düşülüyor.
 export const NEUTRAL_BADGE = { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };

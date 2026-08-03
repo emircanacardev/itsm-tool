@@ -32,7 +32,8 @@ INSERT INTO permissions (code, name, description) VALUES
     ('TICKET_CLOSE',    'Talep Kapatma',          'Talebi kapatabilir'),
     ('REPORT_VIEW',     'Rapor Görüntüleme',      'Dashboard ve raporları görebilir'),
     ('KB_MANAGE',       'Bilgi Bankası Yönetimi', 'Knowledge base makalesi ekleyip düzenleyebilir'),
-    ('ADMIN_MANAGE',    'Admin İşlemleri',        'Grup, kullanıcı, yetki, proje yönetimi yapabilir');
+    ('ADMIN_MANAGE',    'Admin İşlemleri',        'Grup, kullanıcı, yetki, proje yönetimi yapabilir'),
+    ('PROJECT_MANAGE',  'Proje Yönetimi',         'Bir projenin kategori ve ekip üyelerini yönetebilir');
 
 -- ==========================================================
 -- İş birimleri (groups) - dokümandaki örnek gruplar
