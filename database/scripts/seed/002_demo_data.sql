@@ -63,9 +63,12 @@ INSERT INTO "Permissions" ("Id", "Code", "Name", "Description") VALUES
     (1, 'TICKET_CREATE',        'Talep Oluşturma',   'Yeni talep/incident açabilir'),
     (2, 'TICKET_ASSIGN',        'Talep Atama',       'Talebi bir kullanıcıya atayabilir'),
     (3, 'TICKET_STATUS_UPDATE', 'Durum Güncelleme',  'Talebin durumunu değiştirebilir'),
-    (4, 'ADMIN_MANAGE',         'Admin İşlemleri',   'Grup, kullanıcı, yetki, proje yönetimi yapabilir');
+    (4, 'ADMIN_MANAGE',         'Admin İşlemleri',   'Grup, kullanıcı, yetki, proje yönetimi yapabilir'),
+    -- Proje kapsamlı verilebiliyor: UserPermissions.ProjectId dolu olduğunda
+    -- kullanıcı yalnızca o projenin kategori/ekip yönetimini yapabiliyor.
+    (5, 'PROJECT_MANAGE',       'Proje Yönetimi',    'Bir projenin kategori ve ekip üyelerini yönetebilir');
 
-SELECT setval(pg_get_serial_sequence('"Permissions"', 'Id'), 4);
+SELECT setval(pg_get_serial_sequence('"Permissions"', 'Id'), 5);
 
 -- ----------------------------------------------------------
 -- 2. Gruplar (iş birimleri)
@@ -256,8 +259,12 @@ INSERT INTO "UserPermissions" ("UserId", "PermissionId", "ProjectId", "GrantedAt
     -- Süper admin: her şey
     (1, 4, NULL, now()), (1, 1, NULL, now()), (1, 2, NULL, now()), (1, 3, NULL, now()),
 
-    -- Deniz: Portal ve Mobil projelerinde yönetici yetkileri (proje kapsamlı)
+    -- Deniz: Portal ve Mobil projelerinde yönetici yetkileri (proje kapsamlı).
+    -- PROJECT_MANAGE yalnızca Portal'da: admin olmadan da o projenin kategori
+    -- ve ekip yönetimini yapabiliyor, ama Mobil'de yapamıyor - proje kapsamlı
+    -- yetkinin gerçekten kapsandığını canlı göstermek için bilerek tek proje.
     (2, 1, NULL, now()), (2, 2, 1, now()), (2, 3, 1, now()), (2, 2, 2, now()), (2, 3, 2, now()),
+    (2, 5, 1, now()),
 
     -- Burak: BT Altyapı yöneticisi
     (3, 1, NULL, now()), (3, 2, 3, now()), (3, 3, 3, now()),

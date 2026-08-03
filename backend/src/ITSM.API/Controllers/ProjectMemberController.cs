@@ -32,7 +32,7 @@ public class ProjectMemberController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.ProjectManage)]
     public async Task<IActionResult> AddMember(long projectId, AddProjectMemberRequest request)
     {
         var (result, member) = await _projectMemberService.AddMemberAsync(projectId, request);
@@ -67,7 +67,7 @@ public class ProjectMemberController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.ProjectManage)]
     public async Task<IActionResult> RemoveMember(long projectId, long id)
     {
         var success = await _projectMemberService.RemoveMemberAsync(projectId, id);

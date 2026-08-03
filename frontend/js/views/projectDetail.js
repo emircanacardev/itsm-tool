@@ -5,6 +5,8 @@ import {
   PRIORITY_BADGE_MAP,
   NEUTRAL_BADGE,
   NEUTRAL_DOT_COLOR,
+  PERMISSIONS,
+  hasPermission,
   isClosedStatus
 } from '../constants.js';
 
@@ -137,6 +139,9 @@ function messageRow(colspan, messageKey, isError) {
 
 export function render(container, projectId, currentUser) {
   const isAdmin = !!currentUser?.isAdmin;
+  // Ekip/kategori yönetimi artık admin'e özel değil: bu projeye kapsanmış
+  // PROJECT_MANAGE yetkisi olan da yapabiliyor (bkz. constants.js).
+  const canManageProject = hasPermission(currentUser, PERMISSIONS.PROJECT_MANAGE, projectId);
 
   container.innerHTML = `<div class="project-detail-loading">${pulseLoader(t('projectDetail.loading'))}</div>`;
   document.getElementById('topbarPageActions').innerHTML = '';
@@ -220,7 +225,7 @@ export function render(container, projectId, currentUser) {
     const renderers = {
       tickets: () => renderTicketsTab(panelEl, projectId),
       categories: () => renderCategoriesTab(panelEl, projectId),
-      team: () => renderTeamTab(panelEl, projectId, isAdmin),
+      team: () => renderTeamTab(panelEl, projectId, canManageProject),
       sla: () => renderSlaTab(panelEl, projectId)
     };
 
@@ -461,13 +466,13 @@ function renderCategoriesTab(panel, projectId) {
 
 // --- Ekip sekmesi ---
 
-function renderTeamTab(panel, projectId, isAdmin) {
+function renderTeamTab(panel, projectId, canManage) {
   // Üye ekleme/çıkarma backend'de ADMIN_MANAGE; admin olmayan için
   // arama kutusu ve İşlem kolonu hiç basılmıyor (disabled değil, yok).
-  const columnCount = isAdmin ? 3 : 2;
+  const columnCount = canManage ? 3 : 2;
 
   panel.innerHTML = `
-    ${isAdmin ? `
+    ${canManage ? `
     <div class="filter-bar">
       <div class="filter-group" style="min-width: 260px;">
         <label for="teamUserSearch" data-i18n="projectDetail.addMemberLabel"></label>
@@ -490,7 +495,7 @@ function renderTeamTab(panel, projectId, isAdmin) {
           <tr>
             <th><span data-i18n="projectDetail.colMember"></span></th>
             <th><span data-i18n="projectDetail.colEmail"></span></th>
-            ${isAdmin ? '<th class="col-center"><span data-i18n="projectDetail.colAction"></span></th>' : ''}
+            ${canManage ? '<th class="col-center"><span data-i18n="projectDetail.colAction"></span></th>' : ''}
           </tr>
         </thead>
         <tbody id="projectTeamBody">${loadingRow(columnCount, 'projectDetail.teamLoading')}</tbody>
@@ -642,7 +647,7 @@ function renderTeamTab(panel, projectId, isAdmin) {
 
         row.append(nameCell, emailCell);
 
-        if (isAdmin) {
+        if (canManage) {
           const actionCell = document.createElement('td');
           actionCell.className = 'col-center';
           const removeButton = document.createElement('button');
@@ -661,7 +666,7 @@ function renderTeamTab(panel, projectId, isAdmin) {
     }
   }
 
-  if (isAdmin) {
+  if (canManage) {
     wireUserSearch();
   }
 
