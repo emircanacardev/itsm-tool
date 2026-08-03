@@ -1125,6 +1125,26 @@ textarea:focus {
   }
 }
 
+/* ==========================================================
+   KIRILMA NOKTALARI (breakpoint)
+   ==========================================================
+   Yeni bir @media yazmadan önce buradaki üç değerden birini seç; ara bir
+   değer uydurma. Kırılmalar zamanla 1100/900/860/640/560 diye dağılmıştı ve
+   aynı iş (ör. iki kolonu tek kolona indirmek) sayfadan sayfaya farklı
+   genişlikte oluyordu - kullanıcı pencereyi daralttıkça arayüz parça parça,
+   rastgele anlarda yeniden diziliyordu.
+
+     1100px - "geniş masaüstü değil": çok kolonlu ızgaralar seyrelir
+              (panel KPI'ları 5 -> 3, grafikler yan yanadan alt alta).
+     900px  - "tablet": sidebar ikon şeridine döner, iki kolonlu detay
+              yerleşimleri tek kolona iner, tablolar kendi içinde kayar.
+     560px  - "telefon": her şey tek kolon, yazı ve boşluklar küçülür.
+
+   CSS'te @media sorgusu değişken kabul etmiyor (custom property'ler
+   değerlendirilmiyor), bu yüzden sayılar elle yazılıyor - bu liste de o
+   yüzden sözleşme niteliğinde.
+   ========================================================== */
+
 /* ---------- Dar ekranda kabuk ----------
    Sidebar sabit 240px olduğu için dar ekranda içeriğe çok az yer kalıyordu
    ve her sayfa (talepler, panel, yönetim, bilgi bankası) yatay scroll'a
@@ -1183,6 +1203,29 @@ textarea:focus {
 
   .page-title {
     font-size: var(--text-2xl);
+  }
+
+  /* Altbaşlık telefonda iki-üç satıra yayılıp içeriği aşağı itiyordu;
+     sayfanın hangi sayfa olduğunu başlık zaten söylüyor. */
+  .page-subtitle {
+    display: none;
+  }
+
+  /* Sayfa aksiyonu (Yeni Talep, Yeni Proje...) alt satıra düştüğünde
+     satırı boydan boya kaplasın - tek başına kalan kısa bir düğme
+     ortada asılı duruyordu. */
+  .topbar-page-actions {
+    width: 100%;
+  }
+
+  .topbar-page-actions .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Zil, dil ve tema düğmeleri kendi satırlarında yan yana kalsın. */
+  .topbar-actions {
+    gap: var(--space-2);
   }
 
   /* Telefonda 24px'lik iki yan boşluk, kalan dar alandan gereğinden fazla
