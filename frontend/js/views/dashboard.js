@@ -53,12 +53,15 @@ function renderDueCell(ticket) {
   return { text: formatDate(ticket.dueAt), className: 'due-ok' };
 }
 
-function kpiCard(value, labelKey, color) {
+// Dikkat isteyen sayaçlar (kritik, SLA riski) sıfırken vurgulanmıyor: sıfır
+// gecikme iyi haber, kırmızı bir rakamla duyurulması yanlış alarm oluyor.
+function kpiCard(value, labelKey, color, { alert = false } = {}) {
+  const isAlerting = alert && value > 0;
   return `
-    <div class="card kpi-tile">
+    <div class="card kpi-tile${isAlerting ? ' is-alerting' : ''}" style="--kpi-color: ${color};">
       <span class="kpi-label">${t(labelKey)}</span>
       <span class="kpi-value">${value}</span>
-      <span class="kpi-underline" style="background: ${color};"></span>
+      <span class="kpi-underline"></span>
     </div>
   `;
 }
@@ -171,12 +174,16 @@ function renderSummary(container, summary) {
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
   container.innerHTML = `
+    <!-- Sıra rastgele değil, okuma sırasını izliyor: önce iş hacmi (toplam,
+         açık), sonra dikkat isteyenler (kritik, SLA riski), en sonda bugünkü
+         çıktı. Eskiden beş kart eşit ağırlıkta ve karışık sıradaydı, hangi
+         sayının önce okunacağı belli değildi. -->
     <div class="dashboard-kpi-grid">
-      ${kpiCard(summary.openTickets, 'dashboard.kpiOpen', 'var(--status-open-fg)')}
-      ${kpiCard(criticalCount, 'dashboard.kpiCritical', 'var(--priority-critical-fg)')}
-      ${kpiCard(summary.slaAtRiskCount, 'dashboard.kpiSlaRisk', 'var(--status-inprogress-fg)')}
-      ${kpiCard(summary.resolvedTodayCount, 'dashboard.kpiResolvedToday', 'var(--status-resolved-fg)')}
       ${kpiCard(summary.totalTickets, 'dashboard.kpiTotal', 'var(--color-accent)')}
+      ${kpiCard(summary.openTickets, 'dashboard.kpiOpen', 'var(--status-open-fg)')}
+      ${kpiCard(criticalCount, 'dashboard.kpiCritical', 'var(--priority-critical-fg)', { alert: true })}
+      ${kpiCard(summary.slaAtRiskCount, 'dashboard.kpiSlaRisk', 'var(--sla-urgent)', { alert: true })}
+      ${kpiCard(summary.resolvedTodayCount, 'dashboard.kpiResolvedToday', 'var(--status-resolved-fg)')}
     </div>
     <div class="dashboard-chart-grid">
       <div class="card">

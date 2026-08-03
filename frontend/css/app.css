@@ -869,12 +869,14 @@ tbody tr:hover .row-chevron {
   gap: 6px;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  color: var(--color-text);
+  /* Sayfadaki diğer butonlar mor; geri linki nötr kaldığı için tıklanabilir
+     bir öğe olduğu yeterince belli olmuyordu. */
+  color: var(--color-accent);
   text-decoration: none;
   margin-bottom: var(--space-4);
   cursor: pointer;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-accent-bg);
+  border: 1px solid var(--color-accent);
   padding: 7px var(--space-3);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
@@ -887,10 +889,12 @@ tbody tr:hover .row-chevron {
   height: 15px;
 }
 
+/* Zemin zaten accent-bg olduğu için hover'da renk değişimi yetmiyor;
+   dolu mora geçip metni beyaza çeviriyoruz. */
 .back-link:hover {
-  color: var(--color-accent);
+  color: #FFFFFF;
   border-color: var(--color-accent);
-  background: var(--color-accent-bg);
+  background: var(--color-accent);
 }
 
 .detail-grid {
@@ -929,10 +933,24 @@ tbody tr:hover .row-chevron {
   margin-top: 0;
 }
 
+/* Etiket üstte, rakam altta ve altçizgi her kartta aynı hizada: eskiden
+   kartlar yalnızca içeriklerine göre diziliyordu, etiket iki satıra taşan
+   kartın rakamı komşularından aşağıda kalıyordu. margin-top:auto altçizgiyi
+   kartın dibine sabitliyor. */
 .kpi-tile {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.kpi-tile .kpi-underline {
+  margin-top: auto;
+}
+
+/* Kritik ve SLA riski sıfırdan büyükken kendi rengini alıyor; sıfırken
+   diğer kartlardan ayrışmıyor (bkz. dashboard.js kpiCard). */
+.kpi-tile.is-alerting .kpi-value {
+  color: var(--kpi-color);
 }
 
 .kpi-label {
@@ -956,6 +974,7 @@ tbody tr:hover .row-chevron {
   height: 3px;
   border-radius: 999px;
   margin-top: var(--space-1);
+  background: var(--kpi-color, var(--color-accent));
 }
 
 .dashboard-chart-grid {
@@ -1102,10 +1121,19 @@ tbody tr:hover .row-chevron {
   margin-bottom: var(--space-4);
 }
 
+/* Talep listesindeki .ticket-id rozetiyle aynı görsel dil: kaydın kısa
+   teknik kimliği düz metin yerine gri kutucukta durunca başlıktan ayrıştığı
+   hemen anlaşılıyor (proje kodu rozeti de aynı desende). */
 .ticket-id-large {
+  display: inline-block;
   color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .ticket-title-large {
@@ -1162,7 +1190,21 @@ tbody tr:hover .row-chevron {
 
 .action-form {
   display: flex;
+  align-items: stretch;
   gap: var(--space-2);
+}
+
+/* enhanceSelect native select'i gizleyip yanına kendi tetikleyicisini
+   koyuyor; aşağıdaki ".action-form select" kuralları o katmana geçmediği
+   için açılır liste ile Kaydet butonu farklı yüksekliklerde kalıyordu.
+   Sarmalayıcı satırı doldurup tetikleyici de yüksekliği devralıyor. */
+.action-form .custom-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-form .custom-select-trigger {
+  height: 100%;
 }
 
 .action-form select {

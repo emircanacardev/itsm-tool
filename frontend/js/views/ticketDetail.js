@@ -128,7 +128,7 @@ export function render(container, ticketId, currentUser, query) {
         </div>
 
         <div class="card">
-          <p class="section-label">Detaylar</p>
+          <p class="section-label" data-i18n="detail.detailsSectionTitle"></p>
           <div class="meta-list">
             <div class="meta-row">
               <span class="meta-label" data-i18n="detail.project"></span>
