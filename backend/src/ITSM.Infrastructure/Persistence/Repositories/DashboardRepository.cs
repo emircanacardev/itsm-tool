@@ -42,21 +42,42 @@ public class DashboardRepository : IDashboardRepository
         return await VisibleTickets(userId, includeAll).CountAsync();
     }
 
-    public async Task<List<(long StatusId, string StatusName, int Count)>> GetTicketCountsByStatusAsync(long userId, bool includeAll)
+    public async Task<List<(long StatusId, string StatusName, int Count)>> GetTicketCountsByStatusAsync(long userId, bool includeAll, string languageCode)
     {
+        // Ad, istenen dildeki çeviriden alınıyor; çeviri yoksa Status.Name'e
+        // düşülüyor. Gruplama Id üzerinden yapıldığı için sayımlar dilden
+        // etkilenmiyor.
         var raw = await VisibleTickets(userId, includeAll)
-            .GroupBy(t => new { t.StatusId, t.Status.Name })
-            .Select(g => new { g.Key.StatusId, StatusName = g.Key.Name, Count = g.Count() })
+            .GroupBy(t => t.StatusId)
+            .Select(g => new
+            {
+                StatusId = g.Key,
+                Count = g.Count(),
+                StatusName = _context.StatusTranslations
+                    .Where(tr => tr.StatusId == g.Key && tr.LanguageCode == languageCode)
+                    .Select(tr => tr.Name)
+                    .FirstOrDefault()
+                    ?? _context.Statuses.Where(s => s.Id == g.Key).Select(s => s.Name).First()
+            })
             .ToListAsync();
 
         return raw.Select(x => (x.StatusId, x.StatusName, x.Count)).ToList();
     }
 
-    public async Task<List<(long PriorityId, string PriorityName, int Count)>> GetTicketCountsByPriorityAsync(long userId, bool includeAll)
+    public async Task<List<(long PriorityId, string PriorityName, int Count)>> GetTicketCountsByPriorityAsync(long userId, bool includeAll, string languageCode)
     {
         var raw = await VisibleTickets(userId, includeAll)
-            .GroupBy(t => new { t.PriorityId, t.Priority.Name })
-            .Select(g => new { g.Key.PriorityId, PriorityName = g.Key.Name, Count = g.Count() })
+            .GroupBy(t => t.PriorityId)
+            .Select(g => new
+            {
+                PriorityId = g.Key,
+                Count = g.Count(),
+                PriorityName = _context.PriorityTranslations
+                    .Where(tr => tr.PriorityId == g.Key && tr.LanguageCode == languageCode)
+                    .Select(tr => tr.Name)
+                    .FirstOrDefault()
+                    ?? _context.Priorities.Where(p => p.Id == g.Key).Select(p => p.Name).First()
+            })
             .ToListAsync();
 
         return raw.Select(x => (x.PriorityId, x.PriorityName, x.Count)).ToList();
@@ -90,14 +111,32 @@ public class DashboardRepository : IDashboardRepository
             .CountAsync(t => t.ResolvedAt != null && t.ResolvedAt >= todayStart && t.ResolvedAt < tomorrowStart);
     }
 
-    public async Task<List<(long Id, string Title, string StatusName, string PriorityName, DateTimeOffset? DueAt, DateTimeOffset CreatedAt)>> GetRecentTicketsAsync(long userId, bool includeAll, int count)
+    public async Task<List<(long Id, string Title, long StatusId, string StatusName, long PriorityId, string PriorityName, DateTimeOffset? DueAt, DateTimeOffset CreatedAt)>> GetRecentTicketsAsync(long userId, bool includeAll, int count, string languageCode)
     {
         var raw = await VisibleTickets(userId, includeAll)
             .OrderByDescending(t => t.CreatedAt)
             .Take(count)
-            .Select(t => new { t.Id, t.Title, StatusName = t.Status.Name, PriorityName = t.Priority.Name, t.DueAt, t.CreatedAt })
+            .Select(t => new
+            {
+                t.Id,
+                t.Title,
+                t.StatusId,
+                StatusName = t.Status.Translations
+                    .Where(tr => tr.LanguageCode == languageCode)
+                    .Select(tr => tr.Name)
+                    .FirstOrDefault() ?? t.Status.Name,
+                t.PriorityId,
+                PriorityName = t.Priority.Translations
+                    .Where(tr => tr.LanguageCode == languageCode)
+                    .Select(tr => tr.Name)
+                    .FirstOrDefault() ?? t.Priority.Name,
+                t.DueAt,
+                t.CreatedAt
+            })
             .ToListAsync();
 
-        return raw.Select(x => (x.Id, x.Title, x.StatusName, x.PriorityName, x.DueAt, x.CreatedAt)).ToList();
+        return raw
+            .Select(x => (x.Id, x.Title, x.StatusId, x.StatusName, x.PriorityId, x.PriorityName, x.DueAt, x.CreatedAt))
+            .ToList();
     }
 }

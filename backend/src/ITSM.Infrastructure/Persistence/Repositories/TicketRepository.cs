@@ -17,8 +17,8 @@ public class TicketRepository : ITicketRepository
     public async Task<Ticket?> GetByIdAsync(long id)
     {
         return await _context.Tickets
-            .Include(t => t.Status)
-            .Include(t => t.Priority)
+            .Include(t => t.Status).ThenInclude(s => s.Translations)
+            .Include(t => t.Priority).ThenInclude(p => p.Translations)
             .Include(t => t.Project)
             .Include(t => t.Category)
             .Include(t => t.CreatedByUser)
@@ -49,8 +49,8 @@ public class TicketRepository : ITicketRepository
         toDate = toDate?.ToUniversalTime();
 
         var query = _context.Tickets
-            .Include(t => t.Status)
-            .Include(t => t.Priority)
+            .Include(t => t.Status).ThenInclude(s => s.Translations)
+            .Include(t => t.Priority).ThenInclude(p => p.Translations)
             .Include(t => t.Project)
             .Include(t => t.Category)
             .Include(t => t.CreatedByUser)

@@ -23,7 +23,9 @@ public class AppDbContext : DbContext
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Status> Statuses => Set<Status>();
+    public DbSet<StatusTranslation> StatusTranslations => Set<StatusTranslation>();
     public DbSet<Priority> Priorities => Set<Priority>();
+    public DbSet<PriorityTranslation> PriorityTranslations => Set<PriorityTranslation>();
     public DbSet<Sla> Slas => Set<Sla>();
     public DbSet<SlaBreach> SlaBreaches => Set<SlaBreach>();
     public DbSet<Ticket> Tickets => Set<Ticket>();

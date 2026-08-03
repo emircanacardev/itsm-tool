@@ -15,6 +15,9 @@ public class PriorityRepository : IPriorityRepository
 
     public async Task<List<Priority>> GetAllAsync()
     {
-        return await _context.Priorities.OrderBy(p => p.SortOrder).ToListAsync();
+        return await _context.Priorities
+            .Include(p => p.Translations)
+            .OrderBy(p => p.SortOrder)
+            .ToListAsync();
     }
 }

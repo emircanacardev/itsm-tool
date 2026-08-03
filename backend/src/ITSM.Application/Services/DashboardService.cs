@@ -6,26 +6,35 @@ namespace ITSM.Application.Services;
 
 public class DashboardService
 {
+    /// <summary>Panelde gösterilen "Son Talepler" listesinin uzunluğu.</summary>
+    private const int RecentTicketCount = 5;
+
     private readonly IDashboardRepository _dashboardRepository;
     private readonly IUserPermissionRepository _userPermissionRepository;
+    private readonly ICurrentLanguageProvider _languageProvider;
 
-    public DashboardService(IDashboardRepository dashboardRepository, IUserPermissionRepository userPermissionRepository)
+    public DashboardService(
+        IDashboardRepository dashboardRepository,
+        IUserPermissionRepository userPermissionRepository,
+        ICurrentLanguageProvider languageProvider)
     {
         _dashboardRepository = dashboardRepository;
         _userPermissionRepository = userPermissionRepository;
+        _languageProvider = languageProvider;
     }
 
     public async Task<DashboardSummaryResponse> GetSummaryAsync(long userId)
     {
         var includeAll = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
+        var language = _languageProvider.GetCurrentLanguage();
 
         var totalTickets = await _dashboardRepository.GetTotalTicketCountAsync(userId, includeAll);
-        var statusCounts = await _dashboardRepository.GetTicketCountsByStatusAsync(userId, includeAll);
-        var priorityCounts = await _dashboardRepository.GetTicketCountsByPriorityAsync(userId, includeAll);
+        var statusCounts = await _dashboardRepository.GetTicketCountsByStatusAsync(userId, includeAll, language);
+        var priorityCounts = await _dashboardRepository.GetTicketCountsByPriorityAsync(userId, includeAll, language);
         var (totalWithSla, breachedCount) = await _dashboardRepository.GetSlaComplianceDataAsync(userId, includeAll);
         var slaAtRiskCount = await _dashboardRepository.GetSlaAtRiskCountAsync(userId, includeAll);
         var resolvedTodayCount = await _dashboardRepository.GetResolvedTodayCountAsync(userId, includeAll);
-        var recentTickets = await _dashboardRepository.GetRecentTicketsAsync(userId, includeAll, 5);
+        var recentTickets = await _dashboardRepository.GetRecentTicketsAsync(userId, includeAll, RecentTicketCount, language);
 
         var openTickets = statusCounts.Where(s => TicketStatuses.OpenStates.Contains(s.StatusId)).Sum(s => s.Count);
         var resolvedTickets = statusCounts.Where(s => s.StatusId == TicketStatuses.Cozuldu).Sum(s => s.Count);
@@ -55,7 +64,9 @@ public class DashboardService
                 {
                     Id = r.Id,
                     Title = r.Title,
+                    StatusId = r.StatusId,
                     StatusName = r.StatusName,
+                    PriorityId = r.PriorityId,
                     PriorityName = r.PriorityName,
                     DueAt = r.DueAt,
                     CreatedAt = r.CreatedAt

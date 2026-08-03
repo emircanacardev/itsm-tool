@@ -15,6 +15,7 @@ public class TicketService
     private readonly NotificationService _notificationService;
     private readonly ISlaRepository _slaRepository;
     private readonly AutoAssignmentService _autoAssignmentService;
+    private readonly ICurrentLanguageProvider _languageProvider;
     private readonly PaginationOptions _paginationOptions;
 
     public TicketService(
@@ -24,6 +25,7 @@ public class TicketService
         NotificationService notificationService,
         ISlaRepository slaRepository,
         AutoAssignmentService autoAssignmentService,
+        ICurrentLanguageProvider languageProvider,
         IOptions<PaginationOptions> paginationOptions)
     {
         _ticketRepository = ticketRepository;
@@ -32,6 +34,7 @@ public class TicketService
         _notificationService = notificationService;
         _slaRepository = slaRepository;
         _autoAssignmentService = autoAssignmentService;
+        _languageProvider = languageProvider;
         _paginationOptions = paginationOptions.Value;
     }
 
@@ -89,7 +92,7 @@ public class TicketService
         }
 
         var createdTicket = await _ticketRepository.GetByIdAsync(ticket.Id);
-        return MapToResponse(createdTicket!);
+        return MapToResponse(createdTicket!, _languageProvider.GetCurrentLanguage());
     }
 
     public async Task<TicketResponse?> GetTicketByIdAsync(long id, long userId)
@@ -103,7 +106,7 @@ public class TicketService
         var isAdmin = await _userPermissionRepository.HasPermissionAsync(userId, Permissions.AdminManage, null);
         if (isAdmin)
         {
-            return MapToResponse(ticket);
+            return MapToResponse(ticket, _languageProvider.GetCurrentLanguage());
         }
 
         var isCreator = ticket.CreatedBy == userId;
@@ -115,7 +118,7 @@ public class TicketService
             return null;
         }
 
-        return MapToResponse(ticket);
+        return MapToResponse(ticket, _languageProvider.GetCurrentLanguage());
     }
 
     public async Task<PagedResult<TicketResponse>> GetAllTicketsAsync(long userId, TicketFilterRequest filter)
@@ -140,16 +143,18 @@ public class TicketService
             page: page,
             pageSize: pageSize);
 
+        var language = _languageProvider.GetCurrentLanguage();
+
         return new PagedResult<TicketResponse>
         {
-            Items = items.Select(MapToResponse).ToList(),
+            Items = items.Select(t => MapToResponse(t, language)).ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
         };
     }
 
-    private static TicketResponse MapToResponse(Ticket ticket)
+    private static TicketResponse MapToResponse(Ticket ticket, string language)
     {
         return new TicketResponse
         {
@@ -157,9 +162,9 @@ public class TicketService
             Title = ticket.Title,
             Description = ticket.Description,
             StatusId = ticket.StatusId,
-            StatusName = ticket.Status.Name,
+            StatusName = ticket.Status.GetLocalizedName(language),
             PriorityId = ticket.PriorityId,
-            PriorityName = ticket.Priority.Name,
+            PriorityName = ticket.Priority.GetLocalizedName(language),
             ProjectId = ticket.ProjectId,
             ProjectName = ticket.Project.Name,
             CategoryId = ticket.CategoryId,
