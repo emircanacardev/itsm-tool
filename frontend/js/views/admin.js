@@ -19,6 +19,11 @@ const GROUP_PAGE_SIZE = 10;
 // sadece ikon + title tooltip kullanıyoruz, satırlar daha az kalabalık oluyor.
 const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+// Kapalı kilit = hesabı kapat, açık kilit = hesabı aç. İkon tıklandığında
+// ne olacağını anlatıyor, kullanıcının mevcut durumunu değil - durumu zaten
+// yanındaki rozet söylüyor.
+const DEACTIVATE_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+const ACTIVATE_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
 
 // Sekmeler lazy-render edilip birbirinden bağımsız closure'lar olarak
 // yaşadığı için, Projeler <-> Proje Ayarları arasındaki çapraz-sekme
@@ -147,6 +152,9 @@ function priorityBadge(priorityId, name) {
   return span;
 }
 
+// Pasiflik bir hata değil, olağan bir durum: kritik kırmızısı (gecikmiş SLA,
+// kritik öncelik) burada yanlış alarm veriyordu. Nötr gri, kapalı talep
+// rozetiyle aynı dili konuşuyor.
 function statusBadge(isActive) {
   const span = document.createElement('span');
   span.className = 'badge';
@@ -156,9 +164,9 @@ function statusBadge(isActive) {
     span.style.border = '1px solid var(--status-resolved-fg)';
     span.textContent = t('admin.statusActive');
   } else {
-    span.style.background = 'var(--priority-critical-bg)';
-    span.style.color = 'var(--priority-critical-fg)';
-    span.style.border = '1px solid var(--priority-critical-fg)';
+    span.style.background = 'var(--status-closed-bg)';
+    span.style.color = 'var(--status-closed-fg)';
+    span.style.border = '1px solid var(--status-closed-fg)';
     span.textContent = t('admin.statusInactive');
   }
   return span;
@@ -333,6 +341,7 @@ function renderUsersSection(section) {
   // kullanıyoruz - tam liste hiç istemciye inmiyor.
   function createGroupCell(user) {
     const cell = document.createElement('td');
+    cell.className = 'group-cell';
 
     // Varsayılan görünüm: düz metin + küçük bir düzenle butonu (diğer admin
     // tablolarındaki satır-içi düzenleme deseniyle aynı). Arama kutusu ancak
@@ -360,10 +369,12 @@ function renderUsersSection(section) {
 
     displayWrap.append(nameSpan, editButton);
 
+    // Arama kutusu satır içinde açıldığı için hücrenin yüksekliği artıp
+    // komşu hücrelerin hizasını bozuyordu. Sarmalayıcı mutlak konumlanıp
+    // görüntü akışından çıkıyor: hücre yüksekliği sabit kalıyor, sonuç
+    // paneli de tablonun üstüne taşabiliyor.
     const pickerWrap = document.createElement('div');
     pickerWrap.className = 'group-picker-wrap';
-    pickerWrap.style.position = 'relative';
-    pickerWrap.style.minWidth = '160px';
     pickerWrap.style.display = 'none';
 
     const searchBox = document.createElement('div');
@@ -393,11 +404,13 @@ function renderUsersSection(section) {
     function showDisplay() {
       closeResults();
       pickerWrap.style.display = 'none';
-      displayWrap.style.display = '';
+      displayWrap.style.visibility = '';
     }
 
     function showPicker() {
-      displayWrap.style.display = 'none';
+      // displayWrap gizlenmiyor, görünmez kılınıyor: tamamen kaldırılsaydı
+      // hücre daralıp satır genişlikleri düzenleme sırasında oynardı.
+      displayWrap.style.visibility = 'hidden';
       pickerWrap.style.display = 'block';
       input.value = '';
       input.focus();
@@ -528,12 +541,17 @@ function renderUsersSection(section) {
       createdCell.className = 'col-center';
       createdCell.textContent = formatDate(user.createdAt);
 
+      // Durum kolonu zaten aktif/pasif diyor; buton da metinle aynı şeyi
+      // tekrarlayınca satır iki kez aynı bilgiyi veriyordu. İkon, tıklandığında
+      // ne olacağını gösteriyor (kilit = pasifleştir, açık kilit = aktifleştir);
+      // metin tooltip'te - tablo satır aksiyonlarının geri kalanıyla aynı desen.
       const actionCell = document.createElement('td');
       actionCell.className = 'col-center';
       const actionButton = document.createElement('button');
       actionButton.type = 'button';
-      actionButton.className = 'btn-secondary';
-      actionButton.textContent = t(user.isActive ? 'admin.deactivate' : 'admin.activate');
+      actionButton.className = `btn-secondary btn-icon-only${user.isActive ? ' btn-danger' : ''}`;
+      actionButton.title = t(user.isActive ? 'admin.deactivate' : 'admin.activate');
+      actionButton.innerHTML = user.isActive ? DEACTIVATE_ICON : ACTIVATE_ICON;
       actionButton.addEventListener('click', () => toggleUserStatus(user, actionButton));
       actionCell.appendChild(actionButton);
 
@@ -1160,21 +1178,19 @@ function renderProjectsSection(section) {
 }
 
 function renderProjectSettingsSection(section) {
+  // Bu sekmeye her zaman Projeler sekmesindeki Düzenle ile, bir proje seçili
+  // olarak giriliyor. Eskiden tepede tüm projeleri listeleyen bir açılır liste
+  // vardı: aramayla bulunan proje bağlamı kayboluyor, üstelik yanlışlıkla
+  // başka bir proje seçilip onun ayarları düzenlenebiliyordu. Proje değiştirme
+  // yolu artık tek: geri dönüp listeden aramak.
   section.innerHTML = `
-    <div class="filter-bar">
-      <div class="filter-group" style="min-width: 260px;">
-        <label for="psProjectSelect" data-i18n="admin.selectProjectLabel"></label>
-        <select id="psProjectSelect">
-          <option value="" data-i18n="admin.selectProjectPlaceholder"></option>
-        </select>
-      </div>
-    </div>
-    <div class="state-box" id="psEmptyState">
+    <a class="back-link" id="psBackButton" role="button" tabindex="0">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 7h5l2 2h11v10a2 2 0 0 1-2 2H3z"/>
+        <path d="M15 18l-6-6 6-6"/>
       </svg>
-      <span data-i18n="admin.selectProjectHint"></span>
-    </div>
+      <span data-i18n="admin.backToProjects"></span>
+    </a>
+    <h2 class="ps-project-heading" id="psProjectHeading"></h2>
     <div id="psPanels" style="display: none;">
       <div style="font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--color-text); margin: var(--space-2) 0 var(--space-3);" data-i18n="admin.projectInfoHeading"></div>
       <div class="filter-bar">
@@ -1275,7 +1291,7 @@ function renderProjectSettingsSection(section) {
             <tr>
               <th><span data-i18n="admin.colCategory"></span></th>
               <th><span data-i18n="admin.colAssignedTo"></span></th>
-              <th class="col-center"><span data-i18n="admin.colPriorityOrder"></span></th>
+              <th class="col-center" data-i18n-title="admin.priorityOrderHint" title=""><span data-i18n="admin.colPriorityOrder"></span></th>
               <th class="col-center"><span data-i18n="admin.colAction"></span></th>
             </tr>
           </thead>
@@ -1287,8 +1303,8 @@ function renderProjectSettingsSection(section) {
   `;
   applyTranslations();
 
-  const psProjectSelect = section.querySelector('#psProjectSelect');
-  const psEmptyState = section.querySelector('#psEmptyState');
+  const psBackButton = section.querySelector('#psBackButton');
+  const psProjectHeading = section.querySelector('#psProjectHeading');
   const psPanels = section.querySelector('#psPanels');
   const psToast = section.querySelector('#psToast');
 
@@ -1315,7 +1331,6 @@ function renderProjectSettingsSection(section) {
   let currentProjectId = null;
   let currentCategories = [];
   let allGroups = [];
-  let allProjects = [];
   let selectedRuleUserId = null;
   const userCache = {};
 
@@ -1341,15 +1356,8 @@ function renderProjectSettingsSection(section) {
         body: JSON.stringify({ name: newName, description, isActive })
       });
 
-      const project = allProjects.find((p) => p.id === currentProjectId);
-      if (project) {
-        project.name = newName;
-        project.description = description;
-        project.isActive = isActive;
-        const option = psProjectSelect.querySelector(`option[value="${currentProjectId}"]`);
-        if (option) option.textContent = newName;
-        enhanceSelect(psProjectSelect, searchableSelectOptions());
-      }
+      // Ad değiştiyse sayfa başlığı da onunla güncellensin.
+      psProjectHeading.textContent = newName;
 
       showToast('admin.projectUpdated', false);
       // Projeler tab'ı daha önce render edildiyse listesi bayat kalmasın diye tazele.
@@ -1739,24 +1747,29 @@ function renderProjectSettingsSection(section) {
 
   // --- Proje seçimi ---
 
-  function onProjectChange() {
-    currentProjectId = psProjectSelect.value ? Number(psProjectSelect.value) : null;
-    if (!currentProjectId) {
-      psEmptyState.style.display = '';
+  // Seçili projeyi ekrana basar. Proje bilgisi Projeler sekmesinden gelen id
+  // ile tek tek çekiliyor: tüm proje listesini yalnızca bir projenin adını
+  // öğrenmek için indirmek gereksiz.
+  async function showProject(projectId) {
+    currentProjectId = projectId;
+
+    let project;
+    try {
+      project = await apiRequest(`/project/${projectId}`);
+    } catch (error) {
       psPanels.style.display = 'none';
+      psProjectHeading.textContent = t('admin.projectNotFound');
       return;
     }
-    psEmptyState.style.display = 'none';
+
+    psProjectHeading.textContent = project.name;
     psPanels.style.display = '';
 
-    const project = allProjects.find((p) => p.id === currentProjectId);
-    if (project) {
-      psInfoNameInput.value = project.name;
-      psInfoCodeInput.value = project.code;
-      psInfoDescriptionInput.value = project.description || '';
-      psInfoStatusSelect.value = String(project.isActive);
-      enhanceSelect(psInfoStatusSelect);
-    }
+    psInfoNameInput.value = project.name;
+    psInfoCodeInput.value = project.code;
+    psInfoDescriptionInput.value = project.description || '';
+    psInfoStatusSelect.value = String(project.isActive);
+    enhanceSelect(psInfoStatusSelect);
 
     categoryNameInput.value = '';
     categoryDescriptionInput.value = '';
@@ -1769,24 +1782,11 @@ function renderProjectSettingsSection(section) {
     loadRules();
   }
 
-  psProjectSelect.addEventListener('change', onProjectChange);
+  psBackButton.addEventListener('click', () => activateAdminTab('projects'));
 
   async function loadInitialData() {
     try {
-      const [projects, groups] = await Promise.all([
-        apiRequest('/project'),
-        apiRequest('/group')
-      ]);
-
-      allProjects = projects;
-      projects.forEach((project) => {
-        const option = document.createElement('option');
-        option.value = project.id;
-        option.textContent = project.name;
-        psProjectSelect.appendChild(option);
-      });
-      enhanceSelect(psProjectSelect, searchableSelectOptions());
-
+      const groups = await apiRequest('/group');
       allGroups = groups;
       groups.forEach((group) => {
         const option = document.createElement('option');
@@ -1796,21 +1796,20 @@ function renderProjectSettingsSection(section) {
       });
       enhanceSelect(ruleGroupSelect);
     } catch (error) {
-      // Proje/grup listesi yüklenemese de seçim kutuları boş kalır, kritik değil.
+      // Grup listesi yüklenemese de kural formu kullanılabilir kalıyor.
     }
   }
 
   const initialDataPromise = loadInitialData();
 
-  // Projeler tab'ındaki Düzenle butonu bu sekmeye geçip ilgili projeyi
-  // seçtirmek için bunu çağırıyor. Proje Ayarları ilk kez bu şekilde
-  // render ediliyor olabilir - proje/grup listesi henüz gelmemiş olabileceği
-  // için önce loadInitialData'nın bitmesini bekliyoruz.
+  // Projeler sekmesindeki Düzenle butonu bu sekmeye geçip projeyi bununla
+  // veriyor. Grup listesinin gelmesini bekliyoruz: kural formundaki grup
+  // seçimi proje yüklenirken sıfırlanıyor, seçenekler henüz eklenmemişse
+  // o sıfırlama boş bir listeye uygulanırdı.
   adminCrossTab.projectSettingsTab = {
     async selectProject(id) {
       await initialDataPromise;
-      psProjectSelect.value = String(id);
-      psProjectSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      await showProject(id);
     }
   };
 }

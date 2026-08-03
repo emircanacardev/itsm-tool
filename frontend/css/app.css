@@ -549,6 +549,34 @@ input[type="number"]::-webkit-inner-spin-button {
   flex-shrink: 0;
 }
 
+/* Kullanıcı satırındaki grup değiştirme kutusu. Hücre konumlanma bağlamı
+   oluyor, kutu da onun üstünde mutlak duruyor: satır yüksekliği düzenleme
+   açılınca değişmiyor ve sonuç listesi tablo satırlarının üstüne binebiliyor
+   (aksi halde tablo hücresi tarafından kırpılırdı). */
+.group-cell {
+  position: relative;
+}
+
+.group-picker-wrap {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: var(--space-4);
+  right: var(--space-4);
+  z-index: 5;
+}
+
+/* Proje Ayarları'nda düzenlenen projenin adı. Sekmenin içinde proje
+   değiştirilemediği için (bkz. admin.js) hangi projede olunduğunu tek
+   söyleyen şey bu başlık. */
+.ps-project-heading {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-4);
+}
+
 .admin-tab {
   background: none;
   border: none;
