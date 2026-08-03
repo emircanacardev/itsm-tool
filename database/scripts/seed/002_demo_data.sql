@@ -20,6 +20,12 @@
 -- eşleşir; database/scripts/schema/ altındaki DDL referans dokümandır.
 -- ==========================================================
 
+-- Bu dosya UTF-8 kodlu ve Türkçe karakter içeriyor. Windows'ta psql,
+-- client encoding'i konsolun kod sayfasından (ör. WIN1254) çıkarıyor ve
+-- "0x9e ... has no equivalent in encoding UTF8" hatasıyla script'i
+-- ROLLBACK ediyor. Aşağıdaki satır bunu açıkça düzeltiyor.
+\encoding UTF8
+
 BEGIN;
 
 -- ----------------------------------------------------------
