@@ -75,8 +75,12 @@
   --status-open-fg: #3557D6;
   --status-inprogress-bg: #FFF3DC;
   --status-inprogress-fg: #B7791F;
-  --status-pending-bg: #E9EEF3;
-  --status-pending-fg: #51677A;
+  /* Beklemede bir zamanlar griydi ve Kapalı'nın grisinden ayırt edilemiyordu.
+     Oysa ikisi zıt: beklemede = hâlâ açık, takılmış, müdahale bekliyor;
+     kapalı = bitti. Mor, hem Kapalı'dan ayrışıyor hem de markanın ana
+     rengiyle aynı aileden. */
+  --status-pending-bg: #EDE7FB;
+  --status-pending-fg: #7C3AED;
   --status-resolved-bg: #E9F7EC;
   --status-resolved-fg: #2F8F46;
   --status-closed-bg: #EFEFEF;
@@ -86,8 +90,12 @@
   --priority-critical-fg: #D64545;
   --priority-high-bg: #FFF6E0;
   --priority-high-fg: #B45309;
-  --priority-medium-bg: #EFF6FF;
-  --priority-medium-fg: #2563EB;
+  /* Orta öncelik ile Açık durumu ikisi de maviydi; talep listesinde durum
+     noktası ve öncelik rozeti yan yana durduğu için göz ikisini tek bir
+     sinyal sanıyordu. Camgöbeği, ısı skalasındaki yerini koruyup Açık'ın
+     lacivert mavisinden ayrışıyor. */
+  --priority-medium-bg: #E0F2FE;
+  --priority-medium-fg: #0369A1;
   --priority-low-bg: #E6F7F5;
   --priority-low-fg: #0F766E;
 
@@ -123,8 +131,8 @@
   --status-open-fg: #8DA6FF;
   --status-inprogress-bg: rgba(183, 121, 31, 0.2);
   --status-inprogress-fg: #F0B429;
-  --status-pending-bg: rgba(81, 103, 122, 0.24);
-  --status-pending-fg: #B7C4D1;
+  --status-pending-bg: rgba(124, 58, 237, 0.24);
+  --status-pending-fg: #C4A5FF;
   --status-resolved-bg: rgba(47, 143, 70, 0.2);
   --status-resolved-fg: #6FDB8B;
   --status-closed-bg: rgba(107, 114, 128, 0.22);
@@ -134,8 +142,8 @@
   --priority-critical-fg: #FF8A8A;
   --priority-high-bg: rgba(245, 166, 35, 0.18);
   --priority-high-fg: #F5A623;
-  --priority-medium-bg: rgba(37, 99, 235, 0.2);
-  --priority-medium-fg: #7FA8FF;
+  --priority-medium-bg: rgba(2, 132, 199, 0.22);
+  --priority-medium-fg: #5FC8F5;
   --priority-low-bg: rgba(15, 118, 110, 0.22);
   --priority-low-fg: #5FD9CC;
 

@@ -228,8 +228,17 @@ export function render(container, currentUser, query) {
         window.location.hash = `#/tickets/${ticket.id}`;
       });
 
+      // Başlık kullanıcı girdisi: innerHTML ile basılırsa başlığa yazılan
+      // HTML çalışır (tasarım dili §8). İskelet element olarak kuruluyor,
+      // metin textContent ile veriliyor.
       const titleCell = document.createElement('td');
-      titleCell.innerHTML = `<span class="ticket-id">#${ticket.id}</span><span class="ticket-title">${ticket.title}</span>`;
+      const idBadge = document.createElement('span');
+      idBadge.className = 'ticket-id';
+      idBadge.textContent = `#${ticket.id}`;
+      const titleText = document.createElement('span');
+      titleText.className = 'ticket-title';
+      titleText.textContent = ticket.title;
+      titleCell.append(idBadge, titleText);
 
       const projectCell = document.createElement('td');
       projectCell.textContent = ticket.projectName;

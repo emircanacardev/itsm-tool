@@ -2630,8 +2630,14 @@ function renderAuditLogSection(section) {
       const userCell = document.createElement('td');
       userCell.textContent = log.userFullName || t('admin.systemUser');
 
+      // entityName teknik bir değer (entity sınıf adı), kullanıcı yazmıyor;
+      // yine de innerHTML yerine textContent kullanılıyor - kural istisnasız
+      // uygulanınca "bu alan güvenli miydi" sorusu hiç sorulmuyor.
       const entityCell = document.createElement('td');
-      entityCell.innerHTML = `${log.entityName} <span class="ticket-id">#${log.entityId}</span>`;
+      const entityIdBadge = document.createElement('span');
+      entityIdBadge.className = 'ticket-id';
+      entityIdBadge.textContent = `#${log.entityId}`;
+      entityCell.append(`${log.entityName} `, entityIdBadge);
 
       const actionCell = document.createElement('td');
       actionCell.appendChild(actionBadge(log.action));

@@ -989,7 +989,7 @@ tbody tr:hover .row-chevron {
 
 .bar-row {
   display: grid;
-  grid-template-columns: 100px 1fr 32px;
+  grid-template-columns: 100px 1fr 32px 40px;
   align-items: center;
   gap: var(--space-3);
 }
@@ -1019,6 +1019,15 @@ tbody tr:hover .row-chevron {
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   text-align: right;
+}
+
+/* Sayının yanındaki pay oranı. Sayıdan daha soluk: asıl bilgi adet, oran
+   onu bağlama oturtan ikincil bilgi. */
+.bar-percent {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .dashboard-recent-card {
@@ -1701,9 +1710,28 @@ tbody tr:hover .row-chevron {
   color: var(--color-text-muted);
 }
 
+/* Alt band kartın iki kenarına kadar uzanıyor: kartın kendi yatay padding'i
+   negatif margin ile geri alınıp bandın kendi padding'i veriliyor. Gri zemin
+   bandı gövdeden ayırdığı için ayrıca üst çizgi yok - üstündeki sayaç
+   bloğunun border-top'u zaten orada. Alt köşeler kartın yuvarlaklığını
+   izliyor, yoksa zemin köşelerden taşardı. */
 .project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+.project-card-footer-date {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Proje detay sayfası ---------- */

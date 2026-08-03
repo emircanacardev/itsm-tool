@@ -63,15 +63,23 @@ function kpiCard(value, labelKey, color) {
   `;
 }
 
-function barRow(name, count, maxCount, color) {
-  const pct = maxCount === 0 ? 0 : Math.round((count / maxCount) * 100);
+// Dolgu oranı toplama göre hesaplanıyor, en büyük satıra göre değil. Eskiden
+// en yüksek sayı barı sonuna kadar doldurduğu için, dört durumdan biri
+// hafif öndeyken bile "hepsi bunda" izlenimi veriyordu; artık barların
+// toplamı %100 ediyor ve paylar birbiriyle karşılaştırılabiliyor.
+function barRow(name, count, total, color) {
+  const ratio = total === 0 ? 0 : (count / total) * 100;
+  // Payı çok küçük olan bir durum barı büsbütün görünmez kalmasın diye
+  // sıfırdan büyük her değere en az bir iz genişliği veriliyor.
+  const width = count > 0 ? Math.max(ratio, 1.5) : 0;
   return `
     <div class="bar-row">
       <span class="bar-label">${name}</span>
       <div class="bar-track">
-        <div class="bar-fill" style="width: ${pct}%; background: ${color};"></div>
+        <div class="bar-fill" style="width: ${width}%; background: ${color};"></div>
       </div>
       <span class="bar-count">${count}</span>
+      <span class="bar-percent">${Math.round(ratio)}%</span>
     </div>
   `;
 }
@@ -102,9 +110,16 @@ function renderRecentTickets(listEl, tickets) {
       window.location.hash = `#/tickets/${ticket.id}`;
     });
 
+    // Başlık kullanıcı girdisi - textContent ile basılıyor (tasarım dili §8).
     const titleWrap = document.createElement('div');
     titleWrap.className = 'recent-ticket-title-wrap';
-    titleWrap.innerHTML = `<span class="ticket-id">#${ticket.id}</span><span class="ticket-title">${ticket.title}</span>`;
+    const idBadge = document.createElement('span');
+    idBadge.className = 'ticket-id';
+    idBadge.textContent = `#${ticket.id}`;
+    const titleText = document.createElement('span');
+    titleText.className = 'ticket-title';
+    titleText.textContent = ticket.title;
+    titleWrap.append(idBadge, titleText);
 
     const meta = document.createElement('div');
     meta.className = 'recent-ticket-meta';
@@ -136,19 +151,22 @@ function renderRecentTickets(listEl, tickets) {
 }
 
 function renderSummary(container, summary) {
-  const statusMax = Math.max(1, ...summary.ticketsByStatus.map((s) => s.count));
-  const priorityMax = Math.max(1, ...summary.ticketsByPriority.map((p) => p.count));
+  // Her iki dağılımın toplamı da tüm talepleri kapsıyor; yine de summary
+  // üzerinden değil kendi dizisinden toplanıyor, çünkü bir durum/öncelik
+  // hiç talep içermiyorsa listede satırı da olmuyor.
+  const statusTotal = summary.ticketsByStatus.reduce((sum, s) => sum + s.count, 0);
+  const priorityTotal = summary.ticketsByPriority.reduce((sum, p) => sum + p.count, 0);
   const criticalCount = summary.ticketsByPriority.find((p) => p.priorityId === PRIORITY.CRITICAL)?.count || 0;
 
   const statusRowsHtml = summary.ticketsByStatus.length > 0
     ? `<div class="bar-list">${summary.ticketsByStatus
-        .map((s) => barRow(s.statusName, s.count, statusMax, STATUS_DOT_COLORS[s.statusId] || NEUTRAL_DOT_COLOR))
+        .map((s) => barRow(s.statusName, s.count, statusTotal, STATUS_DOT_COLORS[s.statusId] || NEUTRAL_DOT_COLOR))
         .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
   const priorityRowsHtml = summary.ticketsByPriority.length > 0
     ? `<div class="bar-list">${summary.ticketsByPriority
-        .map((p) => barRow(p.priorityName, p.count, priorityMax, PRIORITY_DOT_COLORS[p.priorityId] || NEUTRAL_DOT_COLOR))
+        .map((p) => barRow(p.priorityName, p.count, priorityTotal, PRIORITY_DOT_COLORS[p.priorityId] || NEUTRAL_DOT_COLOR))
         .join('')}</div>`
     : `<div class="state-box" style="border: none;"><span>${t('dashboard.noData')}</span></div>`;
 
