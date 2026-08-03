@@ -83,8 +83,6 @@ public class TicketService
                 AssignedFrom = null,
                 AssignedTo = autoAssignedUserId.Value,
                 AssignedBy = createdByUserId,
-                // Sistem üretimli not; kullanıcının yazdığı notlarla aynı alanı
-                // paylaştığı için burada da çevrilmiş metin saklanıyor.
                 Note = _messageProvider.Get(MessageKeys.AssignmentNoteAutoAssigned)
             };
 
