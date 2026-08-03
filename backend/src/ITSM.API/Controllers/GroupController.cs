@@ -10,7 +10,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = Permissions.AdminManage)]
+[Authorize(Policy = Permissions.UserManage)]
 public class GroupController : ControllerBase
 {
     private readonly GroupService _groupService;

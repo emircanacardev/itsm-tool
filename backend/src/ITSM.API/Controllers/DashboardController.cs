@@ -1,5 +1,6 @@
 using ITSM.API.Extensions;
 using ITSM.Application.Services;
+using ITSM.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,11 +18,13 @@ public class DashboardController : ControllerBase
         _dashboardService = dashboardService;
     }
 
-    // Dashboard artık herkese açık - ADMIN_MANAGE yetkisi olmayan kullanıcılar
-    // için servis kendi oluşturduğu/atandığı/üyesi olduğu proje ticket'larıyla
-    // sınırlı bir özet döner (bkz. TicketService.GetAllTicketsAsync'teki aynı
-    // görünürlük kuralı).
+    // REPORT_VIEW gerekiyor. Panel yalnızca kullanıcının görebildiği
+    // ticket'ları özetliyor (bkz. DashboardRepository.VisibleTickets), yani
+    // veri sızıntısı riski yok; ancak toplu sayılar, SLA uyum oranı ve
+    // "bugün çözülen" gibi ölçümler yönetsel bilgidir ve her kullanıcının
+    // ihtiyacı olmaz. Brief §3.2 bunu ayrı bir yetki olarak sayıyor.
     [HttpGet("summary")]
+    [Authorize(Policy = Permissions.ReportView)]
     public async Task<IActionResult> GetSummary()
     {
         var userId = User.GetUserId();

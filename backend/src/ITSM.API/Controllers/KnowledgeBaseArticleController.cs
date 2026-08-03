@@ -20,7 +20,7 @@ public class KnowledgeBaseArticleController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.KnowledgeBaseManage)]
     public async Task<IActionResult> CreateArticle(CreateArticleRequest request)
     {
         var userId = User.GetUserId();
@@ -52,7 +52,7 @@ public class KnowledgeBaseArticleController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.KnowledgeBaseManage)]
     public async Task<IActionResult> UpdateArticle(long id, UpdateArticleRequest request)
     {
         var success = await _articleService.UpdateArticleAsync(id, request);

@@ -55,6 +55,82 @@ export function isClosedStatus(statusId) {
   return CLOSED_STATUS_IDS.includes(statusId);
 }
 
+// Backend'deki ITSM.Domain/Constants/Permissions.cs karşılıkları.
+export const PERMISSIONS = {
+  TICKET_CREATE: 'TICKET_CREATE',
+  TICKET_ASSIGN: 'TICKET_ASSIGN',
+  TICKET_STATUS_UPDATE: 'TICKET_STATUS_UPDATE',
+  TICKET_CLOSE: 'TICKET_CLOSE',
+  REPORT_VIEW: 'REPORT_VIEW',
+  KB_MANAGE: 'KB_MANAGE',
+  PROJECT_MANAGE: 'PROJECT_MANAGE',
+  USER_MANAGE: 'USER_MANAGE',
+  AUDIT_VIEW: 'AUDIT_VIEW',
+  ADMIN_MANAGE: 'ADMIN_MANAGE'
+};
+
+// Yönetim ekranındaki sekmelerin gerektirdiği yetkiler (admin.js'teki TABS
+// listesiyle aynı küme). Bağlantı bu listeye göre gösteriliyor: yalnızca
+// ADMIN_MANAGE'e bakmak USER_MANAGE'i olan bir sistem yöneticisini kendi
+// ekranından dışarıda bırakırdı.
+//
+// KB_MANAGE bilinçli olarak yok: bilgi bankasının yönetim ekranında bir
+// sekmesi bulunmuyor, listeye eklenseydi yalnızca KB_MANAGE'i olan bir
+// kullanıcı bağlantıyı görüp boş bir sayfaya düşerdi.
+export const ADMIN_AREA_PERMISSIONS = [
+  PERMISSIONS.USER_MANAGE,
+  PERMISSIONS.AUDIT_VIEW,
+  PERMISSIONS.PROJECT_MANAGE,
+  PERMISSIONS.ADMIN_MANAGE
+];
+
+// Kullanıcının bir yetkisi var mı? projectId verilirse, o projeye kapsanmış
+// yetkiler de sayılıyor - backend'deki HasPermissionAsync ile aynı kural:
+// ProjectId null olan yetki her projede, dolu olan sadece kendi projesinde.
+// ADMIN_MANAGE her şeyi kapsıyor (bkz. PermissionAuthorizationHandler).
+export function hasPermission(currentUser, permissionCode, projectId = null) {
+  const permissions = currentUser?.permissions;
+  if (!permissions) {
+    return false;
+  }
+
+  if (permissions.some((p) => p.permissionCode === PERMISSIONS.ADMIN_MANAGE)) {
+    return true;
+  }
+
+  return permissions.some((p) =>
+    p.permissionCode === permissionCode &&
+    (p.projectId === null || p.projectId === undefined || p.projectId === Number(projectId)));
+}
+
+// Verilen yetkilerden herhangi birine sahip mi?
+export function hasAnyPermission(currentUser, permissionCodes, projectId = null) {
+  return permissionCodes.some((code) => hasPermission(currentUser, code, projectId));
+}
+
+// Yetki, hangi projede olduğuna bakılmaksızın var mı?
+//
+// Menü/sekme görünürlüğü için gerekli: PROJECT_MANAGE'i yalnızca tek bir
+// projeye kapsanmış bir kullanıcı, hasPermission(user, code) çağrısında
+// (projectId = null) eşleşmez ve yönetim bağlantısını hiç göremezdi.
+// Asıl yetki kontrolü backend'de, ilgili projenin id'siyle yapılıyor.
+export function hasPermissionInAnyProject(currentUser, permissionCode) {
+  const permissions = currentUser?.permissions;
+  if (!permissions) {
+    return false;
+  }
+
+  if (permissions.some((p) => p.permissionCode === PERMISSIONS.ADMIN_MANAGE)) {
+    return true;
+  }
+
+  return permissions.some((p) => p.permissionCode === permissionCode);
+}
+
+export function hasAnyPermissionInAnyProject(currentUser, permissionCodes) {
+  return permissionCodes.some((code) => hasPermissionInAnyProject(currentUser, code));
+}
+
 // Renk haritalarında karşılığı olmayan bir Id gelirse (ör. sonradan eklenen
 // bir durum) arayüz kırılmasın diye nötr renge düşülüyor.
 export const NEUTRAL_BADGE = { bg: 'var(--color-surface-alt)', fg: 'var(--color-text-muted)' };

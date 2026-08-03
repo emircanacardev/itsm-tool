@@ -6,6 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ITSM.API.Controllers;
 
+// SLA yazma işlemleri bilerek ADMIN_MANAGE'de bırakıldı (kategori ve ekip
+// yönetimi PROJECT_MANAGE'e taşınmışken): bir SLA kuralının ProjectId'si
+// null olabiliyor, yani tüm projeleri etkileyen genel bir kural yazılabiliyor.
+// Ayrıca proje id'si route'ta değil gövdede geldiği için yetki katmanı
+// kuralın hangi projeye ait olduğunu göremiyor - proje kapsamlı bir yetkiyle
+// açmak, o kullanıcının global kural yazmasına da izin vermek olurdu.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -19,7 +25,7 @@ public class SlaController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.ProjectManage)]
     public async Task<IActionResult> CreateSla(CreateSlaRequest request)
     {
         var result = await _slaService.CreateSlaAsync(request);
@@ -49,7 +55,7 @@ public class SlaController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.ProjectManage)]
     public async Task<IActionResult> UpdateSla(long id, UpdateSlaRequest request)
     {
         var success = await _slaService.UpdateSlaAsync(id, request);
@@ -61,7 +67,7 @@ public class SlaController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = Permissions.AdminManage)]
+    [Authorize(Policy = Permissions.ProjectManage)]
     public async Task<IActionResult> DeleteSla(long id)
     {
         var success = await _slaService.DeleteSlaAsync(id);

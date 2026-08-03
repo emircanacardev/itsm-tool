@@ -8,7 +8,7 @@ namespace ITSM.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = Permissions.AdminManage)]
+[Authorize(Policy = Permissions.AuditView)]
 public class AuditLogController : ControllerBase
 {
     private readonly AuditLogService _auditLogService;
