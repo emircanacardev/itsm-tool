@@ -589,6 +589,39 @@ thead th {
   justify-content: center;
 }
 
+/* .col-right'ta text-align tek başına yetmiyor: başlık içeriği .th-inner
+   flex kutusu, hizasını justify-content belirliyor. Sağa dayalı hücresi
+   olan kolonun başlığı da sağa dayansın diye. */
+.col-right .th-inner {
+  justify-content: flex-end;
+}
+
+/* Sağa dayalı son kolonda başlık metni ile hücre metni aynı hizada dursun:
+   hücrede tarihin sağında satır ok'u var (16px ikon + 8px gap = 24px),
+   başlıkta ise sıralama ok'u (12px ikon + 4px gap = 16px). Aradaki 8px'lik
+   farkı başlığa ekliyoruz. */
+.table-fixed thead th.col-right .th-inner {
+  padding-right: 8px;
+}
+
+/* Kolon genişlikleri th'lerdeki width'lerden gelsin diye (bkz.
+   projectDetail.js TICKET_COLUMNS): otomatik yerleşimde uzun bir hücre
+   ("Gecikti · 15.07.2026") kolonu orantısız genişletiyordu. */
+.table-fixed {
+  table-layout: fixed;
+}
+
+/* Sabit genişlikte uzun metin satırı ikiye katlayıp satır yüksekliklerini
+   bozardı; tek satırda tutup üç noktayla kırpıyoruz. Hücrede title
+   attribute'u var, tam metin hover'da görünüyor.
+   :not([colspan]) - yükleniyor/boş/hata satırları tüm genişliği kaplayan
+   ortalanmış kutular, onların metni sarmalı. */
+.table-fixed tbody td:not([colspan]) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .col-sortable {
   cursor: pointer;
   user-select: none;
