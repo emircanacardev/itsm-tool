@@ -57,4 +57,24 @@ public class AuthController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Kullanıcının kendi dil tercihini günceller. Bu tercih, HTTP isteği
+    /// bulunmayan bağlamlarda (SLA ihlal taraması gibi arka plan servisleri
+    /// ve e-postalar) hangi dilin kullanılacağını belirler.
+    /// </summary>
+    [HttpPut("me/language")]
+    [Authorize]
+    public async Task<IActionResult> UpdateLanguage(UpdateLanguageRequest request)
+    {
+        var userId = User.GetUserId();
+
+        var updated = await _authService.UpdateLanguageAsync(userId, request.Language);
+        if (!updated)
+        {
+            return BadRequest();
+        }
+
+        return NoContent();
+    }
 }

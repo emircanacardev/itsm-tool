@@ -9,10 +9,13 @@ using ITSM.Infrastructure.Persistence;
 using ITSM.Infrastructure.Persistence.Repositories;
 using ITSM.Infrastructure.Security;
 using ITSM.Infrastructure.Storage;
+using ITSM.Infrastructure.Localization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 
@@ -30,6 +33,30 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddOpenApi();
+
+// Çok dilli destek: çeviriler ITSM.Application/Localization altındaki
+// .resx dosyalarından okunuyor.
+builder.Services.AddLocalization(options => options.ResourcesPath = "Localization");
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = SupportedLanguages.All
+        .Select(code => new CultureInfo(code))
+        .ToList();
+
+    options.DefaultRequestCulture = new RequestCulture(SupportedLanguages.Default);
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+
+    // Dil yalnızca Accept-Language başlığından belirlensin. Varsayılan
+    // sağlayıcılar arasında bulunan query string ve cookie sağlayıcıları
+    // kaldırıldı: frontend dili bu başlıkla gönderiyor, tek bir kaynak
+    // olması davranışı öngörülebilir kılıyor.
+    options.RequestCultureProviders =
+    [
+        new AcceptLanguageHeaderRequestCultureProvider()
+    ];
+});
 
 // Ayarları tek yerden okunabilir kılmak için Options pattern ile bind ediyoruz.
 builder.Services.Configure<PaginationOptions>(
@@ -68,6 +95,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<ICurrentLanguageProvider, CurrentLanguageProvider>();
+builder.Services.AddScoped<ILocalizedMessageProvider, LocalizedMessageProvider>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -148,6 +177,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Kültürü isteğin en başında çözüyoruz: bundan sonraki her şey
+// (controller'lar, servisler, resource okumaları) CurrentUICulture'a bakıyor.
+app.UseRequestLocalization();
 
 app.UseCors(CorsPolicyName);
 

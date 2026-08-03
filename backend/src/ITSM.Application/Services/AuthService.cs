@@ -104,7 +104,33 @@ public class AuthService
             GroupId = user.GroupId,
             GroupName = user.Group.Name,
             IsAdmin = isAdmin,
+            PreferredLanguage = user.PreferredLanguage,
             Permissions = permissions
         };
+    }
+
+    /// <summary>
+    /// Kullanıcının dil tercihini günceller. Desteklenmeyen bir dil kodu
+    /// gelirse false döner; sessizce varsayılana düşmüyoruz ki istemci
+    /// hatalı bir kod gönderdiğini fark edebilsin.
+    /// </summary>
+    public async Task<bool> UpdateLanguageAsync(long userId, string languageCode)
+    {
+        if (!SupportedLanguages.All.Contains(languageCode))
+        {
+            return false;
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.PreferredLanguage = languageCode;
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+        return true;
     }
 }

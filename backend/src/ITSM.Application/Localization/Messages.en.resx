@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Notification_TicketAssigned" xml:space="preserve">
+    <value>The ticket "{0}" has been assigned to you.</value>
+    <comment>{0} = ticket title</comment>
+  </data>
+  <data name="Notification_TicketAutoAssigned" xml:space="preserve">
+    <value>The ticket "{0}" has been automatically assigned to you.</value>
+    <comment>{0} = ticket title</comment>
+  </data>
+  <data name="Notification_TicketStatusChanged" xml:space="preserve">
+    <value>The status of your ticket "{0}" has been updated.</value>
+    <comment>{0} = ticket title</comment>
+  </data>
+  <data name="Notification_SlaBreachReporter" xml:space="preserve">
+    <value>The SLA {1} time has been exceeded on the ticket "{0}".</value>
+    <comment>{0} = ticket title, {1} = breach type label (response/resolution)</comment>
+  </data>
+  <data name="Notification_SlaBreachAssignee" xml:space="preserve">
+    <value>The SLA resolution time has been exceeded on "{0}", a ticket assigned to you.</value>
+    <comment>{0} = ticket title</comment>
+  </data>
+
+  <data name="SlaBreachType_Response" xml:space="preserve">
+    <value>response</value>
+  </data>
+  <data name="SlaBreachType_Resolution" xml:space="preserve">
+    <value>resolution</value>
+  </data>
+
+  <data name="AssignmentNote_AutoAssigned" xml:space="preserve">
+    <value>Assigned by an auto-assignment rule.</value>
+  </data>
+
+  <data name="Email_NotificationSubject" xml:space="preserve">
+    <value>ITSM Notification</value>
+  </data>
+
+  <data name="Error_CategoryInUse" xml:space="preserve">
+    <value>This category has tickets attached to it - move or delete them first.</value>
+  </data>
+  <data name="Error_RuleAssignTargetInvalid" xml:space="preserve">
+    <value>Exactly one of assignToUserId or assignToGroupId must be provided.</value>
+  </data>
+  <data name="Error_ProjectNotFound" xml:space="preserve">
+    <value>Project not found.</value>
+  </data>
+  <data name="Error_UserNotFound" xml:space="preserve">
+    <value>User not found.</value>
+  </data>
+</root>
