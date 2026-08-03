@@ -287,5 +287,20 @@ langToggleButton.addEventListener('click', async () => {
 
 window.addEventListener('hashchange', navigate);
 
+// Giriş/kayıt sonrası hangi sayfanın açılacağı kullanıcının yetkisine bağlı
+// (bkz. defaultRoute) ve bu bilgi router'da. Bu yüzden login/register hedefi
+// kendisi seçmiyor, sadece "yönlendir" diyor. router.js bir modül olduğu için
+// (index.html'de type="module") içindekiler kendiliğinden global olmuyor;
+// api.js/auth.js gibi klasik scriptlerin aksine bu atama gerekiyor.
+window.routeToDefault = async () => {
+  // Yeni oturum: önbellekteki kullanıcı bir öncekine ait olabilir.
+  currentUser = null;
+  await loadCurrentUser();
+  window.location.hash = defaultRoute();
+  // Hash zaten hedef sayfaya eşitse (ör. çıkış yapılmadan yeniden giriş)
+  // hashchange tetiklenmez; görünümün kurulması için navigate şart.
+  navigate();
+};
+
 updateLangButtonLabel();
 navigate();
