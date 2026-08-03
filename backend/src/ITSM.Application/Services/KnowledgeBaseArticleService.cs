@@ -84,7 +84,27 @@ public class KnowledgeBaseArticleService
             return null;
         }
 
+        // Görüntülenme yalnızca yayındaki makalede ve okuyan yazarın kendisi
+        // değilken sayılıyor: yazarın taslağını düzenlerken açması "okundu"
+        // değil, kendi sayacını şişirmesi olurdu.
+        if (article.IsPublished && article.CreatedBy != userId)
+        {
+            await _articleRepository.IncrementViewCountAsync(article.Id);
+            // Bellekteki nesne artırımdan habersiz; yanıtın güncel sayıyı
+            // göstermesi için elle eşitliyoruz (tekrar sorgu atmaya değmez).
+            article.ViewCount++;
+        }
+
         return MapToResponse(article);
+    }
+
+    /// <summary>
+    /// Panelde gösterilen "en çok okunan makaleler" listesi.
+    /// </summary>
+    public async Task<List<ArticleResponse>> GetMostViewedArticlesAsync(int count)
+    {
+        var articles = await _articleRepository.GetMostViewedAsync(count);
+        return articles.Select(MapToResponse).ToList();
     }
 
     public async Task<bool> UpdateArticleAsync(long id, UpdateArticleRequest request)
@@ -159,6 +179,7 @@ public class KnowledgeBaseArticleService
             CreatedBy = article.CreatedBy,
             CreatedByFullName = article.CreatedByUser.FullName,
             IsPublished = article.IsPublished,
+            ViewCount = article.ViewCount,
             CreatedAt = article.CreatedAt,
             UpdatedAt = article.UpdatedAt
         };
