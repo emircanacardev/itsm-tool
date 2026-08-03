@@ -1,4 +1,4 @@
-import { enhanceSelect } from '../customSelect.js';
+import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
 import { showConfirmDialog } from '../confirmDialog.js';
@@ -1348,7 +1348,7 @@ function renderProjectSettingsSection(section) {
         project.isActive = isActive;
         const option = psProjectSelect.querySelector(`option[value="${currentProjectId}"]`);
         if (option) option.textContent = newName;
-        enhanceSelect(psProjectSelect);
+        enhanceSelect(psProjectSelect, searchableSelectOptions());
       }
 
       showToast('admin.projectUpdated', false);
@@ -1785,7 +1785,7 @@ function renderProjectSettingsSection(section) {
         option.textContent = project.name;
         psProjectSelect.appendChild(option);
       });
-      enhanceSelect(psProjectSelect);
+      enhanceSelect(psProjectSelect, searchableSelectOptions());
 
       allGroups = groups;
       groups.forEach((group) => {
@@ -2193,8 +2193,10 @@ function renderSlaSection(section) {
         option.textContent = project.name;
         slaProjectSelect.appendChild(option);
       });
-      enhanceSelect(slaProjectSelect);
-      enhanceSelect(slaCategorySelect);
+      // Proje ve kategori listeleri yüzlerce satıra çıkabiliyor; ikisi de
+      // yazarak süzülebilir (bkz. tickets.js'teki proje filtresi).
+      enhanceSelect(slaProjectSelect, searchableSelectOptions());
+      enhanceSelect(slaCategorySelect, searchableSelectOptions());
 
       priorities.forEach((priority) => {
         const option = document.createElement('option');

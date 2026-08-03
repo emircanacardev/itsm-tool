@@ -1,4 +1,4 @@
-import { enhanceSelect } from '../customSelect.js';
+import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
 import { PERMISSIONS, hasPermissionInAnyProject } from '../constants.js';
 
@@ -37,16 +37,6 @@ function titleInitials(title) {
 function truncate(text, maxLength) {
   const collapsed = text.replace(/\s+/g, ' ').trim();
   return collapsed.length > maxLength ? `${collapsed.slice(0, maxLength)}…` : collapsed;
-}
-
-// Aranabilir açılır listelerin ortak metinleri. Dil değişince view yeniden
-// render edildiği için t() burada çağrılmakta sakınca yok.
-function selectSearchOptions() {
-  return {
-    searchable: true,
-    searchPlaceholder: t('knowledgeBase.selectSearchPlaceholder'),
-    emptyText: t('knowledgeBase.selectSearchEmpty')
-  };
 }
 
 export function render(container, currentUser) {
@@ -135,8 +125,8 @@ export function render(container, currentUser) {
   // Proje ve kategori listeleri kurum büyüdükçe yüzlerce satıra çıkabiliyor;
   // ikisi de yazarak süzülebilir olmalı. Sıralama listesi sabit dört
   // seçenek olduğu için aramasız kalıyor.
-  enhanceSelect(projectSelect, selectSearchOptions());
-  enhanceSelect(categorySelect, selectSearchOptions());
+  enhanceSelect(projectSelect, searchableSelectOptions());
+  enhanceSelect(categorySelect, searchableSelectOptions());
   enhanceSelect(sortSelect);
 
   let currentPage = 1;
@@ -315,7 +305,7 @@ export function render(container, currentUser) {
 
     if (!projectSelect.value) {
       categorySelect.disabled = true;
-      enhanceSelect(categorySelect, selectSearchOptions());
+      enhanceSelect(categorySelect, searchableSelectOptions());
       return;
     }
 
@@ -332,7 +322,7 @@ export function render(container, currentUser) {
       categorySelect.disabled = true;
     }
 
-    enhanceSelect(categorySelect, selectSearchOptions());
+    enhanceSelect(categorySelect, searchableSelectOptions());
   }
 
   async function loadProjects() {
@@ -347,7 +337,7 @@ export function render(container, currentUser) {
     } catch (error) {
       // Proje listesi çekilemezse filtre boş kalır, makale listesi yine çalışır.
     }
-    enhanceSelect(projectSelect, selectSearchOptions());
+    enhanceSelect(projectSelect, searchableSelectOptions());
   }
 
   function resetPageAndLoad() {
@@ -439,8 +429,8 @@ function wireCreateModal(container, showToast, onCreated) {
   const cancelButton = container.querySelector('#createArticleCancel');
   const submitButton = container.querySelector('#createArticleSubmit');
 
-  enhanceSelect(projectSelect, selectSearchOptions());
-  enhanceSelect(categorySelect, selectSearchOptions());
+  enhanceSelect(projectSelect, searchableSelectOptions());
+  enhanceSelect(categorySelect, searchableSelectOptions());
 
   let projectsLoaded = false;
 
@@ -456,7 +446,7 @@ function wireCreateModal(container, showToast, onCreated) {
     } catch (error) {
       // Proje çekilemezse makale yine de projesiz oluşturulabilir.
     }
-    enhanceSelect(projectSelect, selectSearchOptions());
+    enhanceSelect(projectSelect, searchableSelectOptions());
   }
 
   async function loadCategoryOptions() {
@@ -469,7 +459,7 @@ function wireCreateModal(container, showToast, onCreated) {
 
     if (!projectSelect.value) {
       categorySelect.disabled = true;
-      enhanceSelect(categorySelect, selectSearchOptions());
+      enhanceSelect(categorySelect, searchableSelectOptions());
       return;
     }
 
@@ -486,7 +476,7 @@ function wireCreateModal(container, showToast, onCreated) {
       categorySelect.disabled = true;
     }
 
-    enhanceSelect(categorySelect, selectSearchOptions());
+    enhanceSelect(categorySelect, searchableSelectOptions());
   }
 
   async function openModal() {

@@ -1,4 +1,4 @@
-import { enhanceSelect } from '../customSelect.js';
+import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
 import { showConfirmDialog } from '../confirmDialog.js';
 import { PERMISSIONS, hasPermissionInAnyProject } from '../constants.js';
@@ -9,16 +9,6 @@ function formatDate(isoString) {
   return date.toLocaleDateString(getLanguage() === 'tr' ? 'tr-TR' : 'en-US', {
     day: '2-digit', month: '2-digit', year: 'numeric'
   });
-}
-
-// Proje/kategori listeleri uzun olabildiği için yazarak süzülebiliyorlar
-// (bkz. knowledgeBase.js'teki aynı yardımcı).
-function selectSearchOptions() {
-  return {
-    searchable: true,
-    searchPlaceholder: t('knowledgeBase.selectSearchPlaceholder'),
-    emptyText: t('knowledgeBase.selectSearchEmpty')
-  };
 }
 
 export function render(container, articleId, currentUser) {
@@ -198,8 +188,8 @@ async function loadArticle(container, articleId, currentUser) {
   const saveButton = container.querySelector('#editArticleSave');
 
   applyTranslations();
-  enhanceSelect(editProject, selectSearchOptions());
-  enhanceSelect(editCategory, selectSearchOptions());
+  enhanceSelect(editProject, searchableSelectOptions());
+  enhanceSelect(editCategory, searchableSelectOptions());
 
   let projectsLoaded = false;
 
@@ -215,7 +205,7 @@ async function loadArticle(container, articleId, currentUser) {
     } catch (error) {
       // Proje listesi gelmezse mevcut seçim korunur, makale yine kaydedilebilir.
     }
-    enhanceSelect(editProject, selectSearchOptions());
+    enhanceSelect(editProject, searchableSelectOptions());
   }
 
   async function loadCategoryOptions(selectedCategoryId) {
@@ -228,7 +218,7 @@ async function loadArticle(container, articleId, currentUser) {
 
     if (!editProject.value) {
       editCategory.disabled = true;
-      enhanceSelect(editCategory, selectSearchOptions());
+      enhanceSelect(editCategory, searchableSelectOptions());
       return;
     }
 
@@ -248,7 +238,7 @@ async function loadArticle(container, articleId, currentUser) {
       editCategory.disabled = true;
     }
 
-    enhanceSelect(editCategory, selectSearchOptions());
+    enhanceSelect(editCategory, searchableSelectOptions());
   }
 
   async function openEditMode() {
@@ -258,7 +248,7 @@ async function loadArticle(container, articleId, currentUser) {
 
     await loadProjectOptions();
     editProject.value = article.projectId ? String(article.projectId) : '';
-    enhanceSelect(editProject, selectSearchOptions());
+    enhanceSelect(editProject, searchableSelectOptions());
     await loadCategoryOptions(article.categoryId);
 
     readView.style.display = 'none';

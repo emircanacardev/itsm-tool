@@ -1,4 +1,4 @@
-import { enhanceSelect } from '../customSelect.js';
+import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
 import {
@@ -387,7 +387,10 @@ export function render(container, currentUser, query) {
     }
     enhanceSelect(filterStatus);
     enhanceSelect(filterPriority);
-    enhanceSelect(filterProject);
+    // Proje sayısı kurum büyüdükçe yüzlere çıkabiliyor ve o listede
+    // kaydırarak proje bulmak çalışmıyor; durum/öncelik ise sabit ve kısa
+    // birer liste, aramaya gerek yok.
+    enhanceSelect(filterProject, searchableSelectOptions());
   }
 
   const debouncedSearch = debounce(resetPageAndLoad, 300);
@@ -424,7 +427,7 @@ export function render(container, currentUser, query) {
     filterToDate.value = '';
     enhanceSelect(filterStatus);
     enhanceSelect(filterPriority);
-    enhanceSelect(filterProject);
+    enhanceSelect(filterProject, searchableSelectOptions());
     enhanceDateInput(filterFromDate);
     enhanceDateInput(filterToDate);
     resetPageAndLoad();
