@@ -10,6 +10,11 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
     {
         builder.Property(n => n.Type).HasMaxLength(50);
 
+        // Cümleyi kurmak için gereken değişken veriler jsonb olarak saklanıyor.
+        // Postgres'in jsonb tipi ileride payload üzerinden sorgulama/indeksleme
+        // gerekirse text'e göre avantaj sağlıyor.
+        builder.Property(n => n.PayloadJson).HasColumnType("jsonb");
+
         builder.HasOne(n => n.Ticket)
             .WithMany()
             .HasForeignKey(n => n.TicketId)

@@ -1,6 +1,8 @@
 ﻿using ITSM.Application.Configuration;
 using ITSM.Application.Interfaces;
+using ITSM.Application.Notifications;
 using ITSM.Application.Services;
+using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using ITSM.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
@@ -94,21 +96,31 @@ public class SlaBreachDetectionService : BackgroundService
 
         await slaBreachRepository.AddAsync(breach);
 
-        var breachLabel = breachType == BreachType.Response ? "yanıt" : "çözüm";
-
+        // Metin burada kurulmuyor: bildirim tür + payload olarak saklanıyor,
+        // cümle okuma anında alıcının diline göre üretiliyor. Bu servis bir
+        // HTTP isteği bağlamında çalışmadığı için Accept-Language da yok.
         await notificationService.CreateNotificationAsync(
             ticket.CreatedBy,
             ticket.Id,
-            "SlaBreach",
-            $"\"{ticket.Title}\" başlıklı talepte SLA {breachLabel} süresi aşıldı.");
+            NotificationTypes.SlaBreach,
+            new NotificationPayload
+            {
+                TicketTitle = ticket.Title,
+                BreachType = breachType.ToString()
+            });
 
         if (breachType == BreachType.Resolution && ticket.AssignedTo.HasValue)
         {
             await notificationService.CreateNotificationAsync(
                 ticket.AssignedTo.Value,
                 ticket.Id,
-                "SlaBreach",
-                $"\"{ticket.Title}\" başlıklı size atanmış talepte SLA çözüm süresi aşıldı.");
+                NotificationTypes.SlaBreach,
+                new NotificationPayload
+                {
+                    TicketTitle = ticket.Title,
+                    BreachType = breachType.ToString(),
+                    IsAssigneeNotification = true
+                });
         }
     }
 }

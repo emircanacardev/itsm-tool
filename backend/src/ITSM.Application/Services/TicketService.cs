@@ -1,6 +1,7 @@
 ﻿using ITSM.Application.Configuration;
 using ITSM.Application.DTOs;
 using ITSM.Application.Interfaces;
+using ITSM.Application.Notifications;
 using ITSM.Domain.Constants;
 using ITSM.Domain.Entities;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ public class TicketService
     private readonly ISlaRepository _slaRepository;
     private readonly AutoAssignmentService _autoAssignmentService;
     private readonly ICurrentLanguageProvider _languageProvider;
+    private readonly ILocalizedMessageProvider _messageProvider;
     private readonly PaginationOptions _paginationOptions;
 
     public TicketService(
@@ -26,8 +28,10 @@ public class TicketService
         ISlaRepository slaRepository,
         AutoAssignmentService autoAssignmentService,
         ICurrentLanguageProvider languageProvider,
+        ILocalizedMessageProvider messageProvider,
         IOptions<PaginationOptions> paginationOptions)
     {
+        _messageProvider = messageProvider;
         _ticketRepository = ticketRepository;
         _userPermissionRepository = userPermissionRepository;
         _projectMemberRepository = projectMemberRepository;
@@ -79,7 +83,9 @@ public class TicketService
                 AssignedFrom = null,
                 AssignedTo = autoAssignedUserId.Value,
                 AssignedBy = createdByUserId,
-                Note = "Otomatik atama kuralına göre atandı."
+                // Sistem üretimli not; kullanıcının yazdığı notlarla aynı alanı
+                // paylaştığı için burada da çevrilmiş metin saklanıyor.
+                Note = _messageProvider.Get(MessageKeys.AssignmentNoteAutoAssigned)
             };
 
             await _ticketRepository.AssignAsync(ticket, assignment);
@@ -87,8 +93,8 @@ public class TicketService
             await _notificationService.CreateNotificationAsync(
                 autoAssignedUserId.Value,
                 ticket.Id,
-                "TicketAssigned",
-                $"\"{ticket.Title}\" başlıklı talep otomatik olarak size atandı.");
+                NotificationTypes.TicketAutoAssigned,
+                new NotificationPayload { TicketTitle = ticket.Title });
         }
 
         var createdTicket = await _ticketRepository.GetByIdAsync(ticket.Id);
@@ -217,8 +223,8 @@ public class TicketService
             await _notificationService.CreateNotificationAsync(
                 ticket.CreatedBy,
                 ticket.Id,
-                "TicketStatusChanged",
-                $"\"{ticket.Title}\" başlıklı talebinizin durumu güncellendi.");
+                NotificationTypes.TicketStatusChanged,
+                new NotificationPayload { TicketTitle = ticket.Title });
         }
 
         return true;
@@ -250,8 +256,8 @@ public class TicketService
             await _notificationService.CreateNotificationAsync(
                 assignedToUserId,
                 ticket.Id,
-                "TicketAssigned",
-                $"\"{ticket.Title}\" başlıklı talep size atandı.");
+                NotificationTypes.TicketAssigned,
+                new NotificationPayload { TicketTitle = ticket.Title });
         }
 
         return true;

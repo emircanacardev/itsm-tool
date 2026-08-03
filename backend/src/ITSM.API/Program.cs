@@ -1,5 +1,6 @@
 using ITSM.Application.Configuration;
 using ITSM.Application.Interfaces;
+using ITSM.Application.Notifications;
 using ITSM.Application.Services;
 using ITSM.Domain.Constants;
 using ITSM.Infrastructure.Authorization;
@@ -126,6 +127,7 @@ builder.Services.AddScoped<KnowledgeBaseArticleService>();
 builder.Services.AddScoped<ISlaRepository, SlaRepository>();
 builder.Services.AddScoped<SlaService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<NotificationRenderer>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ISlaBreachRepository, SlaBreachRepository>();
 builder.Services.AddHostedService<SlaBreachDetectionService>();
