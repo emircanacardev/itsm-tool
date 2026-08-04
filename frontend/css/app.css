@@ -1260,17 +1260,42 @@ tbody tr:hover .row-chevron {
   white-space: nowrap;
 }
 
+/* Meta bloğu flex iken her hücre kendi içeriği kadar yer kaplıyordu:
+   "Kritik"/"Düşük", "Açık"/"Beklemede" gibi farklı uzunluktaki rozetler
+   yüzünden öncelik, durum ve son tarih hiçbir satırda aynı hizada
+   başlamıyor, liste sütunsuz ve dağınık görünüyordu. Sabit genişlikli
+   ızgara üçünü de her satırda aynı yere oturtuyor. */
 .recent-ticket-meta {
-  display: flex;
+  display: grid;
+  grid-template-columns: 92px 118px 148px 16px;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
+/* Rozetler kendi hücrelerinin soluna yaslanıyor; ortalanınca hücre
+   genişliği sabit olsa bile metinler yine kaymış görünüyordu. */
+.recent-ticket-meta .badge,
+.recent-ticket-meta .status-dot {
+  justify-self: start;
+}
+
+/* Uzun bir rozet metni hücresini gerip ızgarayı bozmasın. */
+.recent-ticket-meta .badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Genişliği artık ızgara kolonu belirliyor; min-width ikisi birden
+   uygulanınca hücreyi kolonundan taşırıyordu. */
 .recent-ticket-meta .due-cell {
-  min-width: 140px;
   text-align: right;
   font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Panel listelerinde (son talepler, en çok okunanlar) satır başlık + meta
@@ -1284,15 +1309,17 @@ tbody tr:hover .row-chevron {
     gap: var(--space-2);
   }
 
+  /* Telefonda sabit kolonlar sığmıyor: ızgaradan çıkıp içeriğe göre
+     sarmalanan bir satıra dönüyor. */
   .recent-ticket-meta {
+    display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
     width: 100%;
+    justify-content: flex-start;
   }
 
-  /* Sabit 140px, artık sola dayalı olan hücreyi gereksiz yere geriyordu. */
   .recent-ticket-meta .due-cell {
-    min-width: 0;
     text-align: left;
   }
 
