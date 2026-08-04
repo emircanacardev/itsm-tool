@@ -670,6 +670,72 @@ body {
   color: var(--color-text);
 }
 
+/* Tema düğmesi tek bir güneş ikonu gösteriyordu: hangi temada olunduğunu
+   da, tıklayınca ne olacağını da söylemiyordu. İki ikon üst üste duruyor,
+   aktif temaya göre biri dönerek girip diğeri çıkıyor - gösterilen ikon
+   "şu an bu temadasın" demek (açıkta güneş, koyuda ay). */
+.theme-toggle-icon {
+  position: relative;
+}
+
+.theme-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  transition:
+    opacity var(--transition-base),
+    transform var(--transition-base);
+}
+
+/* Açık tema: güneş görünür, ay çeyrek tur dönmüş halde bekliyor. */
+.theme-icon-sun {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
+}
+
+.theme-icon-moon {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(-90deg) scale(0.6);
+}
+
+[data-theme="dark"] .theme-icon-sun {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(90deg) scale(0.6);
+}
+
+[data-theme="dark"] .theme-icon-moon {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
+}
+
+/* Koyu temada düğme, ay ikonuna eşlik eden hafif bir mor zemin alıyor -
+   aktif olduğu belli olsun. Hover'da bir tık koyulaşıyor; .theme-toggle:hover
+   yukarıda tanımlı olduğu için burada ayrıca ele alınması gerekiyor, aksi
+   halde imleç üstüne gelince mor zemin nötre dönüyordu. */
+[data-theme="dark"] .theme-toggle-icon {
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .theme-toggle-icon:hover {
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-icon {
+    transition: opacity var(--transition-fast);
+    transform: translate(-50%, -50%);
+  }
+
+  [data-theme="dark"] .theme-icon-sun,
+  .theme-icon-moon {
+    transform: translate(-50%, -50%);
+  }
+}
+
 .notification-bell {
   position: relative;
 }
