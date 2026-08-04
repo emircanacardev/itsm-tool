@@ -1191,11 +1191,15 @@ tbody tr:hover .row-chevron {
    esnek ızgaraya gerek yok. */
 .dashboard-article-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, 1fr), düz "1fr" değil: 1fr aslında minmax(auto, 1fr) demek ve
+     o auto alt sınırı, kolonun içeriğinden dar olmasını engelliyor. Tek
+     satıra alınan başlıklar (white-space: nowrap) bu yüzden kırpılmak
+     yerine kolonu kendi genişliklerine kadar açıp ızgarayı taşırıyordu. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
   /* Izgara satırı en uzun kartın boyunu alıyor; stretch (varsayılan) ile
      diğer kartlar da o boya uzuyor, yani üç kartın alt kenarı hizalı
-     kalıyor. Başlıklar bir ya da iki satır olabildiği için bu gerekli. */
+     kalıyor. */
   align-items: stretch;
 }
 
