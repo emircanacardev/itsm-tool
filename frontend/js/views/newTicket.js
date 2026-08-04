@@ -1,6 +1,7 @@
 import { enhanceSelect } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
 import { PERMISSIONS, hasPermission } from '../constants.js';
+import { validateFields } from '../formValidation.js';
 
 // query.projectId verilmişse (proje detayındaki "Yeni Talep" butonu) proje
 // alanı o projeye kilitleniyor: kullanıcı zaten bir projenin içindeyken
@@ -179,10 +180,15 @@ export function render(container, currentUser, query) {
     // Kategori zorunlu ama proje kilitliyken select disabled olduğu için
     // tarayıcının kendi required kontrolü projeyi atlıyor - burada kontrol ediliyor.
     const projectId = lockedProjectId ?? projectSelect.value;
-    if (!projectId || !categorySelect.value) {
-      showToast('newTicket.validationError', true);
-      return;
-    }
+
+    // Hata, eksik olan alanın kendi altında görünüyor. Proje kilitliyken
+    // (proje detayından gelindiğinde) o alan zaten dolu sayılıyor.
+    const hasError = validateFields([
+      { el: projectSelect, valid: Boolean(projectId), messageKey: 'newTicket.projectRequired' },
+      { el: categorySelect, valid: Boolean(categorySelect.value), messageKey: 'newTicket.categoryRequired' },
+      { el: titleInput, valid: titleInput.value.trim().length > 0, messageKey: 'newTicket.titleRequired' }
+    ]);
+    if (hasError) return;
 
     submitButton.disabled = true;
     submitLabel.textContent = t('newTicket.submitting');

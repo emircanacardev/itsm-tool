@@ -1,6 +1,7 @@
 import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
 import { PERMISSIONS, hasPermissionInAnyProject } from '../constants.js';
+import { validateFields, clearFieldErrors } from '../formValidation.js';
 
 // Kart ızgarası olduğu için tasarım dilindeki "15 satır" kuralı yerine
 // projects.js ile aynı 12'yi kullanıyoruz - o kural tablolar için.
@@ -498,6 +499,8 @@ function wireCreateModal(container, showToast, onCreated) {
 
   function closeModal() {
     overlay.style.display = 'none';
+    // Bir sonraki açılışta önceki denemenin hataları durmasın.
+    clearFieldErrors([titleInput, contentInput]);
   }
 
   openButton?.addEventListener('click', openModal);
@@ -520,10 +523,13 @@ function wireCreateModal(container, showToast, onCreated) {
     const title = titleInput.value.trim();
     const content = contentInput.value.trim();
 
-    if (!title || !content) {
-      showToast('knowledgeBase.validationError', true);
-      return;
-    }
+    // Hata alanın kendi altında: tek genel mesaj hangi alanın eksik
+    // olduğunu söylemiyordu.
+    const hasError = validateFields([
+      { el: titleInput, valid: title.length > 0, messageKey: 'knowledgeBase.titleRequired' },
+      { el: contentInput, valid: content.length > 0, messageKey: 'knowledgeBase.contentRequired' }
+    ]);
+    if (hasError) return;
 
     submitButton.disabled = true;
     try {
