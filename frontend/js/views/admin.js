@@ -192,7 +192,24 @@ const TABS = [
   { key: 'auditLog', i18nKey: 'admin.tabAuditLog', render: renderAuditLogSection, permission: PERMISSIONS.AUDIT_VIEW }
 ];
 
-export function render(container, currentUser) {
+/**
+ * @param {HTMLElement} container
+ * @param {string} [projectId] #/admin/projects/{id} ile gelindiyse açılacak
+ *   projenin id'si. Düz #/admin'de router bu parametreyi hiç geçmiyor, o
+ *   yüzden ikinci argüman currentUser olabiliyor - aşağıda ayrıştırılıyor.
+ * @param {object} [maybeCurrentUser]
+ */
+export function render(container, projectId, maybeCurrentUser) {
+  // Router view'ları (container, ...params, currentUser, query) diye
+  // çağırıyor; bu görünüm iki route'a birden bağlı olduğu için argüman
+  // sayısı değişiyor. Route parametresi yoksa ikinci argüman kullanıcıdır.
+  const hasProjectParam = typeof projectId === 'string';
+  const currentUser = hasProjectParam ? maybeCurrentUser : projectId;
+  const requestedProjectId = hasProjectParam ? Number(projectId) : null;
+  // #/admin/projects (id'siz) Projeler sekmesini istiyor. Bu route'un
+  // yakalama grubu olmadığı için parametre gelmiyor, hash'e bakıyoruz.
+  const wantsProjectsTab = window.location.hash.replace(/^#\//, '') === 'admin/projects';
+
   // Yetkisi olmayan sekmeler hiç üretilmiyor: bir sistem yöneticisi
   // (USER_MANAGE) yalnızca Kullanıcılar/Gruplar/Yetkilendirme'yi, bir
   // denetçi (AUDIT_VIEW) yalnızca Aktivite Kaydı'nı görüyor.
@@ -262,7 +279,21 @@ export function render(container, currentUser) {
     container.querySelector(`[data-tab-key="${tab.key}"]`).addEventListener('click', () => activateTab(tab.key));
   });
 
-  activateTab(visibleTabs[0].key);
+  // Belirli bir proje istendiyse (#/admin/projects/{id}) varsayılan sekme
+  // yerine doğrudan o projenin ayar ekranı açılıyor. Proje ayarları gizli
+  // bir sekme olduğu için önce yetkisi var mı diye bakıyoruz: yoksa
+  // varsayılan sekmeye düşüyoruz, boş ekranla karşılaşılmasın.
+  const canManageProjects = allowedTabs.some((tab) => tab.key === 'projectSettings');
+
+  if (requestedProjectId && canManageProjects) {
+    activateTab('projectSettings');
+    adminCrossTab.projectSettingsTab?.selectProject(requestedProjectId);
+  } else if (wantsProjectsTab && canManageProjects) {
+    // #/admin/projects - proje ayarlarındaki geri düğmesinin hedefi.
+    activateTab('projects');
+  } else {
+    activateTab(visibleTabs[0].key);
+  }
 }
 
 const USER_SORTABLE_COLUMNS = [
@@ -1782,7 +1813,19 @@ function renderProjectSettingsSection(section) {
     loadRules();
   }
 
-  psBackButton.addEventListener('click', () => activateAdminTab('projects'));
+  psBackButton.addEventListener('click', () => {
+    // Bu ekrana #/admin/projects/{id} ile doğrudan gelinmiş olabilir
+    // (proje detayındaki "Proje ayarları" düğmesi). O durumda sadece
+    // sekmeyi değiştirmek yetmez: adres çubuğu proje ayarlarını
+    // göstermeye devam eder ve sayfa yenilenince buraya geri dönülür.
+    // Adresi de listeye çekiyoruz; hash değişimi router'ı tetikleyip
+    // Projeler sekmesini zaten açıyor.
+    if (window.location.hash.startsWith('#/admin/projects/')) {
+      window.location.hash = '#/admin/projects';
+      return;
+    }
+    activateAdminTab('projects');
+  });
 
   async function loadInitialData() {
     try {
