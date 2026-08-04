@@ -1477,10 +1477,15 @@ tbody tr:hover .row-chevron {
 /* Talep detayındaki eylem düğmeleri (Kaydet, Ata, Gönder, Yükle).
    Yorum ve ek yükleme düğmelerinin hiçbir kuralı yoktu; tarayıcının
    varsayılan gri düğmesi olarak çiziliyor ve aktif olmalarına rağmen
-   devre dışıymış gibi duruyorlardı. */
-.action-form button,
-.comment-form-footer button,
-.upload-row button {
+   devre dışıymış gibi duruyorlardı.
+
+   Seçici DOĞRUDAN çocukla (>) sınırlı: enhanceSelect, native select'i
+   gizleyip yerine <button class="custom-select-trigger"> koyuyor.
+   Sınırsız "button" seçicisi o tetikleyiciyi de yakalayıp açılır
+   listeyi kapalıyken dolu mor bir düğmeye çeviriyordu. */
+.action-form > button,
+.comment-form-footer > button,
+.upload-row > button {
   background: var(--color-accent);
   color: #FFFFFF;
   border: none;
@@ -1496,29 +1501,29 @@ tbody tr:hover .row-chevron {
     transform var(--transition-fast);
 }
 
-.action-form button:hover,
-.comment-form-footer button:hover,
-.upload-row button:hover {
+.action-form > button:hover,
+.comment-form-footer > button:hover,
+.upload-row > button:hover {
   background: var(--color-accent-hover);
 }
 
 /* Basılı tutulurken hafif içeri gitme: tıklamanın kaydedildiği belli olsun. */
-.action-form button:active,
-.comment-form-footer button:active,
-.upload-row button:active {
+.action-form > button:active,
+.comment-form-footer > button:active,
+.upload-row > button:active {
   transform: translateY(1px);
 }
 
-.action-form button:focus-visible,
-.comment-form-footer button:focus-visible,
-.upload-row button:focus-visible {
+.action-form > button:focus-visible,
+.comment-form-footer > button:focus-visible,
+.upload-row > button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-.action-form button:disabled,
-.comment-form-footer button:disabled,
-.upload-row button:disabled {
+.action-form > button:disabled,
+.comment-form-footer > button:disabled,
+.upload-row > button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
