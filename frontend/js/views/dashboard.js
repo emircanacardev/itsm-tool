@@ -164,8 +164,14 @@ function titleInitials(title) {
 // panel kartı üç kolonda daha dar ve iki satır önizleme gösteriyor.
 const ARTICLE_PREVIEW_LENGTH = 120;
 
+// Satır sonları korunuyor: makale içeriği numaralı adımlar ve maddelerden
+// oluşuyor, hepsi tek paragrafa indirilince önizleme okunmaz oluyordu.
+// Yalnızca boşluk/tab dizileri ve arka arkaya gelen boş satırlar sadeleşiyor.
 function truncate(text, maxLength) {
-  const collapsed = text.replace(/\s+/g, ' ').trim();
+  const collapsed = text
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
   return collapsed.length > maxLength ? `${collapsed.slice(0, maxLength)}…` : collapsed;
 }
 
