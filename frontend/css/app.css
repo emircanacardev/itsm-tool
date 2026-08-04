@@ -2180,8 +2180,25 @@ tbody tr:hover .row-chevron {
    kalıyordu ve ızgara satırları kayıyordu. Başlığa iki satırlık, önizlemeye
    üç satırlık sabit yükseklik vererek her kart aynı boyda başlıyor; alt
    şerit zaten margin-top: auto ile en alta yapışıyor. */
+/* Başlık alanı iki satırlık yer ayırmayı sürdürüyor - tek satıra indirmek
+   kartları farklı boya sokup ızgara satırlarını kaydırırdı. Boşluğun
+   başlığın altında toplanması ise başlık + yazar bloğunu kartın tepesine
+   yapıştırıp altında boşluk bırakıyordu; blok bir bütün olarak ortalanıyor
+   (bkz. .article-card .project-card-title-wrap).
+
+   Başlığın kendi min-height'i kalkıyor: yüksekliği artık sarmalayıcı
+   veriyor, ikisi birden uygulanınca tek satırlık başlıkta boşluk yine
+   metnin altında kalıyordu. */
 .article-card .project-card-name {
-  min-height: 2.6em;
+  min-height: 0;
+}
+
+/* Ad + yazar bloğu, 44px'lik avatarla aynı yüksekliği tutuyor ve içeriği
+   dikeyde ortalıyor: başlık ister bir ister iki satır olsun blok avatarla
+   hizalı duruyor, artan boşluk metnin altında değil iki yanında kalıyor. */
+.article-card .project-card-title-wrap {
+  min-height: 44px;
+  justify-content: center;
 }
 
 .article-card .project-card-description {
