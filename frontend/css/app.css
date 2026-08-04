@@ -1280,14 +1280,26 @@ tbody tr:hover .row-chevron {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-3) 0;
+  /* Yatay iç boşluk hover zemininin satırı boydan boya kaplaması için;
+     negatif margin ile kartın kendi hizasına geri çekiliyor, yani
+     yazılar eskisi gibi kartın kenarıyla hizalı duruyor. */
+  padding: var(--space-3);
+  margin: 0 calc(-1 * var(--space-3));
   border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background-color var(--transition-fast);
 }
 
 .recent-ticket-row:last-child {
   border-bottom: none;
-  padding-bottom: 0;
+}
+
+/* Talep tablosundaki satırla aynı geri bildirim: zemin renkleniyor,
+   başlık moralıyor, sağdaki ok beliriyor. Panel satırları tıklanabilir
+   olmasına rağmen zemini değişmediği için tablodan farklı davranıyordu. */
+.recent-ticket-row:hover {
+  background: var(--color-surface-alt);
 }
 
 .recent-ticket-row:hover .ticket-title {
@@ -2481,6 +2493,18 @@ tbody tr:hover .row-chevron {
   justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-5);
+}
+
+/* Aktivite Kaydı "Detay" sütunu: birden çok alan değiştiyse metin uzun
+   olabiliyor ve tabloyu yatay scroll'a sokuyordu. Tek satırda kırpılıyor,
+   tam hâli title'da (bkz. admin.js). */
+.audit-details-cell {
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 /* ---------- Alan bazlı doğrulama ----------
