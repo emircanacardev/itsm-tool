@@ -153,9 +153,32 @@ function renderRecentTickets(listEl, tickets) {
   });
 }
 
-// En çok okunan makaleler. Talep listesiyle aynı satır düzenini kullanıyor
-// (aynı ekranda iki farklı liste dili olmasın diye); sağdaki sayı, satırın
-// neden bu sırada olduğunu söyleyen tek bilgi olduğu için gösteriliyor.
+// Başlığın ilk iki harfinden kart avatarı - bilgi bankasındaki kartla
+// aynı kural (knowledgeBase.js'teki titleInitials).
+function titleInitials(title) {
+  const trimmed = title.trim();
+  return (trimmed.slice(0, 2) || '??').toUpperCase();
+}
+
+// Kartta gösterilecek önizleme uzunluğu. Bilgi bankasındaki karttan kısa:
+// panel kartı üç kolonda daha dar ve iki satır önizleme gösteriyor.
+const ARTICLE_PREVIEW_LENGTH = 120;
+
+// Satır sonları korunuyor: makale içeriği numaralı adımlar ve maddelerden
+// oluşuyor, hepsi tek paragrafa indirilince önizleme okunmaz oluyordu.
+// Yalnızca boşluk/tab dizileri ve arka arkaya gelen boş satırlar sadeleşiyor.
+function truncate(text, maxLength) {
+  const collapsed = text
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+  return collapsed.length > maxLength ? `${collapsed.slice(0, maxLength)}…` : collapsed;
+}
+
+// En çok okunan makaleler, bilgi bankası sayfasındaki kartın aynısıyla
+// gösteriliyor: aynı kayıt iki ekranda iki farklı biçimde görünürse aynı
+// şey oldukları anlaşılmıyor. Alt şeritte tarih yerine okunma sayısı var,
+// çünkü listeyi sıralayan ölçüt o.
 function renderMostViewedArticles(listEl, articles) {
   if (!articles || articles.length === 0) {
     listEl.innerHTML = `<div class="state-box" style="border: none;"><span>${t('dashboard.noArticleData')}</span></div>`;
@@ -164,50 +187,59 @@ function renderMostViewedArticles(listEl, articles) {
 
   listEl.innerHTML = '';
   articles.forEach((article) => {
-    const row = document.createElement('div');
-    row.className = 'recent-ticket-row';
-    row.addEventListener('click', () => {
-      window.location.hash = `#/knowledge-base/${article.id}`;
-    });
+    const card = document.createElement('a');
+    card.className = 'project-card article-card dashboard-article-card';
+    card.href = `#/knowledge-base/${article.id}`;
 
-    // Başlık kullanıcı girdisi - textContent (tasarım dili §8).
+    const head = document.createElement('div');
+    head.className = 'project-card-head';
+
+    const mark = document.createElement('div');
+    mark.className = 'project-card-mark';
+    mark.textContent = titleInitials(article.title);
+
     const titleWrap = document.createElement('div');
-    titleWrap.className = 'recent-ticket-title-wrap';
-    const titleText = document.createElement('span');
-    titleText.className = 'ticket-title';
-    titleText.textContent = article.title;
-    titleWrap.appendChild(titleText);
+    titleWrap.className = 'project-card-title-wrap';
 
-    const meta = document.createElement('div');
-    meta.className = 'recent-ticket-meta';
+    // Kullanıcı girdisi olan her metin textContent ile basılıyor (§8).
+    const name = document.createElement('strong');
+    name.className = 'project-card-name article-card-title';
+    name.textContent = article.title;
+    name.title = article.title;
 
-    if (article.projectName) {
-      const projectTag = document.createElement('span');
-      projectTag.className = 'article-tag';
-      projectTag.textContent = article.projectName;
-      meta.appendChild(projectTag);
-    }
+    const author = document.createElement('span');
+    author.className = 'article-card-author';
+    author.textContent = article.createdByFullName;
 
+    titleWrap.append(name, author);
+    head.append(mark, titleWrap);
+
+    // İçerik önizlemesi bilgi bankasındaki kartla aynı: kartın neden
+    // açılmaya değer olduğunu başlık tek başına anlatmıyor.
+    const preview = document.createElement('p');
+    preview.className = 'project-card-description';
+    preview.textContent = truncate(article.content, ARTICLE_PREVIEW_LENGTH);
+
+    const footer = document.createElement('div');
+    footer.className = 'article-card-footer';
+
+    const tags = document.createElement('div');
+    tags.className = 'article-card-tags';
+    const projectTag = document.createElement('span');
+    projectTag.className = 'article-tag';
+    projectTag.textContent = article.projectName || t('knowledgeBase.generalArticle');
+    projectTag.title = projectTag.textContent;
+    tags.appendChild(projectTag);
+
+    // Okunma sayısı kartın sağ altında: listeyi sıralayan ölçüt bu, o
+    // yüzden her kartta görünür olmalı.
     const views = document.createElement('span');
     views.className = 'article-view-count';
     views.textContent = t('dashboard.viewCount').replace('{count}', article.viewCount);
-    meta.appendChild(views);
 
-    const chevron = document.createElement('svg');
-    chevron.setAttribute('class', 'row-chevron');
-    chevron.setAttribute('viewBox', '0 0 24 24');
-    chevron.setAttribute('fill', 'none');
-    chevron.setAttribute('stroke', 'currentColor');
-    chevron.setAttribute('stroke-width', '2');
-    chevron.setAttribute('stroke-linecap', 'round');
-    chevron.setAttribute('stroke-linejoin', 'round');
-    chevron.style.width = '16px';
-    chevron.style.height = '16px';
-    chevron.innerHTML = '<path d="M9 6l6 6-6 6"/>';
-    meta.appendChild(chevron);
-
-    row.append(titleWrap, meta);
-    listEl.appendChild(row);
+    footer.append(tags, views);
+    card.append(head, preview, footer);
+    listEl.appendChild(card);
   });
 }
 
@@ -259,7 +291,7 @@ function renderSummary(container, summary) {
     </div>
     <div class="card dashboard-recent-card">
       <h3 class="dashboard-card-title">${t('dashboard.mostViewedArticles')}</h3>
-      <div id="dashboardArticleList"></div>
+      <div id="dashboardArticleList" class="dashboard-article-grid"></div>
     </div>
   `;
 
