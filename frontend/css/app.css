@@ -1185,6 +1185,44 @@ tbody tr:hover .row-chevron {
   margin-top: var(--space-5);
 }
 
+/* Panelde en çok okunan üç makale, bilgi bankasındaki kartların aynısıyla
+   yan yana duruyor. Sayı üçle sınırlı (bkz. DashboardService), o yüzden
+   auto-fill yerine sabit üç kolon: dördüncü bir kart gelmeyeceği için
+   esnek ızgaraya gerek yok. */
+.dashboard-article-grid {
+  display: grid;
+  /* minmax(0, 1fr), düz "1fr" değil: 1fr aslında minmax(auto, 1fr) demek ve
+     o auto alt sınırı, kolonun içeriğinden dar olmasını engelliyor. Tek
+     satıra alınan başlıklar (white-space: nowrap) bu yüzden kırpılmak
+     yerine kolonu kendi genişliklerine kadar açıp ızgarayı taşırıyordu. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  /* Izgara satırı en uzun kartın boyunu alıyor; stretch (varsayılan) ile
+     diğer kartlar da o boya uzuyor, yani üç kartın alt kenarı hizalı
+     kalıyor. */
+  align-items: stretch;
+}
+
+/* Kart bir "card" içinde duruyor; kendi gölgesi o zeminde fazladan bir
+   katman gibi görünüyordu. Çerçeve kalıyor, gölge sadece hover'da. */
+.dashboard-article-card {
+  box-shadow: none;
+}
+
+/* Panel kartı üç kolona sığdığı için bilgi bankasındakinden dar: önizleme
+   üç satır yerine iki satır gösteriliyor, alt sınırı da ona göre. */
+.dashboard-article-card .project-card-description {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  min-height: 3em;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-article-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .recent-ticket-row {
   display: flex;
   align-items: center;
@@ -1242,14 +1280,6 @@ tbody tr:hover .row-chevron {
   justify-self: start;
 }
 
-/* En çok okunan makale satırı aynı görsel dili kullanıyor ama hücre sayısı
-   farklı: proje etiketi olmayabiliyor ve öncelik/durum yok. Sabit kolonlar
-   yerine içeriğe göre dizilip sağa yaslanıyor. */
-.recent-article-meta {
-  grid-template-columns: auto auto 16px;
-  justify-content: end;
-}
-
 /* Uzun bir rozet metni hücresini gerip ızgarayı bozmasın. */
 .recent-ticket-meta .badge {
   max-width: 100%;
@@ -1281,8 +1311,7 @@ tbody tr:hover .row-chevron {
 
   /* Telefonda sabit kolonlar sığmıyor: ızgaradan çıkıp içeriğe göre
      sarmalanan bir satıra dönüyor. */
-  .recent-ticket-meta,
-  .recent-article-meta {
+  .recent-ticket-meta {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
@@ -2178,30 +2207,38 @@ tbody tr:hover .row-chevron {
    makaleye özgü farklar tanımlı: etiket satırı, yazar satırı ve okuma
    görünümü. */
 
-/* Başlık 1-2, önizleme 2-3 satır tutabildiği için kartlar farklı boyda
-   kalıyordu ve ızgara satırları kayıyordu. Başlığa iki satırlık, önizlemeye
-   üç satırlık sabit yükseklik vererek her kart aynı boyda başlıyor; alt
-   şerit zaten margin-top: auto ile en alta yapışıyor. */
+/* Başlık tek satır: iki satıra izin verildiğinde kısa başlıklı kartlarda
+   ikinci satır boş kalıyor ve blok kartın tepesine yapışıyordu. Sığmayan
+   başlık "…" ile kırpılıyor, tam hâli title attribute'unda. */
 .article-card .project-card-name {
-  min-height: 2.6em;
+  min-height: 0;
 }
 
+/* Ad + yazar bloğu 44px'lik avatarla aynı yüksekliği tutup içeriğini
+   ortalıyor, böylece iki satırlık metin avatarla dikeyde hizalı duruyor. */
+.article-card .project-card-title-wrap {
+  min-height: 44px;
+  justify-content: center;
+}
+
+/* Makale içeriği düz metin ve satır sonları anlam taşıyor (numaralı adımlar,
+   maddeler). pre-wrap onları koruyor; aksi halde "1. ... 2. ..." tek bir
+   paragrafa dönüşüp okunmaz hale geliyordu. */
 .article-card .project-card-description {
   -webkit-line-clamp: 3;
   line-clamp: 3;
   min-height: 4.5em;
+  white-space: pre-wrap;
 }
 
-/* Proje kartında ad + kod alt alta duruyor; makalede kodun yerini yazar
-   alıyor, bu yüzden ad tek satıra sıkışmak yerine iki satıra taşabiliyor
-   (başlıklar proje adlarından uzun). */
+/* Başlık tek satırda kalıp sığmayan kısmı "…" ile kırpılıyor. İki satıra
+   izin verilmesi denendi ama kartların çoğunda ikinci satır boş kalıyor,
+   dolu olanla arasında dengesiz bir görüntü oluşuyordu. Tam başlık
+   title attribute'unda duruyor (bkz. knowledgeBase.js / dashboard.js). */
 .article-card-title {
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.3;
 }
 
