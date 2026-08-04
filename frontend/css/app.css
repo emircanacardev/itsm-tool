@@ -1529,6 +1529,9 @@ tbody tr:hover .row-chevron {
   transform: none;
 }
 
+/* Kart içi mesaj kutusu. Talep detayı sabit şeride (.toast-stack) geçti
+   ama yönetim, bilgi bankası, projeler ve yeni talep sayfaları hâlâ bu
+   kutuyu kullanıyor - kural onlar için duruyor. */
 .toast {
   font-size: var(--text-sm);
   padding: 8px 10px;
@@ -1545,6 +1548,98 @@ tbody tr:hover .row-chevron {
 .toast.error {
   background: var(--priority-critical-bg);
   color: var(--priority-critical-fg);
+}
+
+/* ---------- Bildirim şeridi (toast) ----------
+   Bkz: js/toast.js. Mesajlar eskiden ilgili kartın altındaki bir kutuda
+   gösteriliyordu; kart sayfanın aşağısında kaldığı için mesaj çoğu zaman
+   ekranın dışında kalıyor ve hiç kaybolmuyordu. Artık sayfaya sabit,
+   kendiliğinden kayboluyor. */
+.toast-stack {
+  position: fixed;
+  top: var(--space-5);
+  right: var(--space-5);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* Şeridin kendisi tıklamayı yutmasın, yalnızca mesajlar tıklanabilir. */
+  pointer-events: none;
+  max-width: min(360px, calc(100vw - var(--space-6)));
+}
+
+.toast-item {
+  pointer-events: auto;
+  padding: 10px var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  box-shadow: var(--shadow-elevated);
+  border: 1px solid transparent;
+  cursor: pointer;
+  /* Giriş/çıkış: sağdan kayarak gelir. is-visible sınıfını JS ekliyor. */
+  opacity: 0;
+  transform: translateX(12px);
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
+  word-break: break-word;
+}
+
+.toast-item.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-success {
+  background: var(--status-resolved-bg);
+  color: var(--status-resolved-fg);
+  border-color: var(--status-resolved-fg);
+}
+
+.toast-error {
+  background: var(--priority-critical-bg);
+  color: var(--priority-critical-fg);
+  border-color: var(--priority-critical-fg);
+}
+
+.toast-warning {
+  background: var(--priority-medium-bg);
+  color: var(--priority-medium-fg);
+  border-color: var(--priority-medium-fg);
+}
+
+/* Telefonda şerit iki yana yayılıyor: 360px'lik sabit genişlik ekranın
+   büyük kısmını kaplayıp sağa taşıyordu. */
+@media (max-width: 560px) {
+  .toast-stack {
+    top: auto;
+    bottom: var(--space-4);
+    left: var(--space-4);
+    right: var(--space-4);
+    max-width: none;
+  }
+
+  .toast-item {
+    transform: translateY(12px);
+  }
+
+  .toast-item.is-visible {
+    transform: translateY(0);
+  }
+}
+
+/* Hareketi azalt tercihi açıkken kaydırma animasyonu yapılmıyor,
+   yalnızca görünürlük değişiyor. */
+@media (prefers-reduced-motion: reduce) {
+  .toast-item {
+    transform: none;
+    transition: opacity var(--transition-fast);
+  }
+
+  .toast-item.is-visible {
+    transform: none;
+  }
 }
 
 /* ---------- Onay diyaloğu (native window.confirm() yerine) ----------

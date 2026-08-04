@@ -1,5 +1,6 @@
 import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
+import { showToast } from '../toast.js';
 import {
   STATUS_BADGE_MAP,
   PRIORITY_BADGE_MAP,
@@ -91,7 +92,6 @@ export function render(container, ticketId, currentUser, query) {
               <select id="statusSelect"></select>
               <button id="statusSaveButton" data-i18n="detail.save"></button>
             </div>
-            <div class="toast" id="statusToast"></div>
           </div>
 
           <div class="card" id="assignCard" style="display: none;">
@@ -102,7 +102,6 @@ export function render(container, ticketId, currentUser, query) {
               </select>
               <button id="assignSaveButton" data-i18n="detail.assign"></button>
             </div>
-            <div class="toast" id="assignToast"></div>
           </div>
 
           <div class="card">
@@ -118,7 +117,6 @@ export function render(container, ticketId, currentUser, query) {
                 <button id="commentSendButton" data-i18n="comments.send"></button>
               </div>
             </div>
-            <div class="toast" id="commentToast"></div>
           </div>
 
           <div class="card">
@@ -128,7 +126,6 @@ export function render(container, ticketId, currentUser, query) {
               <input type="file" id="attachmentInput">
               <button id="attachmentUploadButton" data-i18n="attachments.upload"></button>
             </div>
-            <div class="toast" id="attachmentToast"></div>
           </div>
         </div>
 
@@ -202,10 +199,11 @@ export function render(container, ticketId, currentUser, query) {
     container.querySelector('#assignSelect').value = ticket.assignedTo || '';
   }
 
-  function showToast(el, key, isError) {
-    el.textContent = t(key);
-    el.className = `toast ${isError ? 'error' : 'success'}`;
-    el.style.display = 'block';
+  // Mesajlar artık kartın altındaki kutuda değil, sayfaya sabit şeritte
+  // gösteriliyor (bkz. js/toast.js): kart ekranın dışında kalsa bile
+  // kullanıcı işlemin sonucunu görüyor.
+  function notify(key, variant) {
+    showToast(t(key), variant);
   }
 
   async function loadStatusOptions(currentTicket) {
@@ -391,7 +389,6 @@ export function render(container, ticketId, currentUser, query) {
 
   container.querySelector('#statusSaveButton').addEventListener('click', async () => {
     const button = container.querySelector('#statusSaveButton');
-    const toast = container.querySelector('#statusToast');
     const newStatusId = Number(container.querySelector('#statusSelect').value);
 
     button.disabled = true;
@@ -400,10 +397,10 @@ export function render(container, ticketId, currentUser, query) {
         method: 'PUT',
         body: JSON.stringify({ newStatusId })
       });
-      showToast(toast, 'detail.statusUpdated', false);
+      notify('detail.statusUpdated', 'success');
       await loadTicket();
     } catch (error) {
-      showToast(toast, 'detail.updateError', true);
+      notify('detail.updateError', 'error');
     } finally {
       button.disabled = false;
     }
@@ -411,10 +408,14 @@ export function render(container, ticketId, currentUser, query) {
 
   container.querySelector('#assignSaveButton').addEventListener('click', async () => {
     const button = container.querySelector('#assignSaveButton');
-    const toast = container.querySelector('#assignToast');
     const assignedTo = Number(container.querySelector('#assignSelect').value);
 
-    if (!assignedTo) return;
+    // Kullanıcı seçilmeden basıldığında eskiden sessizce hiçbir şey
+    // olmuyordu; kullanıcı düğmenin bozuk olduğunu sanıyordu.
+    if (!assignedTo) {
+      notify('detail.selectUserWarning', 'warning');
+      return;
+    }
 
     button.disabled = true;
     try {
@@ -422,10 +423,10 @@ export function render(container, ticketId, currentUser, query) {
         method: 'PUT',
         body: JSON.stringify({ assignedTo })
       });
-      showToast(toast, 'detail.assignUpdated', false);
+      notify('detail.assignUpdated', 'success');
       await loadTicket();
     } catch (error) {
-      showToast(toast, 'detail.updateError', true);
+      notify('detail.updateError', 'error');
     } finally {
       button.disabled = false;
     }
@@ -433,10 +434,15 @@ export function render(container, ticketId, currentUser, query) {
 
   container.querySelector('#commentSendButton').addEventListener('click', async () => {
     const button = container.querySelector('#commentSendButton');
-    const toast = container.querySelector('#commentToast');
     const input = container.querySelector('#commentInput');
     const message = input.value.trim();
-    if (!message) return;
+
+    // Boş yorumda da sessizlik yerine sebebini söylüyoruz.
+    if (!message) {
+      notify('comments.emptyWarning', 'warning');
+      input.focus();
+      return;
+    }
 
     button.disabled = true;
     try {
@@ -449,10 +455,10 @@ export function render(container, ticketId, currentUser, query) {
       });
       input.value = '';
       container.querySelector('#commentInternalCheckbox').checked = false;
-      toast.style.display = 'none';
+      notify('comments.added', 'success');
       await loadComments();
     } catch (error) {
-      showToast(toast, 'detail.updateError', true);
+      notify('detail.updateError', 'error');
     } finally {
       button.disabled = false;
     }
@@ -460,10 +466,13 @@ export function render(container, ticketId, currentUser, query) {
 
   container.querySelector('#attachmentUploadButton').addEventListener('click', async () => {
     const button = container.querySelector('#attachmentUploadButton');
-    const toast = container.querySelector('#attachmentToast');
     const fileInput = container.querySelector('#attachmentInput');
     const file = fileInput.files[0];
-    if (!file) return;
+
+    if (!file) {
+      notify('attachments.selectFileWarning', 'warning');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -476,10 +485,10 @@ export function render(container, ticketId, currentUser, query) {
         body: formData
       });
       fileInput.value = '';
-      toast.style.display = 'none';
+      notify('attachments.uploaded', 'success');
       await loadAttachments();
     } catch (error) {
-      showToast(toast, 'attachments.error', true);
+      notify('attachments.error', 'error');
     } finally {
       button.disabled = false;
       button.textContent = t('attachments.upload');
