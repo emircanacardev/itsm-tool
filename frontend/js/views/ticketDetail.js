@@ -1,4 +1,4 @@
-import { enhanceSelect } from '../customSelect.js';
+import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
 import {
   STATUS_BADGE_MAP,
@@ -244,7 +244,10 @@ export function render(container, ticketId, currentUser, query) {
         select.appendChild(option);
       });
       select.value = currentTicket.assignedTo || '';
-      enhanceSelect(select);
+      // Aranabilir: atanabilir kullanıcı sayısı kurulumla birlikte binlere
+      // çıkabiliyor, düz bir listede aradığını bulmak mümkün olmuyor
+      // (aynı desen: admin SLA/proje seçicileri, bilgi bankası).
+      enhanceSelect(select, searchableSelectOptions());
       container.querySelector('#assignCard').style.display = '';
     } catch (error) {
       // TICKET_ASSIGN yetkisi yoksa 403 döner, kart gizli kalır.
