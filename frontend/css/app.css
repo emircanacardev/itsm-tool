@@ -353,7 +353,9 @@
   position: relative;
 }
 
-.search-box svg {
+/* Doğrudan çocuk: temizleme düğmesinin içindeki ikon bu kuralın mutlak
+   konumunu almasın (bkz. .search-clear svg). */
+.search-box > svg {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -365,7 +367,9 @@
   transition: color var(--transition-fast);
 }
 
-.search-box:focus-within svg {
+/* Yalnızca soldaki arama ikonu; temizleme düğmesinin içindeki çarpı
+   kendi rengini koruyor (aksi halde odaktayken o da morarıyordu). */
+.search-box:focus-within > svg {
   color: var(--color-accent);
 }
 
@@ -378,6 +382,60 @@
   font-family: var(--font-body);
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+/* Kutuda metin varken sağ tarafta yer açılıyor, yoksa temizleme düğmesi
+   yazının üstüne biniyor. */
+.search-box.has-value input {
+  padding-right: 34px;
+}
+
+/* Temizleme (×) düğmesi - bkz. js/searchBox.js. Yalnızca kutuda metin
+   varken görünüyor: boş bir kutuda temizlenecek bir şey yok. */
+.search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.search-box.has-value .search-clear {
+  display: inline-flex;
+}
+
+.search-clear svg {
+  /* .search-box svg kuralı arama ikonunu konumlandırıyor; buradaki ikon
+     düğmenin içinde akışta durmalı, o kuralın mutlak konumunu iptal
+     ediyoruz. */
+  position: static;
+  transform: none;
+  width: 14px;
+  height: 14px;
+  color: inherit;
+}
+
+.search-clear:hover {
+  color: var(--color-text);
+  background: var(--color-accent-bg);
+}
+
+.search-clear:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 .filter-group {
@@ -1222,14 +1280,26 @@ tbody tr:hover .row-chevron {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-3) 0;
+  /* Yatay iç boşluk hover zemininin satırı boydan boya kaplaması için;
+     negatif margin ile kartın kendi hizasına geri çekiliyor, yani
+     yazılar eskisi gibi kartın kenarıyla hizalı duruyor. */
+  padding: var(--space-3);
+  margin: 0 calc(-1 * var(--space-3));
   border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background-color var(--transition-fast);
 }
 
 .recent-ticket-row:last-child {
   border-bottom: none;
-  padding-bottom: 0;
+}
+
+/* Talep tablosundaki satırla aynı geri bildirim: zemin renkleniyor,
+   başlık moralıyor, sağdaki ok beliriyor. Panel satırları tıklanabilir
+   olmasına rağmen zemini değişmediği için tablodan farklı davranıyordu. */
+.recent-ticket-row:hover {
+  background: var(--color-surface-alt);
 }
 
 .recent-ticket-row:hover .ticket-title {
@@ -1529,6 +1599,9 @@ tbody tr:hover .row-chevron {
   transform: none;
 }
 
+/* Kart içi mesaj kutusu. Talep detayı sabit şeride (.toast-stack) geçti
+   ama yönetim, bilgi bankası, projeler ve yeni talep sayfaları hâlâ bu
+   kutuyu kullanıyor - kural onlar için duruyor. */
 .toast {
   font-size: var(--text-sm);
   padding: 8px 10px;
@@ -1545,6 +1618,115 @@ tbody tr:hover .row-chevron {
 .toast.error {
   background: var(--priority-critical-bg);
   color: var(--priority-critical-fg);
+}
+
+/* ---------- Bildirim şeridi (toast) ----------
+   Bkz: js/toast.js. Mesajlar eskiden ilgili kartın altındaki bir kutuda
+   gösteriliyordu; kart sayfanın aşağısında kaldığı için mesaj çoğu zaman
+   ekranın dışında kalıyor ve hiç kaybolmuyordu. Artık sayfaya sabit,
+   kendiliğinden kayboluyor. */
+.toast-stack {
+  position: fixed;
+  /* Yatayda ortalı: sağ üst köşede gözden kaçıyordu, ekranın ortası ise
+     okunan içeriğin üstünü kapatıyor. Üstte ortalı ikisini de çözüyor.
+     left/transform yerine left+right+margin:auto: transform kullanılırsa
+     mesajların kendi giriş animasyonundaki transform ile çakışıyor. */
+  top: var(--space-5);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  /* Şeridin kendisi tıklamayı yutmasın, yalnızca mesajlar tıklanabilir. */
+  pointer-events: none;
+  max-width: min(360px, calc(100vw - var(--space-6)));
+}
+
+.toast-item {
+  pointer-events: auto;
+  padding: 10px var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  box-shadow: var(--shadow-elevated);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: center;
+  /* Giriş/çıkış: yukarıdan inerek gelir - şerit üstte olduğu için
+     hareket yönü geldiği yerle aynı. is-visible sınıfını JS ekliyor. */
+  opacity: 0;
+  transform: translateY(-12px);
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
+  word-break: break-word;
+}
+
+.toast-item.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-success {
+  background: var(--status-resolved-bg);
+  color: var(--status-resolved-fg);
+  border-color: var(--status-resolved-fg);
+}
+
+.toast-error {
+  background: var(--priority-critical-bg);
+  color: var(--priority-critical-fg);
+  border-color: var(--priority-critical-fg);
+}
+
+.toast-warning {
+  background: var(--priority-medium-bg);
+  color: var(--priority-medium-fg);
+  border-color: var(--priority-medium-fg);
+}
+
+/* Telefonda şerit iki yana yayılıyor: 360px'lik sabit genişlik ekranın
+   büyük kısmını kaplayıp sağa taşıyordu. */
+@media (max-width: 560px) {
+  /* Telefonda şerit alta geçiyor ve iki yana yayılıyor: üstte ortalı
+     sabit genişlik, dar ekranda başlığın üstüne biniyordu.
+     width'i fit-content'ten auto'ya çevirmek şart - miras kalırsa
+     left/right ile verilen genişlik uygulanmıyor. */
+  .toast-stack {
+    top: auto;
+    bottom: var(--space-4);
+    left: var(--space-4);
+    right: var(--space-4);
+    width: auto;
+    margin: 0;
+    max-width: none;
+  }
+
+  /* Alttan geldiği için hareket yönü de tersine dönüyor. */
+  .toast-item {
+    transform: translateY(12px);
+  }
+
+  .toast-item.is-visible {
+    transform: translateY(0);
+  }
+}
+
+/* Hareketi azalt tercihi açıkken kaydırma animasyonu yapılmıyor,
+   yalnızca görünürlük değişiyor. */
+@media (prefers-reduced-motion: reduce) {
+  .toast-item {
+    transform: none;
+    transition: opacity var(--transition-fast);
+  }
+
+  .toast-item.is-visible {
+    transform: none;
+  }
 }
 
 /* ---------- Onay diyaloğu (native window.confirm() yerine) ----------
@@ -2311,6 +2493,41 @@ tbody tr:hover .row-chevron {
   justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-5);
+}
+
+/* Aktivite Kaydı "Detay" sütunu: birden çok alan değiştiyse metin uzun
+   olabiliyor ve tabloyu yatay scroll'a sokuyordu. Tek satırda kırpılıyor,
+   tam hâli title'da (bkz. admin.js). */
+.audit-details-cell {
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---------- Alan bazlı doğrulama ----------
+   Bkz: js/formValidation.js. Formlar eskiden tek bir genel mesaj
+   gösteriyordu ("ad ve kod zorunlu"); hangi alanın eksik olduğu alanın
+   kendisinden anlaşılmıyordu. */
+.has-error,
+.has-error:focus {
+  border-color: var(--priority-critical-fg);
+}
+
+/* enhanceSelect native select'i gizleyip yerine kendi tetikleyicisini
+   koyuyor; hata sınıfı gizli select'te kaldığı için çerçeveyi görünür
+   olan tetikleyiciye taşıyoruz. */
+.custom-select:has(.has-error) .custom-select-trigger {
+  border-color: var(--priority-critical-fg);
+}
+
+.field-error {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--priority-critical-fg);
 }
 
 /* ---------- Bilgi bankası ----------

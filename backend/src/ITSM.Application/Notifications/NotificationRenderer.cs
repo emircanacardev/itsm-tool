@@ -50,6 +50,13 @@ public class NotificationRenderer
             NotificationTypes.TicketStatusChanged =>
                 _messageProvider.GetFor(languageCode, MessageKeys.NotificationTicketStatusChanged, ticketTitle),
 
+            NotificationTypes.TicketCommented =>
+                _messageProvider.GetFor(
+                    languageCode,
+                    MessageKeys.NotificationTicketCommented,
+                    ticketTitle,
+                    payload?.ActorName ?? string.Empty),
+
             NotificationTypes.SlaBreach => RenderSlaBreach(languageCode, ticketTitle, payload),
 
             // Tanınmayan bir tür (ör. ileride eklenip burada ele alınmamış)

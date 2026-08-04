@@ -28,6 +28,7 @@ public static class MessageKeys
     public const string NotificationTicketAssigned = "Notification_TicketAssigned";
     public const string NotificationTicketAutoAssigned = "Notification_TicketAutoAssigned";
     public const string NotificationTicketStatusChanged = "Notification_TicketStatusChanged";
+    public const string NotificationTicketCommented = "Notification_TicketCommented";
     public const string NotificationSlaBreachReporter = "Notification_SlaBreachReporter";
     public const string NotificationSlaBreachAssignee = "Notification_SlaBreachAssignee";
 

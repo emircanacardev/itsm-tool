@@ -1,5 +1,7 @@
 import { enhanceSelect } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
+import { enhanceSearchBox } from '../searchBox.js';
+import { validateFields, clearFieldErrors } from '../formValidation.js';
 
 const PAGE_SIZE = 12;
 
@@ -281,6 +283,7 @@ export function render(container, currentUser) {
   }
 
   searchInput.addEventListener('input', debounce(resetPageAndLoad, 300));
+  enhanceSearchBox(searchInput, resetPageAndLoad);
   statusSelect.addEventListener('change', resetPageAndLoad);
   sortSelect.addEventListener('change', resetPageAndLoad);
 
@@ -354,6 +357,9 @@ function wireCreateModal(container, showToast, onCreated) {
 
   function closeModal() {
     overlay.style.display = 'none';
+    // Hata izleri kalmasın: modal tekrar açıldığında bir önceki denemenin
+    // kırmızı çerçeveleri ve mesajları duruyordu.
+    clearFieldErrors([nameInput, codeInput]);
   }
 
   openButton?.addEventListener('click', openModal);
@@ -376,10 +382,13 @@ function wireCreateModal(container, showToast, onCreated) {
     const name = nameInput.value.trim();
     const code = codeInput.value.trim();
 
-    if (!name || !code) {
-      showToast('projects.createValidationError', true);
-      return;
-    }
+    // Hata alanın kendi altında görünüyor: tek bir genel mesaj, iki
+    // alandan hangisinin eksik olduğunu söylemiyordu.
+    const hasError = validateFields([
+      { el: nameInput, valid: name.length > 0, messageKey: 'projects.nameRequired' },
+      { el: codeInput, valid: code.length > 0, messageKey: 'projects.codeRequired' }
+    ]);
+    if (hasError) return;
 
     submitButton.disabled = true;
     try {

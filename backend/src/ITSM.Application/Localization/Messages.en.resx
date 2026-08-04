@@ -71,6 +71,10 @@
     <value>The status of your ticket "{0}" has been updated.</value>
     <comment>{0} = ticket title</comment>
   </data>
+  <data name="Notification_TicketCommented" xml:space="preserve">
+    <value>{1} commented on the ticket "{0}".</value>
+    <comment>{0} = ticket title, {1} = name of the person who commented</comment>
+  </data>
   <data name="Notification_SlaBreachReporter" xml:space="preserve">
     <value>The SLA {1} time has been exceeded on the ticket "{0}".</value>
     <comment>{0} = ticket title, {1} = breach type label (response/resolution)</comment>

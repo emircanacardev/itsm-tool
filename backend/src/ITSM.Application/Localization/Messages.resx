@@ -71,6 +71,10 @@
     <value>"{0}" başlıklı talebinizin durumu güncellendi.</value>
     <comment>{0} = talep başlığı</comment>
   </data>
+  <data name="Notification_TicketCommented" xml:space="preserve">
+    <value>{1}, "{0}" başlıklı talebe yorum yaptı.</value>
+    <comment>{0} = talep başlığı, {1} = yorumu yazan kişinin adı</comment>
+  </data>
   <data name="Notification_SlaBreachReporter" xml:space="preserve">
     <value>"{0}" başlıklı talepte SLA {1} süresi aşıldı.</value>
     <comment>{0} = talep başlığı, {1} = ihlal türü etiketi (yanıt/çözüm)</comment>

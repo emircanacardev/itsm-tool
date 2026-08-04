@@ -2,6 +2,7 @@ import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
 import { showConfirmDialog } from '../confirmDialog.js';
 import { PERMISSIONS, hasPermissionInAnyProject } from '../constants.js';
+import { validateFields, clearFieldErrors } from '../formValidation.js';
 
 function formatDate(isoString) {
   if (!isoString) return '';
@@ -271,6 +272,8 @@ async function loadArticle(container, articleId, currentUser) {
   function closeEditMode() {
     editView.style.display = 'none';
     readView.style.display = '';
+    // Düzenleme tekrar açıldığında önceki denemenin hataları durmasın.
+    clearFieldErrors([editTitle, editContent]);
   }
 
   cancelButton.addEventListener('click', closeEditMode);
@@ -280,10 +283,13 @@ async function loadArticle(container, articleId, currentUser) {
     const title = editTitle.value.trim();
     const content = editContent.value.trim();
 
-    if (!title || !content) {
-      showToast('knowledgeBase.validationError', true);
-      return;
-    }
+    // Hata, eksik olan alanın altında görünüyor (yeni makale formuyla
+    // aynı desen).
+    const hasError = validateFields([
+      { el: editTitle, valid: title.length > 0, messageKey: 'knowledgeBase.titleRequired' },
+      { el: editContent, valid: content.length > 0, messageKey: 'knowledgeBase.contentRequired' }
+    ]);
+    if (hasError) return;
 
     saveButton.disabled = true;
     try {

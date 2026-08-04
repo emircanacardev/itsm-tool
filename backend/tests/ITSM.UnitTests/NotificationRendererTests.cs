@@ -72,6 +72,38 @@ public class NotificationRendererTests
     }
 
     [Fact]
+    public void Render_TicketCommented_NamesTheCommenterInBothLanguages()
+    {
+        var renderer = CreateRenderer();
+        var notification = CreateNotification(
+            NotificationTypes.TicketCommented,
+            new NotificationPayload { TicketTitle = "Disk doldu", ActorName = "Ayşe Demir" });
+
+        var turkish = renderer.Render(notification, SupportedLanguages.Turkish);
+        var english = renderer.Render(notification, SupportedLanguages.English);
+
+        // Alıcının kime cevap vereceğini bildirimden görmesi gerekiyor:
+        // hem yorumu yazan hem talep başlığı cümlede yer almalı.
+        Assert.Equal("Ayşe Demir, \"Disk doldu\" başlıklı talebe yorum yaptı.", turkish);
+        Assert.Equal("Ayşe Demir commented on the ticket \"Disk doldu\".", english);
+    }
+
+    [Fact]
+    public void Render_TicketCommented_WithoutActorName_StillRenders()
+    {
+        var renderer = CreateRenderer();
+        // ActorName'i olmayan eski/bozuk bir kayıt bildirim listesinin
+        // tamamını düşürmemeli.
+        var notification = CreateNotification(
+            NotificationTypes.TicketCommented,
+            new NotificationPayload { TicketTitle = "Disk doldu" });
+
+        var turkish = renderer.Render(notification, SupportedLanguages.Turkish);
+
+        Assert.Contains("Disk doldu", turkish);
+    }
+
+    [Fact]
     public void Render_TicketStatusChanged_IncludesTicketTitle()
     {
         var renderer = CreateRenderer();
