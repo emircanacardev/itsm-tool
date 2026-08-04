@@ -18,6 +18,9 @@ public static class NotificationTypes
     /// <summary>Talebin durumu değişti.</summary>
     public const string TicketStatusChanged = "TicketStatusChanged";
 
+    /// <summary>Talebe yeni bir yorum eklendi.</summary>
+    public const string TicketCommented = "TicketCommented";
+
     /// <summary>Talepte SLA süresi aşıldı.</summary>
     public const string SlaBreach = "SlaBreach";
 }
