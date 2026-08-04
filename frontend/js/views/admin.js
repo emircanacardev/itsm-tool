@@ -2686,8 +2686,15 @@ function renderAuditLogSection(section) {
       const actionCell = document.createElement('td');
       actionCell.appendChild(actionBadge(log.action));
 
+      // Detay artık dolu geliyor: "Alan: eski -> yeni" biçiminde, birden
+      // fazla alan değiştiyse virgülle ayrılmış. Uzun olabildiği için
+      // hücre kırpıyor, tam metin title'da duruyor.
       const detailsCell = document.createElement('td');
+      detailsCell.className = 'audit-details-cell';
       detailsCell.textContent = log.details || '-';
+      if (log.details) {
+        detailsCell.title = log.details;
+      }
 
       row.append(dateCell, userCell, entityCell, actionCell, detailsCell);
       auditTableBody.appendChild(row);
