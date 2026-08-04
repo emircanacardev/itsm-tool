@@ -178,8 +178,11 @@ function renderMostViewedArticles(listEl, articles) {
     titleText.textContent = article.title;
     titleWrap.appendChild(titleText);
 
+    // Talep satırındaki meta bloğu dört sabit kolonlu bir ızgara; makale
+    // satırında hücre sayısı farklı (proje etiketi opsiyonel), o yüzden
+    // kendi sınıfıyla ayrılıyor.
     const meta = document.createElement('div');
-    meta.className = 'recent-ticket-meta';
+    meta.className = 'recent-ticket-meta recent-article-meta';
 
     if (article.projectName) {
       const projectTag = document.createElement('span');
