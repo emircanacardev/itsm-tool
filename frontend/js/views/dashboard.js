@@ -135,7 +135,13 @@ function renderRecentTickets(listEl, tickets) {
     dueSpan.textContent = due.text;
     meta.appendChild(dueSpan);
 
-    const chevron = document.createElement('svg');
+    // SVG, createElement ile değil createElementNS ile üretilmek zorunda:
+    // createElement('svg') HTML ad alanında "svg" adlı bilinmeyen bir
+    // eleman yaratıyor, tarayıcı onu SVG olarak çizmiyordu - bu yüzden
+    // panelde satır oku hiç görünmüyordu (talep tablosunda görünüyor,
+    // çünkü orası innerHTML ile basılıyor).
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const chevron = document.createElementNS(SVG_NS, 'svg');
     chevron.setAttribute('class', 'row-chevron');
     chevron.setAttribute('viewBox', '0 0 24 24');
     chevron.setAttribute('fill', 'none');
@@ -143,9 +149,13 @@ function renderRecentTickets(listEl, tickets) {
     chevron.setAttribute('stroke-width', '2');
     chevron.setAttribute('stroke-linecap', 'round');
     chevron.setAttribute('stroke-linejoin', 'round');
-    chevron.style.width = '16px';
-    chevron.style.height = '16px';
-    chevron.innerHTML = '<path d="M9 6l6 6-6 6"/>';
+    chevron.setAttribute('width', '16');
+    chevron.setAttribute('height', '16');
+
+    const chevronPath = document.createElementNS(SVG_NS, 'path');
+    chevronPath.setAttribute('d', 'M9 6l6 6-6 6');
+    chevron.appendChild(chevronPath);
+
     meta.appendChild(chevron);
 
     row.append(titleWrap, meta);

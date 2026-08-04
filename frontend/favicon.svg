@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34" width="34" height="34">
+  <!--
+    Sekme simgesi: sidebar'daki marka kilidinin (.brand-mark-sm + .brand-ekg)
+    birebir karşılığı. Renkler ve köşe yuvarlaklığı variables.css'teki
+    değerlerle aynı; orada CSS değişkeni kullanılıyor, burada değişken
+    okunamadığı için açık değer yazılı.
+  -->
+  <defs>
+    <linearGradient id="pulseBrand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8467e8"/>
+      <stop offset="55%" stop-color="#6d4fe0"/>
+      <stop offset="100%" stop-color="#4a2fb8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- rx: 34%'lik yuvarlatma (34 * 0.34) -->
+  <rect width="34" height="34" rx="11.5" fill="url(#pulseBrand)"/>
+
+  <!-- Nabız çizgisi: index.html'deki brand-ekg path'i, 24'lük kutudan
+       34'lük kutuya ölçeklenip ortalanıyor. -->
+  <g transform="translate(5 5) scale(1)">
+    <path d="M3 12.2h3.4l2.2-5 3.2 9.6 2.2-4.6H21"
+          fill="none"
+          stroke="#ffffff"
+          stroke-width="2.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
+</svg>
