@@ -14,6 +14,13 @@ public class NotificationPayload
     public string? TicketTitle { get; set; }
 
     /// <summary>
+    /// Bildirimi tetikleyen kişinin adı. Yorum bildiriminde cümlenin
+    /// öznesi ("Ahmet Yılmaz, ... talebe yorum yaptı"): alıcının kime
+    /// cevap vereceğini bildirimin kendisinden görmesi için.
+    /// </summary>
+    public string? ActorName { get; set; }
+
+    /// <summary>
     /// SLA ihlallerinde ihlalin türü ("Response" / "Resolution").
     /// BreachType enum'ının adı olarak saklanır.
     /// </summary>
