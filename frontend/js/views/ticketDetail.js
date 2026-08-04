@@ -168,11 +168,11 @@ export function render(container, ticketId, currentUser, query) {
   const ticketDetail = container.querySelector('#ticketDetail');
 
   function renderTicket(ticket) {
-    // Sayfa başlığı talebin kendisi olsun: route'tan gelen "Talepler"
-    // başlığı, açık olan tek bir talebi anlatmıyordu (bkz. projectDetail.js
-    // ve knowledgeBaseDetail.js'te aynı desen).
-    document.getElementById('pageTitle').textContent = ticket.title;
-    document.getElementById('pageSubtitle').textContent = `#${ticket.id} · ${ticket.projectName}`;
+    // Topbar sabit kalıyor: "Talep Detayı" başlığı sayfanın ne sayfası
+    // olduğunu anlatır, talebin kendi adı zaten kartın içinde (ticketTitle)
+    // duruyor - ikisini birden yazmak aynı bilgiyi tekrarlıyordu.
+    // Sekme başlığında ise talebin adı kalıyor: tarayıcı sekmeleri arasında
+    // hangi talebin açık olduğunu ayırt etmenin tek yolu o.
     document.title = `#${ticket.id} ${ticket.title} — Pulse ITSM`;
 
     container.querySelector('#ticketIdLabel').textContent = `#${ticket.id}`;

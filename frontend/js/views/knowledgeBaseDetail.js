@@ -52,8 +52,11 @@ async function loadArticle(container, articleId, currentUser) {
   const canEdit = canManage;
   const canDelete = canManage || isOwner;
 
-  document.getElementById('pageTitle').textContent = article.title;
-  document.getElementById('pageSubtitle').textContent = '';
+  // Topbar sabit kalıyor ("Bilgi Bankası"): makalenin kendi başlığı zaten
+  // kartın içinde duruyor, topbar sayfanın ne sayfası olduğunu söylüyor.
+  // Sekme başlığında ise makale adı kalıyor - sekmeler arasında hangi
+  // makalenin açık olduğunu ayırt etmenin tek yolu o.
+  document.title = `${article.title} — Pulse ITSM`;
 
   container.innerHTML = `
     <a class="project-back-link" href="#/knowledge-base">
@@ -156,7 +159,7 @@ async function loadArticle(container, articleId, currentUser) {
     // korunuyor, metin textContent ile basıldığı için HTML yorumlanmıyor.
     contentEl.textContent = article.content;
 
-    document.getElementById('pageTitle').textContent = article.title;
+    document.title = `${article.title} — Pulse ITSM`;
   }
 
   renderReadView();
