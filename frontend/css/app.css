@@ -1557,11 +1557,19 @@ tbody tr:hover .row-chevron {
    kendiliğinden kayboluyor. */
 .toast-stack {
   position: fixed;
+  /* Yatayda ortalı: sağ üst köşede gözden kaçıyordu, ekranın ortası ise
+     okunan içeriğin üstünü kapatıyor. Üstte ortalı ikisini de çözüyor.
+     left/transform yerine left+right+margin:auto: transform kullanılırsa
+     mesajların kendi giriş animasyonundaki transform ile çakışıyor. */
   top: var(--space-5);
-  right: var(--space-5);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
   z-index: 1100;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
   /* Şeridin kendisi tıklamayı yutmasın, yalnızca mesajlar tıklanabilir. */
   pointer-events: none;
@@ -1577,9 +1585,11 @@ tbody tr:hover .row-chevron {
   box-shadow: var(--shadow-elevated);
   border: 1px solid transparent;
   cursor: pointer;
-  /* Giriş/çıkış: sağdan kayarak gelir. is-visible sınıfını JS ekliyor. */
+  text-align: center;
+  /* Giriş/çıkış: yukarıdan inerek gelir - şerit üstte olduğu için
+     hareket yönü geldiği yerle aynı. is-visible sınıfını JS ekliyor. */
   opacity: 0;
-  transform: translateX(12px);
+  transform: translateY(-12px);
   transition:
     opacity var(--transition-fast),
     transform var(--transition-fast);
@@ -1588,7 +1598,7 @@ tbody tr:hover .row-chevron {
 
 .toast-item.is-visible {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(0);
 }
 
 .toast-success {
@@ -1612,14 +1622,21 @@ tbody tr:hover .row-chevron {
 /* Telefonda şerit iki yana yayılıyor: 360px'lik sabit genişlik ekranın
    büyük kısmını kaplayıp sağa taşıyordu. */
 @media (max-width: 560px) {
+  /* Telefonda şerit alta geçiyor ve iki yana yayılıyor: üstte ortalı
+     sabit genişlik, dar ekranda başlığın üstüne biniyordu.
+     width'i fit-content'ten auto'ya çevirmek şart - miras kalırsa
+     left/right ile verilen genişlik uygulanmıyor. */
   .toast-stack {
     top: auto;
     bottom: var(--space-4);
     left: var(--space-4);
     right: var(--space-4);
+    width: auto;
+    margin: 0;
     max-width: none;
   }
 
+  /* Alttan geldiği için hareket yönü de tersine dönüyor. */
   .toast-item {
     transform: translateY(12px);
   }
