@@ -353,7 +353,9 @@
   position: relative;
 }
 
-.search-box svg {
+/* Doğrudan çocuk: temizleme düğmesinin içindeki ikon bu kuralın mutlak
+   konumunu almasın (bkz. .search-clear svg). */
+.search-box > svg {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -365,7 +367,9 @@
   transition: color var(--transition-fast);
 }
 
-.search-box:focus-within svg {
+/* Yalnızca soldaki arama ikonu; temizleme düğmesinin içindeki çarpı
+   kendi rengini koruyor (aksi halde odaktayken o da morarıyordu). */
+.search-box:focus-within > svg {
   color: var(--color-accent);
 }
 
@@ -378,6 +382,60 @@
   font-family: var(--font-body);
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+/* Kutuda metin varken sağ tarafta yer açılıyor, yoksa temizleme düğmesi
+   yazının üstüne biniyor. */
+.search-box.has-value input {
+  padding-right: 34px;
+}
+
+/* Temizleme (×) düğmesi - bkz. js/searchBox.js. Yalnızca kutuda metin
+   varken görünüyor: boş bir kutuda temizlenecek bir şey yok. */
+.search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.search-box.has-value .search-clear {
+  display: inline-flex;
+}
+
+.search-clear svg {
+  /* .search-box svg kuralı arama ikonunu konumlandırıyor; buradaki ikon
+     düğmenin içinde akışta durmalı, o kuralın mutlak konumunu iptal
+     ediyoruz. */
+  position: static;
+  transform: none;
+  width: 14px;
+  height: 14px;
+  color: inherit;
+}
+
+.search-clear:hover {
+  color: var(--color-text);
+  background: var(--color-accent-bg);
+}
+
+.search-clear:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 .filter-group {

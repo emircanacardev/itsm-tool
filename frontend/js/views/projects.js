@@ -1,5 +1,6 @@
 import { enhanceSelect } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
+import { enhanceSearchBox } from '../searchBox.js';
 import { validateFields, clearFieldErrors } from '../formValidation.js';
 
 const PAGE_SIZE = 12;
@@ -282,6 +283,7 @@ export function render(container, currentUser) {
   }
 
   searchInput.addEventListener('input', debounce(resetPageAndLoad, 300));
+  enhanceSearchBox(searchInput, resetPageAndLoad);
   statusSelect.addEventListener('change', resetPageAndLoad);
   sortSelect.addEventListener('change', resetPageAndLoad);
 

@@ -1,5 +1,6 @@
 import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { pulseLoader } from '../loading.js';
+import { enhanceSearchBox } from '../searchBox.js';
 import { PERMISSIONS, hasPermissionInAnyProject } from '../constants.js';
 import { validateFields, clearFieldErrors } from '../formValidation.js';
 
@@ -353,6 +354,7 @@ export function render(container, currentUser) {
   }
 
   searchInput.addEventListener('input', debounce(resetPageAndLoad, 300));
+  enhanceSearchBox(searchInput, resetPageAndLoad);
   sortSelect.addEventListener('change', resetPageAndLoad);
   categorySelect.addEventListener('change', resetPageAndLoad);
 
