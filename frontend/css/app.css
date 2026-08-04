@@ -1185,6 +1185,35 @@ tbody tr:hover .row-chevron {
   margin-top: var(--space-5);
 }
 
+/* Panelde en çok okunan üç makale, bilgi bankasındaki kartların aynısıyla
+   yan yana duruyor. Sayı üçle sınırlı (bkz. DashboardService), o yüzden
+   auto-fill yerine sabit üç kolon: dördüncü bir kart gelmeyeceği için
+   esnek ızgaraya gerek yok. */
+.dashboard-article-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+/* Kart bir "card" içinde duruyor; kendi gölgesi o zeminde fazladan bir
+   katman gibi görünüyordu. Çerçeve kalıyor, gölge sadece hover'da. */
+.dashboard-article-card {
+  box-shadow: none;
+}
+
+/* Panelde içerik önizlemesi yok: kart yalnızca başlık, yazar, proje ve
+   okunma sayısından oluşuyor, bu yüzden alt şeridin üst boşluğu
+   bilgi bankasındakinden daha dar. */
+.dashboard-article-card .article-card-footer {
+  padding-top: var(--space-3);
+}
+
+@media (max-width: 1100px) {
+  .dashboard-article-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .recent-ticket-row {
   display: flex;
   align-items: center;
