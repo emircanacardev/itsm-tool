@@ -76,10 +76,10 @@ const translations = {
     'tickets.dueSoon': 'Yaklaşıyor',
     'tickets.dueDone': 'Tamamlandı',
     'tickets.error': 'Talepler yüklenirken bir hata oluştu.',
-    // Yükleme anındaki geçici başlık; veri gelince talebin kendi başlığıyla
-    // değişiyor (bkz. router.js detay route'ları).
+    // Detay sayfasının topbar başlığı sabit: talebin kendi adı kartın
+    // içinde duruyor, topbar sayfanın ne sayfası olduğunu söylüyor.
     'detail.pageTitle': 'Talep Detayı',
-    'detail.pageSubtitle': 'Talep yükleniyor…',
+    'detail.pageSubtitle': 'Talebin ayrıntıları, yorumlar ve ekler.',
     'detail.back': '← Taleplere dön',
     'detail.backToProject': '← Projeye dön',
     'detail.description': 'Açıklama',
@@ -357,8 +357,7 @@ const translations = {
     'projects.createValidationError': 'Proje adı ve kodu zorunlu.',
     'knowledgeBase.pageTitle': 'Bilgi Bankası',
     'knowledgeBase.pageSubtitle': 'Sık karşılaşılan sorunlar ve çözüm adımları',
-    'articleDetail.pageTitle': 'Makale',
-    'articleDetail.pageSubtitle': 'Makale yükleniyor…',
+    'articleDetail.pageSubtitle': 'Makale içeriği ve ayrıntıları.',
     'knowledgeBase.searchLabel': 'Ara',
     'knowledgeBase.searchPlaceholder': 'Başlık veya içerikte ara...',
     'knowledgeBase.projectLabel': 'Proje',
@@ -561,7 +560,7 @@ const translations = {
     'tickets.dueDone': 'Done',
     'tickets.error': 'Something went wrong while loading tickets.',
     'detail.pageTitle': 'Ticket Detail',
-    'detail.pageSubtitle': 'Loading ticket…',
+    'detail.pageSubtitle': 'Ticket details, comments and attachments.',
     'detail.back': '← Back to tickets',
     'detail.backToProject': '← Back to project',
     'detail.description': 'Description',
@@ -839,8 +838,7 @@ const translations = {
     'projects.createValidationError': 'Project name and code are required.',
     'knowledgeBase.pageTitle': 'Knowledge Base',
     'knowledgeBase.pageSubtitle': 'Common problems and how to solve them',
-    'articleDetail.pageTitle': 'Article',
-    'articleDetail.pageSubtitle': 'Loading article…',
+    'articleDetail.pageSubtitle': 'Article content and details.',
     'knowledgeBase.searchLabel': 'Search',
     'knowledgeBase.searchPlaceholder': 'Search in title or content...',
     'knowledgeBase.projectLabel': 'Project',

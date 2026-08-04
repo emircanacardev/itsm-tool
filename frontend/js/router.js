@@ -33,9 +33,9 @@ const routes = [
   // buradaki titleKey sadece yükleme anındaki geçici başlık.
   { pattern: /^projects\/(\d+)$/, view: renderProjectDetail, titleKey: 'projectDetail.pageTitle', subtitleKey: 'projectDetail.pageSubtitle' },
   { pattern: /^knowledge-base$/, view: renderKnowledgeBase, titleKey: 'knowledgeBase.pageTitle', subtitleKey: 'knowledgeBase.pageSubtitle' },
-  // Başlık makalenin kendi adıyla değiştiriliyor (bkz. knowledgeBaseDetail.js);
-  // buradaki titleKey sadece yükleme anındaki geçici başlık.
-  { pattern: /^knowledge-base\/(\d+)$/, view: renderKnowledgeBaseDetail, titleKey: 'articleDetail.pageTitle', subtitleKey: 'articleDetail.pageSubtitle' },
+  // Topbar liste sayfasıyla aynı kalıyor ("Bilgi Bankası"): makalenin kendi
+  // başlığı kartın içinde duruyor (bkz. knowledgeBaseDetail.js).
+  { pattern: /^knowledge-base\/(\d+)$/, view: renderKnowledgeBaseDetail, titleKey: 'knowledgeBase.pageTitle', subtitleKey: 'articleDetail.pageSubtitle' },
   { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle', subtitleKey: 'notifications.pageSubtitle' },
   { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS }
 ];
