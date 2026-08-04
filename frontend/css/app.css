@@ -2425,6 +2425,29 @@ tbody tr:hover .row-chevron {
   margin-top: var(--space-5);
 }
 
+/* ---------- Alan bazlı doğrulama ----------
+   Bkz: js/formValidation.js. Formlar eskiden tek bir genel mesaj
+   gösteriyordu ("ad ve kod zorunlu"); hangi alanın eksik olduğu alanın
+   kendisinden anlaşılmıyordu. */
+.has-error,
+.has-error:focus {
+  border-color: var(--priority-critical-fg);
+}
+
+/* enhanceSelect native select'i gizleyip yerine kendi tetikleyicisini
+   koyuyor; hata sınıfı gizli select'te kaldığı için çerçeveyi görünür
+   olan tetikleyiciye taşıyoruz. */
+.custom-select:has(.has-error) .custom-select-trigger {
+  border-color: var(--priority-critical-fg);
+}
+
+.field-error {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--priority-critical-fg);
+}
+
 /* ---------- Bilgi bankası ----------
    Kart ızgarası proje kartlarıyla aynı iskeleti (.project-grid /
    .project-card / .project-card-head …) kullanıyor; burada yalnızca
