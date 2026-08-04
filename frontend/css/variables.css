@@ -253,9 +253,13 @@ body {
      fixed normal akıştan çıktığı için .main'e sidebar genişliği kadar
      margin-left veriliyor (her kırılımda ayrı ayrı). */
   position: fixed;
+  /* Yükseklik 100vh yerine top+bottom ile veriliyor: mobil tarayıcılarda
+     100vh adres çubuğunu da sayıp viewport'tan taşabiliyor ve sidebar'ın
+     alt kısmı (kullanıcı bloğu) ekran dışında kalıyordu. top/bottom
+     çifti her zaman gerçek görünür alana oturur. */
   top: 0;
   left: 0;
-  height: 100vh;
+  bottom: 0;
   overflow-y: auto;
   /* Topbar z-index:2 ile kendi yığın bağlamını açıyor; sidebar akıştan
      çıktığı için onun altında kalıp sağ kenarı (gölge + yuvarlatılmış
