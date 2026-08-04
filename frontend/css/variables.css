@@ -243,13 +243,25 @@ body {
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   box-shadow: var(--shadow-elevated);
   transition: background-color var(--transition-base);
-  /* İçerik (ör. talep detayı) sayfayı uzatınca sidebar da onunla birlikte
-     uzamasın diye viewport yüksekliğine sabitliyoruz. */
-  position: sticky;
+  /* Sidebar viewport'a çivileniyor: sayfa ne kadar uzarsa uzasın yerinde
+     kalır.
+     Neden sticky değil: sticky bir eleman yalnızca KENDİ kapsayıcısı
+     içinde kayabildiği kadar yapışır. Sidebar zaten 100vh olduğu için
+     kapsayıcısında yapışacak boşluk kalmıyordu ve scroll'la birlikte
+     yukarı kayıyordu - özellikle sayfanın altındaki bir dropdown açılıp
+     sayfa aniden uzadığında. fixed'de bu sorun yapısal olarak yok.
+     fixed normal akıştan çıktığı için .main'e sidebar genişliği kadar
+     margin-left veriliyor (her kırılımda ayrı ayrı). */
+  position: fixed;
   top: 0;
-  align-self: flex-start;
+  left: 0;
   height: 100vh;
   overflow-y: auto;
+  /* Topbar z-index:2 ile kendi yığın bağlamını açıyor; sidebar akıştan
+     çıktığı için onun altında kalıp sağ kenarı (gölge + yuvarlatılmış
+     köşe) kırpılıyordu. Modal/onay overlay'leri 1000'de, yani bu değer
+     onları örtmüyor. */
+  z-index: 3;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
@@ -509,6 +521,10 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Sidebar position:fixed olduğu için akıştan çıktı; bıraktığı boşluğu
+     burada telafi ediyoruz. Değer .sidebar genişliğiyle birebir aynı
+     olmak zorunda (240 / 900px altı 64 / 560px altı 56). */
+  margin-left: 240px;
 }
 
 .topbar-page {
@@ -597,6 +613,14 @@ body {
 
 .shell-auth-page .content {
   padding: 0;
+}
+
+/* Sidebar burada gizli olduğu için .main'in ona ayırdığı boşluk da
+   kalkmalı; yoksa giriş ekranının solunda 240px'lik boş bir şerit kalıyor.
+   Medya sorgularındaki daraltılmış değerleri de geçersiz kılması için
+   tek başına yeterli özgüllükte. */
+.shell-auth-page .main {
+  margin-left: 0;
 }
 
 .theme-toggle {
@@ -1284,6 +1308,11 @@ textarea:focus {
     align-items: center;
   }
 
+  /* Sidebar daraldı, .main'in telafisi de daralmalı. */
+  .main {
+    margin-left: 64px;
+  }
+
   /* Yazılar gidiyor, ikonlar kalıyor. */
   .sidebar .brand-name-sm,
   .sidebar .nav-list a span,
@@ -1321,6 +1350,10 @@ textarea:focus {
   .sidebar {
     width: 56px;
     padding: var(--space-4) 6px;
+  }
+
+  .main {
+    margin-left: 56px;
   }
 
   .topbar-page {
