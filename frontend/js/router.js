@@ -22,16 +22,20 @@ const routes = [
   { pattern: /^register$/, view: renderRegister, public: true, titleKey: 'register.title' },
   { pattern: /^dashboard$/, view: renderDashboard, titleKey: 'dashboard.pageTitle', subtitleKey: 'dashboard.pageSubtitle', requiredPermissions: [PERMISSIONS.REPORT_VIEW] },
   { pattern: /^tickets$/, view: renderTickets, titleKey: 'tickets.pageTitle', subtitleKey: 'tickets.pageSubtitle' },
-  { pattern: /^tickets\/(\d+)$/, view: renderTicketDetail, titleKey: 'tickets.pageTitle' },
+  // Detay route'larının başlığı veri gelince kendi adıyla değiştiriliyor
+  // (bkz. ticketDetail.js). Buradaki anahtar sadece yükleme anında görünür;
+  // liste başlığı ("Talepler") kullanılırsa tek bir talebi açan kullanıcı
+  // bir an yanlış sayfada olduğunu sanıyordu.
+  { pattern: /^tickets\/(\d+)$/, view: renderTicketDetail, titleKey: 'detail.pageTitle', subtitleKey: 'detail.pageSubtitle' },
   { pattern: /^new-ticket$/, view: renderNewTicket, titleKey: 'newTicket.pageTitle', subtitleKey: 'newTicket.pageSubtitle' },
   { pattern: /^projects$/, view: renderProjects, titleKey: 'projects.pageTitle', subtitleKey: 'projects.pageSubtitle' },
   // Başlık projenin kendi adıyla değiştirileceği için (bkz. projectDetail.js)
   // buradaki titleKey sadece yükleme anındaki geçici başlık.
-  { pattern: /^projects\/(\d+)$/, view: renderProjectDetail, titleKey: 'projects.pageTitle' },
+  { pattern: /^projects\/(\d+)$/, view: renderProjectDetail, titleKey: 'projectDetail.pageTitle', subtitleKey: 'projectDetail.pageSubtitle' },
   { pattern: /^knowledge-base$/, view: renderKnowledgeBase, titleKey: 'knowledgeBase.pageTitle', subtitleKey: 'knowledgeBase.pageSubtitle' },
   // Başlık makalenin kendi adıyla değiştiriliyor (bkz. knowledgeBaseDetail.js);
   // buradaki titleKey sadece yükleme anındaki geçici başlık.
-  { pattern: /^knowledge-base\/(\d+)$/, view: renderKnowledgeBaseDetail, titleKey: 'knowledgeBase.pageTitle' },
+  { pattern: /^knowledge-base\/(\d+)$/, view: renderKnowledgeBaseDetail, titleKey: 'articleDetail.pageTitle', subtitleKey: 'articleDetail.pageSubtitle' },
   { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle', subtitleKey: 'notifications.pageSubtitle' },
   { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS }
 ];

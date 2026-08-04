@@ -54,6 +54,9 @@ async function loadArticle(container, articleId, currentUser) {
 
   document.getElementById('pageTitle').textContent = article.title;
   document.getElementById('pageSubtitle').textContent = '';
+  // Sekme başlığı da makaleye dönmeli; yoksa tarayıcı sekmesinde bir
+  // önceki sayfanın adı kalıyordu (diğer detay sayfalarındaki desen).
+  document.title = `${article.title} — Pulse ITSM`;
 
   container.innerHTML = `
     <a class="project-back-link" href="#/knowledge-base">
@@ -157,6 +160,7 @@ async function loadArticle(container, articleId, currentUser) {
     contentEl.textContent = article.content;
 
     document.getElementById('pageTitle').textContent = article.title;
+    document.title = `${article.title} — Pulse ITSM`;
   }
 
   renderReadView();
