@@ -37,7 +37,15 @@ const routes = [
   // başlığı kartın içinde duruyor (bkz. knowledgeBaseDetail.js).
   { pattern: /^knowledge-base\/(\d+)$/, view: renderKnowledgeBaseDetail, titleKey: 'knowledgeBase.pageTitle', subtitleKey: 'articleDetail.pageSubtitle' },
   { pattern: /^notifications$/, view: renderNotifications, titleKey: 'notifications.pageTitle', subtitleKey: 'notifications.pageSubtitle' },
-  { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS }
+  { pattern: /^admin$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS },
+  // Yönetimdeki Projeler sekmesine doğrudan bağlantı - proje ayarlarındaki
+  // geri düğmesi buraya dönüyor (düz #/admin varsayılan sekmeyi, yani
+  // Kullanıcılar'ı açardı).
+  { pattern: /^admin\/projects$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS },
+  // Belirli bir projenin ayar ekranına doğrudan bağlantı. Proje detayındaki
+  // "Proje ayarları" düğmesi buraya geliyor; eskiden #/admin'e gidip
+  // yönetimin varsayılan sekmesinde (Kullanıcılar) bırakıyordu.
+  { pattern: /^admin\/projects\/(\d+)$/, view: renderAdmin, titleKey: 'admin.pageTitle', subtitleKey: 'admin.pageSubtitle', requiredPermissions: ADMIN_AREA_PERMISSIONS }
 ];
 
 const viewEl = document.getElementById('view');
