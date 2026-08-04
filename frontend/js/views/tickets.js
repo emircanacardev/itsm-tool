@@ -1,6 +1,7 @@
 import { enhanceSelect, searchableSelectOptions } from '../customSelect.js';
 import { enhanceDateInput } from '../customDatePicker.js';
 import { pulseLoader } from '../loading.js';
+import { enhanceSearchBox } from '../searchBox.js';
 import {
   STATUS_DOT_COLORS,
   PRIORITY_BADGE_MAP,
@@ -209,16 +210,36 @@ export function render(container, currentUser, query) {
     ticketTableBody.innerHTML = '';
 
     if (tickets.length === 0) {
-      ticketTableBody.innerHTML = `
-        <tr><td colspan="7" style="padding: 0; border-bottom: none;">
-          <div class="state-box" style="border: none;">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="16" rx="2"/>
-              <path d="M3 9h18M9 4v5"/>
-            </svg>
-            <span>${t('tickets.empty')}</span>
-          </div>
-        </td></tr>`;
+      // "Hiç talep yok" ile "aramanla eşleşen yok" farklı durumlar:
+      // ikincisinde kullanıcının yapması gereken şey belli (aramayı
+      // değiştir), o yüzden mesaj da farklı.
+      const term = searchInput.value.trim();
+
+      const cell = document.createElement('td');
+      cell.colSpan = 7;
+      cell.style.cssText = 'padding: 0; border-bottom: none;';
+
+      const box = document.createElement('div');
+      box.className = 'state-box';
+      box.style.border = 'none';
+      box.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <path d="M3 9h18M9 4v5"/>
+        </svg>`;
+
+      // Arama terimi kullanıcı girdisi: textContent ile basılıyor
+      // (tasarım dili §8), innerHTML'e karıştırılmıyor.
+      const message = document.createElement('span');
+      message.textContent = term
+        ? t('tickets.emptyForSearch').replace('{term}', term)
+        : t('tickets.empty');
+      box.appendChild(message);
+
+      cell.appendChild(box);
+      const row = document.createElement('tr');
+      row.appendChild(cell);
+      ticketTableBody.appendChild(row);
       return;
     }
 
@@ -396,6 +417,8 @@ export function render(container, currentUser, query) {
   const debouncedSearch = debounce(resetPageAndLoad, 300);
 
   searchInput.addEventListener('input', debouncedSearch);
+  // Yazılanı tuş tuş silmek yerine tek tıkla temizleme.
+  enhanceSearchBox(searchInput, resetPageAndLoad);
   filterStatus.addEventListener('change', resetPageAndLoad);
   filterPriority.addEventListener('change', resetPageAndLoad);
   filterProject.addEventListener('change', resetPageAndLoad);
