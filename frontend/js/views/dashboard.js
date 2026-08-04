@@ -160,10 +160,19 @@ function titleInitials(title) {
   return (trimmed.slice(0, 2) || '??').toUpperCase();
 }
 
-// En çok okunan makaleler, bilgi bankası sayfasındaki kartların aynısıyla
+// Kartta gösterilecek önizleme uzunluğu. Bilgi bankasındaki karttan kısa:
+// panel kartı üç kolonda daha dar ve iki satır önizleme gösteriyor.
+const ARTICLE_PREVIEW_LENGTH = 120;
+
+function truncate(text, maxLength) {
+  const collapsed = text.replace(/\s+/g, ' ').trim();
+  return collapsed.length > maxLength ? `${collapsed.slice(0, maxLength)}…` : collapsed;
+}
+
+// En çok okunan makaleler, bilgi bankası sayfasındaki kartın aynısıyla
 // gösteriliyor: aynı kayıt iki ekranda iki farklı biçimde görünürse aynı
-// şey oldukları anlaşılmıyor. Farkı, panelde asıl bilginin okunma sayısı
-// olması - kart altında içerik önizlemesi yerine o duruyor.
+// şey oldukları anlaşılmıyor. Alt şeritte tarih yerine okunma sayısı var,
+// çünkü listeyi sıralayan ölçüt o.
 function renderMostViewedArticles(listEl, articles) {
   if (!articles || articles.length === 0) {
     listEl.innerHTML = `<div class="state-box" style="border: none;"><span>${t('dashboard.noArticleData')}</span></div>`;
@@ -199,6 +208,12 @@ function renderMostViewedArticles(listEl, articles) {
     titleWrap.append(name, author);
     head.append(mark, titleWrap);
 
+    // İçerik önizlemesi bilgi bankasındaki kartla aynı: kartın neden
+    // açılmaya değer olduğunu başlık tek başına anlatmıyor.
+    const preview = document.createElement('p');
+    preview.className = 'project-card-description';
+    preview.textContent = truncate(article.content, ARTICLE_PREVIEW_LENGTH);
+
     const footer = document.createElement('div');
     footer.className = 'article-card-footer';
 
@@ -217,7 +232,7 @@ function renderMostViewedArticles(listEl, articles) {
     views.textContent = t('dashboard.viewCount').replace('{count}', article.viewCount);
 
     footer.append(tags, views);
-    card.append(head, footer);
+    card.append(head, preview, footer);
     listEl.appendChild(card);
   });
 }

@@ -1203,33 +1203,14 @@ tbody tr:hover .row-chevron {
    katman gibi görünüyordu. Çerçeve kalıyor, gölge sadece hover'da. */
 .dashboard-article-card {
   box-shadow: none;
-  /* Bilgi bankasındaki kart üç bloklu (başlık / önizleme / alt şerit) ve
-     aradaki boşluk önizlemeyle doluyor. Panelde önizleme olmadığı için
-     aynı boşluk kartın ortasında boş bir alan olarak kalıyordu; blok
-     arası mesafe içeriğe göre daraltılıyor. */
-  gap: var(--space-4);
-  justify-content: space-between;
 }
 
-/* Başlık iki satıra çıkabiliyor ve avatar tek satır yüksekliğinde kalıp
-   yukarıda asılı duruyordu. Üstten hizalanınca avatar başlığın ilk
-   satırıyla aynı yerden başlıyor. */
-.dashboard-article-card .project-card-head {
-  align-items: flex-start;
-}
-
-/* Önizleme metni için konmuş iki satırlık alt sınır, panelde tek satırlık
-   başlığın altında boşluğa dönüşüyordu. */
-.dashboard-article-card .project-card-name {
-  min-height: 0;
-}
-
-/* Alt şerit margin-top:auto ile kartın dibine yapışıyordu; üstündeki
-   ayraç çizgisi de içerikten kopuk, ortada asılı kalıyordu. Kart zaten
-   space-between ile dağıldığı için otomatik boşluğa gerek yok. */
-.dashboard-article-card .article-card-footer {
-  margin-top: 0;
-  padding-top: var(--space-3);
+/* Panel kartı üç kolona sığdığı için bilgi bankasındakinden dar: önizleme
+   üç satır yerine iki satır gösteriliyor, alt sınırı da ona göre. */
+.dashboard-article-card .project-card-description {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  min-height: 3em;
 }
 
 @media (max-width: 1100px) {
