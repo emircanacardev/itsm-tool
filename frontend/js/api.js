@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://localhost:7047/api';
+// API_BASE_URL js/config.js içinde tanımlı ve bu dosyadan önce yükleniyor.
 
 async function apiRequest(path, options = {}) {
   const token = localStorage.getItem('token');

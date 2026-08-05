@@ -172,13 +172,25 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// Bekleyen migration'ları açılışta uyguluyoruz. Deploy ortamında elle
+// "dotnet ef database update" çalıştıracak bir kabuk olmadığı için şema
+// güncellemesi uygulamanın kendi sorumluluğunda.
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-}
 
-app.UseHttpsRedirection();
+    // Production'da TLS'i platform (Render/reverse proxy) sonlandırıyor ve
+    // container'a düz HTTP geliyor; burada redirect açık kalırsa sonsuz
+    // yönlendirme döngüsü oluşur.
+    app.UseHttpsRedirection();
+}
 
 // Kültürü isteğin en başında çözüyoruz: bundan sonraki her şey
 // (controller'lar, servisler, resource okumaları) CurrentUICulture'a bakıyor.
