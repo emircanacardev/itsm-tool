@@ -35,6 +35,15 @@
 
 4. Deploy sonrası `https://<servis-adi>.onrender.com` adresi oluşur.
 
+Connection string key-value formatında olmalı; Neon'un varsayılan olarak
+gösterdiği `postgresql://` URI'sini Npgsql parse edemiyor. Dashboard'daki
+formatı **.NET** seçerek kopyala, değeri tırnaksız gir ve
+`Channel Binding` parametresini çıkar:
+
+```
+Host=...;Database=neondb;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true
+```
+
 Migration'lar uygulama açılışında otomatik uygulanıyor (`Program.cs` içindeki
 `MigrateAsync` çağrısı), ayrıca bir adım gerekmiyor.
 

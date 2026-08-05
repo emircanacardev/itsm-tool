@@ -8,6 +8,5 @@ const API_BASE_URL = (() => {
     return 'https://localhost:7047/api';
   }
 
-  // Deploy sonrası Render'ın verdiği adresle değiştir.
-  return 'https://itsm-api.onrender.com/api';
+  return 'https://itsm-api-deaq.onrender.com/api';
 })();
